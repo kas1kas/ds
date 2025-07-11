@@ -1,4 +1,4 @@
-# woordklok v5.26
+# woordklok v5.27
 # for 11x10 and 16x16 grid
 import argparse
 import json
@@ -36,6 +36,9 @@ class WordClock:
         self.dot_active_color = config["DOT_ACTIVE_COLOR"]
         self.dot_inactive_color = config["DOT_INACTIVE_COLOR"]
         self.minute_dots = config["MINUTE_DOTS"].get(str(self.grid), {}) 
+        self.dot_order = ["MLT", "MLB", "MRB", "MRT"]     # Fixed cycling order
+        self.current_dot_index = 0                        # Initialize cycling position
+        self.dot_dark_color = config["DOT_DARK_COLOR"]       
         self.clock_type = config["CLOCK_TYPE"]
         self.rand_color = config["RAND_COLOR"]
         self.lut_in =  config.get("LUT_IN").get(self.woordklok,{})
@@ -344,12 +347,14 @@ def run_clock():
 
     """Run the word clock in a separate thread."""
     try:
+      last_time = time.time()
       while True:
         if onlyx(word_clock.light_interval):
            word_clock.update_brightness()
 
         if word_clock.clock_type == "regular":
            word_clock.cls()
+           word_clock.update_clock()
 
         elif word_clock.clock_type == "test":
            while True: 
@@ -358,12 +363,25 @@ def run_clock():
               word_clock.strip.show()
 
         elif word_clock.clock_type == "dark":
-           word_clock.cls()
+           if time.time() - last_time >= 5:  # Every second
+              word_clock.cls()
+               
+              # Turn off previous LED
+              prev_dot = word_clock.dot_order[(word_clock.current_dot_index - 1) % 4]
+              word_clock.set_led_color(word_clock.minute_dots[prev_dot], (0, 0, 0))
+              
+              # Turn on current LED
+              current_dot = word_clock.dot_order[word_clock.current_dot_index]
+              word_clock.set_led_color(word_clock.minute_dots[current_dot], word_clock.dot_dark_color)
+              
+              # Advance to next LED
+              word_clock.current_dot_index = (word_clock.current_dot_index + 1) % 4
+              last_time = time.time()
            word_clock.strip.show()
-           time.sleep(1)
 
         elif word_clock.clock_type == "random":
             word_clock.set_random_led(word_clock.rand_color)
+            word_clock.update_clock()
             
         elif word_clock.clock_type == "rainbow":
            for j in range(256 * 5):
@@ -374,9 +392,8 @@ def run_clock():
                       word_clock.setcolor_x_y(x,y,b)
                word_clock.update_clock()
                time.sleep(0.01)
-
-        if word_clock.clock_type != "dark":
-          word_clock.update_clock()
+           word_clock.update_clock()
+            
     except KeyboardInterrupt:
         logging.info("Exiting...")
     finally:
