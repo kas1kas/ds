@@ -154,9 +154,6 @@ class WordClock:
         now = time.localtime()
         hours = now.tm_hour % 12 or 12
         minutes = now.tm_min
-        if self.clock_type == "test":
-            hours = 3
-            minutes = 0
         # -------------------------------------------------Set minute dots
         minute_dots = minutes % 5
         for dot, index in self.minute_dots.items():
@@ -357,10 +354,7 @@ def run_clock():
            word_clock.update_clock()
 
         elif word_clock.clock_type == "test":
-           while True: 
-              i = int(input ("index: "))
-              word_clock.set_led_color(i, word_clock.letter_active_color)
-              word_clock.strip.show()
+           word_clock.update_clock()
 
         elif word_clock.clock_type == "dark":
            if time.time() - last_time >= 5:  # Every second
