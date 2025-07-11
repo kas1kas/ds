@@ -1,5 +1,5 @@
 {
-    "VERSION": 5.25,
+    "VERSION": 5.27,
     "PURIST": true,
     "WOORDKLOK": "6",
     "LANGUAGE": "NL",
@@ -15,7 +15,8 @@
     "LETTER_ACTIVE_COLOR": [255, 255, 255],
     "DOT_ACTIVE_COLOR": [255, 255, 255],
     "DOT_INACTIVE_COLOR": [0,0,0],
-     "LUT_IN": {
+    "DOT_DARK_COLOR": [100,0,0],
+    "LUT_IN": {
            "5" :   [  0.2,  1,  2,  3,  5,  10,  20,  30],
            "6" :   [  0.2,  1,  2,  3,  5,  10,  20,  30],
            "8" :   [  0.1,  1,  2,  3,  4,  10,  15,  20,  40],
