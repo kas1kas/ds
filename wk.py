@@ -46,6 +46,7 @@ class WordClock:
         self.lut_in =  config.get("LUT_IN").get(self.woordklok,{})
         self.lut_out=  config.get("LUT_OUT").get(self.woordklok,{}) 
         self.CURSOR_UP = "\x1b[2A"
+        self.it_is = config["IT_IS"].get(self.language,{})
         self.minute_blocks = config["MINUTE_BLOCKS"].get(self.language,{})
         self.words = config["WORDS"].get(self.language, {}).get(str(self.grid), {})
         self.min_block_check = config["MIN_BLOCK_CHECK"].get(self.language,{})
@@ -165,13 +166,15 @@ class WordClock:
         # -------------------------------------------------Determine minute phrase and hour
         minute_block = minutes // 5
         adjusted_hours = hours    
-        # -------------------------------------------------Show "HET IS"
+        # -------------------------------------------------Show "IT IS"
         if not self.purist:
-            if self.language == "NL":
-                self.activate_word("HET")
-            elif self.language == "EN":
-                self.activate_word("IT")
-            self.activate_word("IS")    
+          for word in self.it_is:
+              self.activate_word(word)
+#            if self.language == "NL":
+#                self.activate_word("HET")
+#            elif self.language == "EN":
+#                self.activate_word("IT")
+#            self.activate_word("IS")    
         # -------------------------------------------------Adjust hour per language minutes
         if minute_block >= self.min_block_check:
             adjusted_hours = (hours % 12) + 1
@@ -180,8 +183,8 @@ class WordClock:
         # -------------------------------------------------Activate words based on minute block
         if str(minute_block) in self.minute_blocks:
             for word in self.minute_blocks[str(minute_block)]:
-                self.activate_word(word)
-            self.activate_word(self.hour_words[adjusted_hours - 1])
+                self.activate_word(word)                             # the minute and its modifiers
+            self.activate_word(self.hour_words[adjusted_hours - 1])  # the hour
         self.strip.show()
 
     def setcolor_x_y(self, x, y, color):                   #for rainbow effect
