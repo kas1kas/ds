@@ -1,4 +1,5 @@
-# woordklok v5.27
+# woordklok v5.28
+# hour_words via config Line 180
 # for 11x10 and 16x16 grid
 import argparse
 import json
@@ -22,6 +23,7 @@ app = Flask(__name__)
 # create the core routines as Class
 class WordClock:
     def __init__(self, config):
+        self.version = config["VERSION"]
         self.purist = config["PURIST"]
         self.woordklok = config["WOORDKLOK"]
         self.language = config["LANGUAGE"]
@@ -47,6 +49,7 @@ class WordClock:
         self.minute_blocks = config["MINUTE_BLOCKS"].get(self.language,{})
         self.words = config["WORDS"].get(self.language, {}).get(str(self.grid), {})
         self.min_block_check = config["MIN_BLOCK_CHECK"].get(self.language,{})
+        self.hour_words = config["HOUR_WORDS"].get(self.language,{})
 
         if self.grid=="16":
           self.led_count = 256
@@ -175,16 +178,10 @@ class WordClock:
             if adjusted_hours == 13:
                 adjusted_hours = 1
         # -------------------------------------------------Activate words based on minute block
-        if self.language == "NL":
-            hour_words = ["EEN", "TWEE", "DRIE", "VIER", "VIJF2", "ZES", \
-                          "ZEVEN", "ACHT", "NEGEN", "TIEN2", "ELF", "TWAALF"]
-        elif self.language == "EN":
-            hour_words = ["ONE", "TWO", "THREE", "FOUR", "FIVE2", "SIX", \
-                          "SEVEN", "EIGHT", "NINE", "TEN2", "ELEVEN", "TWELVE"]
         if str(minute_block) in self.minute_blocks:
             for word in self.minute_blocks[str(minute_block)]:
                 self.activate_word(word)
-            self.activate_word(hour_words[adjusted_hours - 1])
+            self.activate_word(self.hour_words[adjusted_hours - 1])
         self.strip.show()
 
     def setcolor_x_y(self, x, y, color):                   #for rainbow effect
@@ -243,7 +240,7 @@ def index():
     initial_language = word_clock.language
     initial_clock_type = word_clock.clock_type
     initial_purist = word_clock.purist
-    woordklok_name = word_clock.woordklok
+    woordklok_name = word_clock.woordklok + word_clock.version
     
     return render_template(
         "index.html",
@@ -251,7 +248,7 @@ def index():
         initial_language=initial_language,
         initial_clock_type=initial_clock_type,
         initial_purist=initial_purist,
-        woordklok_name = word_clock.woordklok
+        woordklok_name = word_clock.woordklok + word_clock.version
     )
 
 @app.route("/set_color", methods=["POST"])
