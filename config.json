@@ -1,5 +1,5 @@
 {
-    "VERSION": " 5.28",
+    "VERSION": " 5.29",
     "PURIST": true,
     "WOORDKLOK": "6",
     "LANGUAGE": "NL",
@@ -45,6 +45,10 @@
            "MRB": 225,
            "MRT": 238
         }
+    },
+    "IT_IS": {
+        "NL": ["HET", "IS"], 
+        "EN": ["IT", "IS"]
     },
     "HOUR_WORDS": {
         "NL": ["EEN", "TWEE", "DRIE", "VIER", "VIJF2", "ZES", 
