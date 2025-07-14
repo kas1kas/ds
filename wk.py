@@ -1,6 +1,5 @@
-# woordklok v5.28
-# hour_words via config Line 180
-# for 11x10 and 16x16 grid
+# woordklok v5.29
+# fix It is
 import argparse
 import json
 import logging
@@ -64,6 +63,7 @@ class WordClock:
         logging.info(f"Design   : Woosh") 
         logging.info(f"Made by  : GraWoosh Labs") 
         logging.info(f"Woordklok: {self.woordklok}")
+        logging.info(f"version  : {self.version}")
         logging.info(f"Clock    : {self.clock_type}") 
         logging.info(f"Random   : {self.rand_color}") 
         logging.info(f"Language : {self.language}")
@@ -170,11 +170,6 @@ class WordClock:
         if not self.purist:
           for word in self.it_is:
               self.activate_word(word)
-#            if self.language == "NL":
-#                self.activate_word("HET")
-#            elif self.language == "EN":
-#                self.activate_word("IT")
-#            self.activate_word("IS")    
         # -------------------------------------------------Adjust hour per language minutes
         if minute_block >= self.min_block_check:
             adjusted_hours = (hours % 12) + 1
