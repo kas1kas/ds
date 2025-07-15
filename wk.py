@@ -1,5 +1,5 @@
-# woordklok v5.29
-# fix It is
+# woordklok v5.30
+# added LanguageSettings class to fix language change and streamline the code
 import argparse
 import json
 import logging
@@ -20,14 +20,41 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 app = Flask(__name__)
 
 # create the core routines as Class
+
+class LanguageSettings:
+    """Encapsulates all language-specific settings and logic"""
+    def __init__(self, config, language, grid_size):
+        self.config = config
+        self.language = language
+        self.grid_size = grid_size
+        self.load_language_settings()
+        
+    def load_language_settings(self):
+        """Load all language-dependent settings"""
+        self.it_is = self.config["IT_IS"].get(self.language, {})
+        self.minute_blocks = self.config["MINUTE_BLOCKS"].get(self.language, {})
+        self.words = self.config["WORDS"].get(self.language, {}).get(str(self.grid_size), {})
+        self.min_block_check = self.config["MIN_BLOCK_CHECK"].get(self.language, {})
+        self.hour_words = self.config["HOUR_WORDS"].get(self.language, {})
+        
+    def update_language(self, new_language):
+        """Update to a new language"""
+        if new_language in ["NL", "EN"]:  # Add more languages as needed
+            self.language = new_language
+            self.load_language_settings()
+            return True
+        return False
+
 class WordClock:
     def __init__(self, config):
         self.version = config["VERSION"]
         self.purist = config["PURIST"]
         self.woordklok = config["WOORDKLOK"]
-        self.language = config["LANGUAGE"]
         self.grid = config["GRID"]
         self.light_interval = config["LIGHT_INTERVAL"]
+
+        self.language_settings = LanguageSettings(config, config["LANGUAGE"], self.grid)
+
         self.led_pin = config["LED_PIN"]
         self.led_freq_hz = config["LED_FREQ_HZ"]
         self.led_dma = config["LED_DMA"]
@@ -45,11 +72,7 @@ class WordClock:
         self.lut_in =  config.get("LUT_IN").get(self.woordklok,{})
         self.lut_out=  config.get("LUT_OUT").get(self.woordklok,{}) 
         self.CURSOR_UP = "\x1b[2A"
-        self.it_is = config["IT_IS"].get(self.language,{})
-        self.minute_blocks = config["MINUTE_BLOCKS"].get(self.language,{})
-        self.words = config["WORDS"].get(self.language, {}).get(str(self.grid), {})
-        self.min_block_check = config["MIN_BLOCK_CHECK"].get(self.language,{})
-        self.hour_words = config["HOUR_WORDS"].get(self.language,{})
+
 
         if self.grid=="16":
           self.led_count = 256
@@ -66,12 +89,18 @@ class WordClock:
         logging.info(f"version  : {self.version}")
         logging.info(f"Clock    : {self.clock_type}") 
         logging.info(f"Random   : {self.rand_color}") 
-        logging.info(f"Language : {self.language}")
+        logging.info(f"Language : {self.language_settings.language}")
         logging.info(f"Grid     : {self.grid}") 
         logging.info(f"Sensor   : TSL2591") 
         logging.info(f"Lut In   : {self.lut_in}")
         logging.info(f"Lut Out  : {self.lut_out}")
-        # Initialize LED strip
+        
+        # Initialize hardware
+        self.initialize_hardware()
+
+
+    # Initialize LED strip and light sensor
+    def initialize_hardware(self):
         try:
             self.strip = PixelStrip(
                 self.led_count, self.led_pin, self.led_freq_hz,
@@ -83,7 +112,6 @@ class WordClock:
             logging.error(f"Failed to initialize LED strip: {e}")
             exit(1)
 
-        # Initialize TSL2591 light sensor
         try:
             self.light_sensor = tsl2591()
             logging.info("TSL2591 light sensor initialized successfully.")
@@ -91,7 +119,9 @@ class WordClock:
             logging.error(f"Failed to initialize TSL2591 light sensor: {e}")
             exit(1)
 
-    # subs ----------------------------------------------------------------------------------
+    # Update the language settings
+    def update_language(self, new_language):
+        return self.language_settings.update_language(new_language)
 
     def set_random_led(self, tint):
        self.setcolor_x_y(random.randint(0,10),random.randint(0,9),self.random_color(tint))
@@ -146,12 +176,13 @@ class WordClock:
       self.strip.setBrightness(brt)
 
     def activate_word(self, word):
-        if word in self.words:
-            start, end = self.words[word]
+        """Activate a word on the display"""
+        if word in self.language_settings.words:
+            start, end = self.language_settings.words[word]
             for i in range(start, end + 1):
                 led_index = self.map_grid_to_led(i)
                 if led_index != -1:
-                    self.set_led_color(led_index, self.letter_active_color) 
+                    self.set_led_color(led_index, self.letter_active_color)
                     
     def update_clock(self):
         """Update the clock display based on the current time."""
@@ -168,18 +199,18 @@ class WordClock:
         adjusted_hours = hours    
         # -------------------------------------------------Show "IT IS"
         if not self.purist:
-          for word in self.it_is:
-              self.activate_word(word)
+            for word in self.language_settings.it_is:
+                self.activate_word(word)
         # -------------------------------------------------Adjust hour per language minutes
-        if minute_block >= self.min_block_check:
+        if minute_block >= self.language_settings.min_block_check:
             adjusted_hours = (hours % 12) + 1
             if adjusted_hours == 13:
                 adjusted_hours = 1
         # -------------------------------------------------Activate words based on minute block
-        if str(minute_block) in self.minute_blocks:
-            for word in self.minute_blocks[str(minute_block)]:
-                self.activate_word(word)                             # the minute and its modifiers
-            self.activate_word(self.hour_words[adjusted_hours - 1])  # the hour
+        if str(minute_block) in self.language_settings.minute_blocks:
+            for word in self.language_settings.minute_blocks[str(minute_block)]:
+                self.activate_word(word)                   # the minute and its modifiers
+            self.activate_word(self.language_settings.hour_words[adjusted_hours - 1])  # the hour        
         self.strip.show()
 
     def setcolor_x_y(self, x, y, color):                   #for rainbow effect
@@ -235,10 +266,10 @@ word_clock = WordClock(config)
 def index():
     """Render the web interface with the initial settings."""
     initial_color = word_clock.letter_active_color
-    initial_language = word_clock.language
+    initial_language = word_clock.language_settings.language
     initial_clock_type = word_clock.clock_type
     initial_purist = word_clock.purist
-    woordklok_name = word_clock.woordklok + word_clock.version
+    woordklok_name = f"{word_clock.woordklok}{word_clock.version}"
     
     return render_template(
         "index.html",
@@ -246,7 +277,7 @@ def index():
         initial_language=initial_language,
         initial_clock_type=initial_clock_type,
         initial_purist=initial_purist,
-        woordklok_name = word_clock.woordklok + word_clock.version
+        woordklok_name = woordklok_name
     )
 
 @app.route("/set_color", methods=["POST"])
@@ -270,14 +301,9 @@ def set_language():
     """Set the language of the word clock."""
     try:
         language = request.form.get("language")
-        if language in ["NL", "EN"]:
-            word_clock.language = language
-            word_clock.words = config["WORDS"].get(language, {}).get(word_clock.grid, {})
-            word_clock.minute_blocks = config["MINUTE_BLOCKS"].get(language, {})
-            word_clock.min_block_check = config["MIN_BLOCK_CHECK"].get(language, {})
+        if word_clock.update_language(language):
             return "Language updated successfully!", 200
-        else:
-            return "Invalid language.", 400
+        return "Invalid language.", 400
     except Exception as e:
         logging.error(f"Failed to set language: {e}")
         return "Failed to update language.", 500
