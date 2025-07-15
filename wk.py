@@ -1,5 +1,5 @@
-# woordklok v5.30
-# added LanguageSettings class to fix language change and streamline the code
+# woordklok v5.31
+# version in web footer, new index.html
 import argparse
 import json
 import logging
@@ -269,7 +269,8 @@ def index():
     initial_language = word_clock.language_settings.language
     initial_clock_type = word_clock.clock_type
     initial_purist = word_clock.purist
-    woordklok_name = f"{word_clock.woordklok}{word_clock.version}"
+    woordklok_name = word_clock.woordklok
+    woordklok_version = word_clock.version
     
     return render_template(
         "index.html",
@@ -277,7 +278,8 @@ def index():
         initial_language=initial_language,
         initial_clock_type=initial_clock_type,
         initial_purist=initial_purist,
-        woordklok_name = woordklok_name
+        woordklok_name = woordklok_name,
+        woordklok_version = woordklok_version
     )
 
 @app.route("/set_color", methods=["POST"])
