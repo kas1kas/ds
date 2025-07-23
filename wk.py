@@ -1,5 +1,5 @@
-# woordklok v5.32
-# dimmer timer function simplified
+# woordklok v5.33
+# dark mode via functioncall
 import argparse
 import json
 import logging
@@ -140,6 +140,18 @@ class WordClock:
     def cls(self):
         for i in range(self.led_count):
            self.set_led_color(i, self.background_color)
+
+    def next_minuteled(self):
+        # Turn off previous LED
+        prev_dot = self.dot_order[(self.current_dot_index - 1) % 4]
+        self.set_led_color(self.minute_dots[prev_dot], (0, 0, 0))
+              
+        # Turn on current LED
+        current_dot = self.dot_order[self.current_dot_index]
+        self.set_led_color(self.minute_dots[current_dot], self.dot_dark_color)
+              
+        # Advance to next LED
+        self.current_dot_index = (self.current_dot_index + 1) % 4
 
     def set_led_color(self, led_index, color):
          self.strip.setPixelColor(led_index, Color(color[0], color[1], color[2]))
@@ -359,6 +371,7 @@ def run_clock():
 
     try:
       last_time = time.time()
+      last_dtime = time.time()     
       while True:
         if time.time() - last_time >= word_clock.light_interval:
            word_clock.update_brightness()
@@ -372,21 +385,11 @@ def run_clock():
            word_clock.update_clock()
 
         elif word_clock.clock_type == "dark":
-           if time.time() - last_time >= 5:  # Every second
+           if time.time() - last_dtime >= word_clock.light_interval:
               word_clock.cls()
-               
-              # Turn off previous LED
-              prev_dot = word_clock.dot_order[(word_clock.current_dot_index - 1) % 4]
-              word_clock.set_led_color(word_clock.minute_dots[prev_dot], (0, 0, 0))
-              
-              # Turn on current LED
-              current_dot = word_clock.dot_order[word_clock.current_dot_index]
-              word_clock.set_led_color(word_clock.minute_dots[current_dot], word_clock.dot_dark_color)
-              
-              # Advance to next LED
-              word_clock.current_dot_index = (word_clock.current_dot_index + 1) % 4
-              last_time = time.time()
-           word_clock.strip.show()
+              word_clock.next_minuteled() 
+              last_dtime = time.time()
+              word_clock.strip.show()
 
         elif word_clock.clock_type == "random":
             word_clock.set_random_led(word_clock.rand_color)
