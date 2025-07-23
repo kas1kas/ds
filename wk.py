@@ -1,5 +1,5 @@
-# woordklok v5.31
-# version in web footer, new index.html
+# woordklok v5.32
+# dimmer timer function simplified
 import argparse
 import json
 import logging
@@ -355,22 +355,14 @@ def get_brightness():
 # Main function to run the word clock
 def run_clock():
 
-    def onlyx(interval):
-        if not hasattr(onlyx, "last_time"):
-        # Initialize the last_time attribute if it doesn't exist
-            onlyx.last_time = time.time() - interval  # Ensure it runs the first time
-        current_time = time.time()
-        if current_time - onlyx.last_time >= interval:
-            onlyx.last_time = current_time
-            return True
-        return False
+    # Run the word clock in a separate thread.
 
-    """Run the word clock in a separate thread."""
     try:
       last_time = time.time()
       while True:
-        if onlyx(word_clock.light_interval):
+        if time.time() - last_time >= word_clock.light_interval:
            word_clock.update_brightness()
+           last_time = time.time()
 
         if word_clock.clock_type == "regular":
            word_clock.cls()
