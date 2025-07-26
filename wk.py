@@ -1,5 +1,5 @@
-# woordklok v5.33
-# dark mode via functioncall
+# woordklok v5.41
+# bh1750 light sensor
 import argparse
 import json
 import logging
@@ -11,6 +11,7 @@ import bisect
 import math
 from rpi_ws281x import PixelStrip, Color
 from python_tsl2591 import tsl2591
+from smbus2 import SMBus
 from flask import Flask, request, render_template, jsonify
 
 # Set up logging
@@ -19,7 +20,42 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 # Initialize Flask app
 app = Flask(__name__)
 
-# create the core routines as Class
+
+# BH1750 Sensor Implementation
+class BH1750:
+    # Define some constants from the datasheet
+    POWER_DOWN = 0x00
+    POWER_ON = 0x01
+    RESET = 0x07
+    CONTINUOUS_HIGH_RES_MODE = 0x10
+    CONTINUOUS_HIGH_RES_MODE_2 = 0x11
+    CONTINUOUS_LOW_RES_MODE = 0x13
+    ONE_TIME_HIGH_RES_MODE = 0x20
+    ONE_TIME_HIGH_RES_MODE_2 = 0x21
+    ONE_TIME_LOW_RES_MODE = 0x23
+
+    def __init__(self, bus=1, address=0x23):
+        self.bus = SMBus(bus)
+        self.address = address
+
+    def _set_mode(self, mode):
+        self.bus.write_byte(self.address, mode)
+
+    def reset(self):
+        self._set_mode(self.RESET)
+
+    def power_down(self):
+        self._set_mode(self.POWER_DOWN)
+
+    def power_on(self):
+        self._set_mode(self.POWER_ON)
+
+    def measure_high_res(self, mode=CONTINUOUS_HIGH_RES_MODE):
+        """Measure luminosity in lux with high resolution"""
+        self._set_mode(mode)
+        time.sleep(0.180 if mode == self.CONTINUOUS_HIGH_RES_MODE_2 else 0.120)
+        data = self.bus.read_i2c_block_data(self.address, mode, 2)
+        return (data[0] << 8 | data[1]) / 1.2
 
 class LanguageSettings:
     """Encapsulates all language-specific settings and logic"""
@@ -52,7 +88,8 @@ class WordClock:
         self.woordklok = config["WOORDKLOK"]
         self.grid = config["GRID"]
         self.light_interval = config["LIGHT_INTERVAL"]
-
+        self.light_sensor_type = config.get("LIGHT_SENSOR")
+        
         self.language_settings = LanguageSettings(config, config["LANGUAGE"], self.grid)
 
         self.led_pin = config["LED_PIN"]
@@ -113,10 +150,14 @@ class WordClock:
             exit(1)
 
         try:
-            self.light_sensor = tsl2591()
-            logging.info("TSL2591 light sensor initialized successfully.")
+            if self.light_sensor_type == "BH1750":
+                self.light_sensor = BH1750()
+                logging.info("BH1750 light sensor initialized successfully.")
+            else:
+                self.light_sensor = tsl2591()
+                logging.info("TSL2591 light sensor initialized successfully.")
         except Exception as e:
-            logging.error(f"Failed to initialize TSL2591 light sensor: {e}")
+            logging.error(f"Failed to initialize light sensor: {e}")
             exit(1)
 
     # Update the language settings
@@ -177,15 +218,19 @@ class WordClock:
             return led_index
     
     def update_brightness(self):
-      try:
-          light_data = self.light_sensor.get_current()
-          lux = abs(light_data['lux'])
-      except Exception as e:
-          logging.error(f"Failed to read light level: {e}")
-          return
-      index = bisect.bisect_right(self.lut_in, lux)
-      brt = self.lut_out[index]
-      self.strip.setBrightness(brt)
+        try:
+            if self.light_sensor_type == "BH1750":
+                lux = self.light_sensor.measure_high_res()
+            else:
+                light_data = self.light_sensor.get_current()
+                lux = abs(light_data['lux'])
+            
+            index = bisect.bisect_right(self.lut_in, lux)
+            brt = self.lut_out[index]
+            self.strip.setBrightness(brt)
+        except Exception as e:
+            logging.error(f"Failed to read light level: {e}")
+            return
 
     def activate_word(self, word):
         """Activate a word on the display"""
@@ -354,8 +399,12 @@ def set_purist():
 def get_brightness():
     """Get the current brightness value."""
     try:
-        light_data = word_clock.light_sensor.get_current()
-        lux = round(abs(light_data['lux']),2)
+        if word_clock.light_sensor_type == "BH1750":
+            lux = round(word_clock.light_sensor.measure_high_res(), 2)
+        else:
+            light_data = word_clock.light_sensor.get_current()
+            lux = round(abs(light_data['lux']), 2)
+            
         index = bisect.bisect_right(word_clock.lut_in, lux)
         brt = word_clock.lut_out[index]
         brightness_display = f"{lux}: {brt}"
