@@ -20,11 +20,16 @@
 ## 4 install wordclock software
 - git clone https://github.com/kas1kas/ds.git
 - ds/setwk.sh
+- exec bash
 ## 5 install WiFi-connect
 - git clone https://github.com/kas1kas/wifi-connect.git
 - cd wifi-connect/scripts
 - sudo ./rpi_headless_wifi_install.sh
-## 6 reboot
+## 6 config and test
+- cd /home/pi/ds
+- edit the config file: woordklok name, matrix, light sensor, lut
+- swk (start wordclock alias for: sudo python3 /home/pi/ds/wk.py
+## 7 reboot
 The clock should start automatically within a minute
 
 ## Moving the Wordclock
