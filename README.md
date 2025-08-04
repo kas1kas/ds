@@ -11,9 +11,9 @@ Software to light up your matrix wordclock
 
 ## Software
 - Python3 + html
-- created with assistance of Deepseek V2
+- created with assistance of Deepseek
 - Remote control via the integrated webapp.
-- Configuration with a json file for all settings and light sensor adjustment.
+- Configuration with a json file for all settings and light sensor calibration.
 
 ## Configuration
 edit the config.json file before first use
