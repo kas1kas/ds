@@ -1,5 +1,6 @@
-# woordklok v5.41
-# bh1750 light sensor
+# woordklok v5.53
+# real time bightness calibration
+# cleanup code
 import argparse
 import json
 import logging
@@ -12,7 +13,7 @@ import math
 from rpi_ws281x import PixelStrip, Color
 from python_tsl2591 import tsl2591
 from smbus2 import SMBus
-from flask import Flask, request, render_template, jsonify
+from flask import Flask, request, render_template, jsonify, send_file
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -109,7 +110,8 @@ class WordClock:
         self.lut_in =  config.get("LUT_IN").get(self.woordklok,{})
         self.lut_out=  config.get("LUT_OUT").get(self.woordklok,{}) 
         self.CURSOR_UP = "\x1b[2A"
-
+        self.current_mode = "normal"  # 'normal' or 'calibration'
+        self.auto_brightness_enabled = True
 
         if self.grid=="16":
           self.led_count = 256
@@ -182,6 +184,19 @@ class WordClock:
         for i in range(self.led_count):
            self.set_led_color(i, self.background_color)
 
+    def set_mode(self, mode):
+        """Set the current operation mode"""
+        self.current_mode = mode
+        if mode == "calibration":
+            # Store original brightness when entering calibration
+            self.original_brightness = self.strip.getBrightness()
+            # Disable auto-brightness updates
+            self.auto_brightness_enabled = False
+        else:
+            # Restore auto-brightness in normal mode
+            self.auto_brightness_enabled = True
+            self.update_brightness()
+        
     def next_minuteled(self):
         # Turn off previous LED
         prev_dot = self.dot_order[(self.current_dot_index - 1) % 4]
@@ -218,19 +233,43 @@ class WordClock:
             return led_index
     
     def update_brightness(self):
+        if not self.auto_brightness_enabled:
+            return  # Skip auto-brightness in calibration mode
+
         try:
             if self.light_sensor_type == "BH1750":
                 lux = self.light_sensor.measure_high_res()
             else:
                 light_data = self.light_sensor.get_current()
                 lux = abs(light_data['lux'])
+        
+            # Smooth interpolation between calibration points
+            if len(self.lut_in) >= 2:
+                # Find the segment where lux falls
+                idx = bisect.bisect_left(self.lut_in, lux) - 1
+                idx = max(0, min(idx, len(self.lut_in) - 2))
             
-            index = bisect.bisect_right(self.lut_in, lux)
-            brt = self.lut_out[index]
-            self.strip.setBrightness(brt)
+                # Linear interpolation
+                x0, x1 = self.lut_in[idx], self.lut_in[idx+1]
+                y0, y1 = self.lut_out[idx], self.lut_out[idx+1]
+            
+                if x1 != x0:  # Avoid division by zero
+                    brightness = y0 + (y1 - y0) * (lux - x0) / (x1 - x0)
+                else:
+                    brightness = y0
+            else:
+                # Fallback to simple mapping if not enough calibration points
+                brightness = self.lut_out[0] if lux < self.lut_in[0] else self.lut_out[-1]
+        
+            # Apply exponential smoothing (optional, makes transitions smoother)
+            if hasattr(self, 'last_brightness'):
+                alpha = 0.3  # Smoothing factor (0-1, higher = more smoothing)
+                brightness = alpha * self.last_brightness + (1 - alpha) * brightness
+            self.last_brightness = brightness
+#L            logging.info(f"Lux, Bright: {lux}, {brightness}")
+            self.strip.setBrightness(int(brightness))
         except Exception as e:
-            logging.error(f"Failed to read light level: {e}")
-            return
+            logging.error(f"Failed to update brightness: {e}")
 
     def activate_word(self, word):
         """Activate a word on the display"""
@@ -412,6 +451,113 @@ def get_brightness():
     except Exception as e:
         logging.error(f"Failed to fetch brightness: {e}")
         return jsonify({"error": "Failed to fetch brightness"}), 500
+
+#--------------------------------------------------------start--calibration
+@app.route("/calibration.html")
+def calibration_page():
+    """Serve the calibration interface"""
+    return render_template("calibration.html")
+
+@app.route("/set_mode", methods=["POST"])
+def set_mode():
+    try:
+        data = request.get_json()
+        mode = data.get("mode")
+        if mode in ["normal", "calibration"]:
+            word_clock.set_mode(mode)
+            return jsonify({"status": "success"}), 200
+        return jsonify({"error": "Invalid mode"}), 400
+    except Exception as e:
+        logging.error(f"Mode switch failed: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/get_calibration_data", methods=["GET"])
+def get_calibration_data():
+    return jsonify({
+        "lut_in": word_clock.lut_in,
+        "lut_out": word_clock.lut_out
+    })
+
+@app.route("/calibration/get_current_brightness", methods=["GET"])
+def get_current_brightness():
+    """Get the current brightness value"""
+    try:
+        return jsonify({
+            "brightness": word_clock.strip.getBrightness()
+        }), 200
+    except Exception as e:
+        logging.error(f"Failed to get current brightness: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/calibration/current_light", methods=["GET"])
+def get_current_light():
+    """Get current light level"""
+    try:
+        if word_clock.light_sensor_type == "BH1750":
+            lux = word_clock.light_sensor.measure_high_res()
+        else:
+            light_data = word_clock.light_sensor.get_current()
+            lux = abs(light_data['lux'])
+        return jsonify({"lux": lux}), 200
+    except Exception as e:
+        logging.error(f"Failed to read light level: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/calibration/set_temporary_brightness", methods=["POST"])
+def set_temporary_brightness():
+    """Set temporary brightness during calibration"""
+    try:
+        data = request.get_json()
+        brightness = int(data.get("brightness"))
+        
+        if not 0 <= brightness <= 100:
+            return jsonify({"error": "Brightness must be 0-100"}), 400
+            
+        word_clock.strip.setBrightness(brightness)
+        word_clock.strip.show()
+        return jsonify({"status": "success"}), 200
+    except Exception as e:
+        logging.error(f"Failed to set temporary brightness: {e}")
+        return jsonify({"error": str(e)}), 500
+
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/calibration/save", methods=["POST"])
+def save_calibration():
+    """Save calibration to config"""
+    try:
+        data = request.get_json()
+        word_clock.lut_in = data.get("lut_in", [])
+        word_clock.lut_out = data.get("lut_out", [])
+        
+        # Save to config file
+        config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
+        with open(config_path, 'r+') as f:
+            config = json.load(f)
+            config['LUT_IN'][word_clock.woordklok] = word_clock.lut_in
+            config['LUT_OUT'][word_clock.woordklok] = word_clock.lut_out
+            f.seek(0)
+            json.dump(config, f, indent=4)
+            f.truncate()
+        
+        return jsonify({"status": "success"}), 200
+    except Exception as e:
+        logging.error(f"Failed to save calibration: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/calibration/cancel", methods=["POST"])
+def cancel_calibration():
+    """Cancel calibration and restore original settings"""
+    try:
+        if hasattr(word_clock, 'calibration_data'):
+            word_clock.strip.setBrightness(word_clock.calibration_data['original_brightness'])
+            word_clock.strip.show()
+            del word_clock.calibration_data
+        return jsonify({"status": "success"}), 200
+    except Exception as e:
+        logging.error(f"Failed to cancel calibration: {e}")
+        return jsonify({"error": str(e)}), 500
+#--------------------------------------------------------end----calibration
 
 # Main function to run the word clock
 def run_clock():
