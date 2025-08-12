@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Woordklok Calibration</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            max-width: 800px; 
+            margin: 0 auto; 
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        .sensor-readings {
+            background-color: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .sensor-value {
+            font-weight: bold;
+            color: #2980b9;
+        }
+        .slider-container {
+            margin: 25px 0;
+        }
+        .slider-container input[type="range"] {
+            width: 100%;
+            height: 10px;
+            -webkit-appearance: none;
+            background: #bdc3c7;
+            border-radius: 5px;
+        }
+        .slider-container input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #3498db;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        .slider-value {
+            text-align: center;
+            font-size: 1.2em;
+            margin-top: 5px;
+            color: #2c3e50;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        button:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+        .controls {
+            margin: 20px 0;
+            display: flex;
+            justify-content: space-between;
+        }
+        input[type="number"] {
+            width: 70px;
+            padding: 5px;
+            border: 1px solid #bdc3c7;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Woordklok Brightness Calibration</h1>
+        
+        <div class="sensor-readings">
+            <h3>Current Sensor Readings</h3>
+            <p>Light Level: <span id="currentLux" class="sensor-value">0</span> lux</p>
+            <p>Current Brightness: <span id="currentBrightness" class="sensor-value">0</span>%</p>
+        </div>
+
+        <div class="slider-container">
+            <h3>Manual Brightness Control</h3>
+            <input type="range" id="brightnessSlider" min="1" max="100" value="50">
+            <div class="slider-value"><span id="sliderValue">50</span>%</div>
+        </div>
+
+        <div class="controls">
+            <div>
+                <button id="addPoint">Add Calibration Point</button>
+                <button id="saveCalibration">Save Configuration</button>
+            </div>
+            <button id="exitCalibration">Exit Calibration Mode</button>
+        </div>
+        
+        <h3>Calibration Points</h3>
+        <table id="calibrationTable">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Lux Level</th>
+                    <th>Brightness %</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            let calibrationData = [];
+            let isCalibrationActive = true;
+            const brightnessSlider = $("#brightnessSlider");
+            
+            // Initialize slider
+            brightnessSlider.on("input", function() {
+                const val = $(this).val();
+                $("#sliderValue").text(val);
+                setTemporaryBrightness(val);
+            });
+
+            // Load existing calibration data
+            function loadCalibrationData() {
+                $.get("/get_calibration_data", function(data) {
+                    calibrationData = [];
+                    for (let i = 0; i < data.lut_in.length; i++) {
+                        calibrationData.push({
+                            lux: data.lut_in[i],
+                            brightness: data.lut_out[i]
+                        });
+                    }
+                    renderTable();
+                }).fail(showError);
+            }
+
+            // Update current sensor readings
+            function updateSensorReadings() {
+                if (!isCalibrationActive) return;
+                
+                $.get("/calibration/current_light", function(data) {
+                    $("#currentLux").text(data.lux.toFixed(2));
+                }).fail(showError);
+
+                $.get("/calibration/get_current_brightness", function(data) {
+                    $("#currentBrightness").text(data.brightness);
+                }).fail(showError);
+            }
+
+            // Set temporary brightness
+            function setTemporaryBrightness(brightness) {
+                if (!isCalibrationActive) return;
+                
+                $.ajax({
+                    url: "/calibration/set_temporary_brightness",
+                    type: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify({ brightness: parseInt(brightness) }),
+                    error: showError
+                });
+            }
+
+            // Render calibration table
+            function renderTable() {
+                const tbody = $("#calibrationTable tbody");
+                tbody.empty();
+                
+                calibrationData.forEach((point, index) => {
+                    const row = $(`
+                        <tr>
+                            <td>${index + 1}</td>
+                            <td><input type="number" class="lux-input" value="${point.lux.toFixed(2)}" step="0.1" min="0"></td>
+                            <td><input type="number" class="brightness-input" value="${point.brightness}" min="1" max="100"></td>
+                            <td>
+                                <button class="update-btn" data-index="${index}">Update</button>
+                                <button class="delete-btn" data-index="${index}">Delete</button>
+                            </td>
+                        </tr>
+                    `);
+                    tbody.append(row);
+                });
+            }
+            
+            // Error handling
+            function showError(xhr) {
+                console.error("Error:", xhr.responseText);
+                alert("Operation failed: " + xhr.responseText);
+            }
+
+            // Add new calibration point
+            $("#addPoint").click(function() {
+                const lux = parseFloat($("#currentLux").text());
+                const brightness = parseInt(brightnessSlider.val());
+                
+                if (isNaN(lux) || isNaN(brightness)) {
+                    alert("Please wait for valid sensor readings");
+                    return;
+                }
+                
+                calibrationData.push({ lux, brightness });
+                calibrationData.sort((a, b) => a.lux - b.lux);
+                renderTable();
+            });
+
+            // Save calibration
+            $("#saveCalibration").click(function() {
+                if (calibrationData.length < 2) {
+                    alert("You need at least 2 calibration points");
+                    return;
+                }
+                
+                const lut_in = calibrationData.map(p => p.lux);
+                const lut_out = calibrationData.map(p => p.brightness);
+                
+                $.ajax({
+                    url: "/calibration/save",
+                    type: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify({ lut_in, lut_out }),
+                    success: function() {
+                        alert("Calibration saved successfully!");
+                        loadCalibrationData(); // Refresh with saved data
+                    },
+                    error: showError
+                });
+            });
+
+            // Exit calibration mode
+            $("#exitCalibration").click(function() {
+                isCalibrationActive = false;
+                $.ajax({
+                    url: "/set_mode",
+                    type: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify({ mode: "normal" }),
+                    success: function() {
+                        window.location.href = "/";
+                    },
+                    error: function(xhr) {
+                        isCalibrationActive = true;
+                        showError(xhr);
+                    }
+                });
+            });
+
+            // Handle table operations
+            $("#calibrationTable").on("click", ".update-btn", function() {
+                const index = $(this).data("index");
+                const row = $(this).closest("tr");
+                const lux = parseFloat(row.find(".lux-input").val());
+                const brightness = parseInt(row.find(".brightness-input").val());
+                
+                if (isNaN(lux) || lux < 0) {
+                    alert("Please enter a valid lux value (= 0)");
+                    return;
+                }
+                
+                if (isNaN(brightness) || brightness < 1 || brightness > 100) {
+                    alert("Please enter a valid brightness (1-100)");
+                    return;
+                }
+                
+                calibrationData[index] = { lux, brightness };
+                calibrationData.sort((a, b) => a.lux - b.lux);
+                renderTable();
+            });
+
+            $("#calibrationTable").on("click", ".delete-btn", function() {
+                const index = $(this).data("index");
+                if (confirm("Delete this calibration point?")) {
+                    calibrationData.splice(index, 1);
+                    renderTable();
+                }
+            });
+
+            // Initialize
+            loadCalibrationData();
+            updateSensorReadings();
+            setInterval(updateSensorReadings, 1000);
+        });
+    </script>
+</body>
+</html>
