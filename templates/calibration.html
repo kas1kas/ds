@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<!__ version 5.53 -->
+<!-- 5.56 -->
 <html>
 <head>
     <title>Woordklok Calibration</title>
     <style>
         body { 
             font-family: Arial, sans-serif; 
-            max-width: 800px; 
+            max-width: 400px; 
             margin: 0 auto; 
             padding: 20px;
             background-color: #f5f5f5;
@@ -17,7 +17,7 @@
             border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
-        h1 {
+        h2 {
             color: #2c3e50;
             border-bottom: 2px solid #3498db;
             padding-bottom: 10px;
@@ -63,7 +63,7 @@
         }
         th, td {
             border: 1px solid #ddd;
-            padding: 10px;
+            padding: 2px;
             text-align: left;
         }
         th {
@@ -72,7 +72,7 @@
         }
         tr:nth-child(even) {
             background-color: #f2f2f2;
-        }
+        }        
         button {
             background-color: #3498db;
             color: white;
@@ -97,7 +97,7 @@
             justify-content: space-between;
         }
         input[type="number"] {
-            width: 70px;
+            width: 40px;
             padding: 5px;
             border: 1px solid #bdc3c7;
             border-radius: 4px;
@@ -106,7 +106,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>Woordklok Brightness Calibration</h1>
+        <h2>Brightness Calibration</h2>
         
         <div class="sensor-readings">
             <h3>Current Sensor Readings</h3>
@@ -122,19 +122,25 @@
 
         <div class="controls">
             <div>
-                <button id="addPoint">Add Calibration Point</button>
-                <button id="saveCalibration">Save Configuration</button>
+                <button id="addPoint">Add point</button>
+                <button id="saveCalibration">Save</button>
             </div>
-            <button id="exitCalibration">Exit Calibration Mode</button>
+            <button id="exitCalibration">Exit</button>
         </div>
         
         <h3>Calibration Points</h3>
         <table id="calibrationTable">
+            <colgroup>
+                <col style="width: 10%;">
+                <col style="width: 20%;">
+                <col style="width: 25%;">
+                <col style="width: 45%;">
+            </colgroup>
             <thead>
                 <tr>
                     <th>#</th>
-                    <th>Lux Level</th>
-                    <th>Brightness %</th>
+                    <th>Lux</th>
+                    <th>Bright%</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -208,8 +214,8 @@
                             <td><input type="number" class="lux-input" value="${point.lux.toFixed(2)}" step="0.1" min="0"></td>
                             <td><input type="number" class="brightness-input" value="${point.brightness}" min="1" max="100"></td>
                             <td>
-                                <button class="update-btn" data-index="${index}">Update</button>
-                                <button class="delete-btn" data-index="${index}">Delete</button>
+                                <button class="update-btn" data-index="${index}">Upd</button>
+                                <button class="delete-btn" data-index="${index}">Del</button>
                             </td>
                         </tr>
                     `);
