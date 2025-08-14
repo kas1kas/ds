@@ -1,6 +1,6 @@
-# woordklok v5.53
-# real time bightness calibration
-# cleanup code
+# woordklok v5.56
+# direct update, no button 13-aug-25
+# 
 import argparse
 import json
 import logging
@@ -112,7 +112,8 @@ class WordClock:
         self.CURSOR_UP = "\x1b[2A"
         self.current_mode = "normal"  # 'normal' or 'calibration'
         self.auto_brightness_enabled = True
-
+        self.rainbow_anim = self.RainbowAnimation(self)  # Create animation instance
+        
         if self.grid=="16":
           self.led_count = 256
           self.columns =16
@@ -333,6 +334,83 @@ class WordClock:
          else:
             pos -= 170
             return (0, pos * 3, 255 - pos * 3), Color(255, 255-pos * 3, pos * 3)
+            
+    class RainbowAnimation:
+       def __init__(self, parent):
+           self.parent = parent
+           self.j = 0
+           self.last_frame_time = 0
+           self.frame_delay = 0.01
+           self.active = False
+           self.effect = 0  # Default to first effect
+           self.effect_names = [
+               "Diagonal",
+               "Horizontal",
+               "Vertical",
+               "Circular",
+               "Spiral",
+               "Wave",
+               "Twinkle"
+           ]
+    
+       def set_effect(self, effect_num):
+           if 0 <= effect_num < len(self.effect_names):
+               self.effect = effect_num
+               self.j = 0  # Reset animation
+       
+       def update(self):
+           current_time = time.time()
+           if not self.active or current_time - self.last_frame_time < self.frame_delay:
+               return False
+           
+           self.last_frame_time = current_time
+           
+           center_x, center_y = 5, 4.5  # Center point for effects
+           
+           for x in range(11):
+               for y in range(10):
+                   if self.effect == 0:  # Original diagonal
+                       k = (x * y + self.j) & 255
+                   elif self.effect == 1:  # Horizontal left-right
+                       k = (x + self.j) & 255
+                   elif self.effect == 2:  # Vertical bottom-top
+                       k = (y + self.j) & 255
+                   elif self.effect == 3:  # Circular ripple
+                       dx = x - center_x
+                       dy = y - center_y
+                       distance = math.sqrt(dx*dx + dy*dy)
+                       k = int(distance * 10 + self.j) & 255
+                   elif self.effect == 4:  # Spiral
+                       dx = x - center_x
+                       dy = y - center_y
+                       angle = math.atan2(dy, dx)
+                       distance = math.sqrt(dx*dx + dy*dy)
+                       k = int(angle/math.pi * 128 + distance*5 + self.j) & 255
+                   elif self.effect == 5:  # Wave
+                       wave = math.sin(x/2.0 + self.j/20.0) * 5
+                       k = int(y + wave + self.j) & 255
+                   elif self.effect == 6:  # Twinkle
+                       if x == 0 and y == 0:  # Only update random pixels once per frame
+                           self.update_twinkle()
+                       continue  # Skip the regular pixel update
+                   
+                   b, w = self.parent.kwheel(k)
+                   self.parent.setcolor_x_y(x, y, b)
+           
+           self.parent.update_clock()
+           self.parent.strip.show()
+           self.j = (self.j + 1) % (256 * 5)
+           return True
+       
+       def update_twinkle(self):
+           # Update 10 random pixels each frame for twinkle effect
+           for _ in range(10):
+               x = random.randint(0, 10)
+               y = random.randint(0, 9)
+               k = (x + y + self.j) & 255
+               b, w = self.parent.kwheel(k)
+               self.parent.setcolor_x_y(x, y, b)
+       
     # End Subs ------------------------------------------------------------------------------
 
 def load_config(config_file):
@@ -368,6 +446,8 @@ def index():
     woordklok_name = word_clock.woordklok
     woordklok_version = word_clock.version
     
+    rainbow_effect_names=word_clock.rainbow_anim.effect_names  # Pass just the names list
+    
     return render_template(
         "index.html",
         initial_color=initial_color,
@@ -375,7 +455,8 @@ def index():
         initial_clock_type=initial_clock_type,
         initial_purist=initial_purist,
         woordklok_name = woordklok_name,
-        woordklok_version = woordklok_version
+        woordklok_version = woordklok_version,
+        rainbow_effect_names=word_clock.rainbow_anim.effect_names  # Pass the effect names directly
     )
 
 @app.route("/set_color", methods=["POST"])
@@ -394,46 +475,44 @@ def set_color():
         logging.error(f"Failed to set color: {e}")
         return "Failed to update color.", 500
 
-@app.route("/set_language", methods=["POST"])
-def set_language():
-    """Set the language of the word clock."""
+@app.route('/update_settings', methods=['POST'])
+def update_settings():
     try:
-        language = request.form.get("language")
-        if word_clock.update_language(language):
-            return "Language updated successfully!", 200
-        return "Invalid language.", 400
+        data = request.get_json()
+        # Update language if changed
+        if 'language' in data:
+            word_clock.update_language(data['language'])
+        
+        # Update clock type if changed
+        if 'clock_type' in data:
+            if data['clock_type'] in ["regular", "random", "rainbow", "dark", "test"]:
+                word_clock.clock_type = data['clock_type']
+        
+        # Update purist mode if changed
+        if 'purist' in data:
+            word_clock.purist = data['purist'] == "true"
+        
+        return jsonify({"status": "success"}), 200
     except Exception as e:
-        logging.error(f"Failed to set language: {e}")
-        return "Failed to update language.", 500
+        logging.error(f"Failed to update settings: {e}")
+        return jsonify({"error": str(e)}), 500
 
-@app.route("/set_clock_type", methods=["POST"])
-def set_clock_type():
-    """Set the clock type."""
-    try:
-        clock_type = request.form.get("clock_type")
-        if clock_type in ["regular", "random", "rainbow", "dark", "test"]:
-            word_clock.clock_type = clock_type
-            return "Clock type updated successfully!", 200
-        else:
-            return "Invalid clock type.", 400
-    except Exception as e:
-        logging.error(f"Failed to set clock type: {e}")
-        return "Failed to update clock type.", 500
 
-@app.route("/set_purist", methods=["POST"])
-def set_purist():
-    """Set the purist mode."""
-    try:
-        purist = request.form.get("purist")
-        if purist in ["true", "false"]:
-            word_clock.purist = purist == "true"
-            return "Purist mode updated successfully!", 200
-        else:
-            return "Invalid purist mode.", 400
-    except Exception as e:
-        logging.error(f"Failed to set purist mode: {e}")
-        return "Failed to update purist mode.", 500
 
+
+
+
+
+@app.route('/set_rainbow_effect', methods=['POST'])
+def set_rainbow_effect():
+    effect_num = request.json.get('effect', 0)
+    word_clock.rainbow_anim.set_effect(effect_num)
+    return jsonify({
+        'status': 'success',
+        'current_effect': word_clock.rainbow_anim.effect,
+        'effect_name': word_clock.rainbow_anim.effect_names[word_clock.rainbow_anim.effect]
+    })
+    
 @app.route("/get_brightness", methods=["GET"])
 def get_brightness():
     """Get the current brightness value."""
@@ -591,15 +670,10 @@ def run_clock():
             word_clock.update_clock()
             
         elif word_clock.clock_type == "rainbow":
-           for j in range(256 * 5):
-               for x in range(11):
-                   for y in range(10):
-                      k=(x * y + j) & 255
-                      b,w = word_clock.kwheel(k)
-                      word_clock.setcolor_x_y(x,y,b)
-               word_clock.update_clock()
-               time.sleep(0.01)
-           word_clock.update_clock()
+            word_clock.rainbow_anim.active = True
+            word_clock.rainbow_anim.update()
+        else:
+            word_clock.rainbow_anim.active = False
             
     except KeyboardInterrupt:
         logging.info("Exiting...")
