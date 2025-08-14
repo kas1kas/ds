@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!__ version 5.53 -->
+<!-- 5.56 -->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -26,11 +26,27 @@
             width: 100%;
             max-width: 300px;
         }
-        .brightness-display {
+        .container h3 {
+           margin-top: 0;
+           margin-bottom: 10px; 
+       }
+        .container h6 {
+           margin-top: 0;
+           margin-bottom: 6px; 
+       }
+         .brightness-display {
             margin-bottom: 10px;
             font-size: 18px;
             font-weight: bold;
         }
+         .line {
+            width: 99%;
+            margin-top: 4px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid blue;
+            justify-content: center;
+        }
+
         button {
             padding: 4px 4px;
             background-color: #007bff;
@@ -131,11 +147,9 @@
 </head>
 <body>
     <div class="container">
-        <h3>Woordklok {{woordklok_name}}</h3>
-        <div class="brightness-display">
-            <h5><span>Lux:Bright = </span>
-            <span id="brightnessValue">0</span></h5>
-        </div>
+        <h3>Woordklok</h3>
+        <h3>{{woordklok_name}}</h3>
+        <div class="line"></div>
 
         <div class="color-picker-container">
             <input type="text" id="colorPicker">
@@ -145,12 +159,8 @@
         <form id="colorForm">
             <button type="submit">Set Color</button>
         </form>
+        <div class="line"></div>
         <div class="settings">
-            <label for="language"><b>Language:</b></label>
-            <select id="language">
-                <option value="NL" {% if initial_language == "NL" %}selected{% endif %}>NL</option>
-                <option value="EN" {% if initial_language == "EN" %}selected{% endif %}>EN</option>
-            </select>
             <label for="clock_type"><b>Display:</b></label>
             <select id="clock_type">
                 <option value="regular" {% if initial_clock_type == "regular" %}selected{% endif %}>Regular</option>
@@ -159,13 +169,29 @@
                 <option value="dark" {% if initial_clock_type == "dark" %}selected{% endif %}>Dark</option>
                 <option value="test" {% if initial_clock_type == "test" %}selected{% endif %}>Test</option>
             </select>
+            <label for="rainbowEffectSelect"><b>Rainbow effect:</b></label>
+            <select id="rainbowEffectSelect">
+                {% for name in rainbow_effect_names %}
+                <option value="{{ loop.index0 }}">{{ name }}</option>
+                {% endfor %}
+            </select>
             <label for="purist"><b>Purist mode:</b></label>
             <select id="purist">
                 <option value="true" {% if initial_purist == True %}selected{% endif %}>True</option>
                 <option value="false" {% if initial_purist == False %}selected{% endif %}>False</option>
             </select>
-            <button id="updateSettings">Change</button>
+            <label for="language"><b>Language:</b></label>
+            <select id="language">
+                <option value="NL" {% if initial_language == "NL" %}selected{% endif %}>NL</option>
+                <option value="EN" {% if initial_language == "EN" %}selected{% endif %}>EN</option>
+            </select>
+            <div class="line"></div>
             <button id="enterCalibration">Calibration mode</button>
+        </div>
+
+        <div class="brightness-display">
+            <h6><span>Lux:Bright = </span>
+            <span id="brightnessValue">0</span></h6>
         </div>
         <h6>GraWoosh {{woordklok_version}}</h6>
     </div>
@@ -176,6 +202,14 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/spectrum/1.8.1/spectrum.min.js"></script>
     <script>
         $(document).ready(function () {
+            
+            // Add event listeners for all dropdowns
+            document.getElementById('rainbowEffectSelect').addEventListener('change', setRainbowEffect);
+            document.getElementById('language').addEventListener('change', updateSettings);
+            document.getElementById('clock_type').addEventListener('change', updateSettings);
+            document.getElementById('purist').addEventListener('change', updateSettings);
+                
+            
             // Initialize color picker
             const initialColor = {
                 r: {{ initial_color[0] }},
@@ -221,41 +255,6 @@
                 });
             });
 
-            // Settings update
-            $("#updateSettings").click(function() {
-                const settings = {
-                    language: $("#language").val(),
-                    clock_type: $("#clock_type").val(),
-                    purist: $("#purist").val()
-                };
-                
-                $.ajax({
-                    url: "/set_language",
-                    type: "POST",
-                    data: { language: settings.language },
-                    error: function(xhr) {
-                        console.error("Error updating language:", xhr.responseText);
-                    }
-                });
-                
-                $.ajax({
-                    url: "/set_clock_type",
-                    type: "POST",
-                    data: { clock_type: settings.clock_type },
-                    error: function(xhr) {
-                        console.error("Error updating clock type:", xhr.responseText);
-                    }
-                });
-                
-                $.ajax({
-                    url: "/set_purist",
-                    type: "POST",
-                    data: { purist: settings.purist },
-                    error: function(xhr) {
-                        console.error("Error updating purist mode:", xhr.responseText);
-                    }
-                });
-            });
 
             $("#enterCalibration").click(function() {
                $.ajax({
@@ -284,7 +283,44 @@
             }
             setInterval(updateBrightness, 3000);
             updateBrightness();
-           
+
+            // Rainbow
+
+            function setRainbowEffect() {
+               const effectNum = document.getElementById('rainbowEffectSelect').value;
+               fetch('/set_rainbow_effect', {
+                   method: 'POST',
+                   headers: {
+                       'Content-Type': 'application/json',
+                   },
+                   body: JSON.stringify({ effect: parseInt(effectNum) })
+               })
+               .then(response => response.json())
+               .then(data => {
+                   console.log('Effect set to:', data.effect_name);
+               });
+            } 
+            
+            function updateSettings() {
+               const settings = {
+                   language: document.getElementById("language").value,
+                   clock_type: document.getElementById("clock_type").value,
+                   purist: document.getElementById("purist").value
+               };
+               
+               // Send all settings at once
+               fetch('/update_settings', {
+                   method: 'POST',
+                   headers: {'Content-Type': 'application/json'},
+                   body: JSON.stringify(settings)
+               })
+               .then(response => {
+                   if (!response.ok) throw new Error('Network response was not ok');
+                   console.log("Settings updated successfully");
+               })
+               .catch(error => console.error('Error:', error));
+           }
+
         });
     </script>
 </body>
