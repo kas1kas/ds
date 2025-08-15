@@ -27,7 +27,7 @@
 - sudo ./rpi_headless_wifi_install.sh
 ## 6 config and test
 - cd /home/pi/ds
-- edit the config file: woordklok name, matrix, light sensor, lut
+- edit the config file: woordklok name, matrix, lut
 - swk (start wordclock alias for: sudo python3 /home/pi/ds/wk.py
 ## 7 reboot
 The clock should start automatically within a minute
@@ -52,6 +52,7 @@ if not, click on the down arrow and your network
 - the wordklock clock is now connected to your WiFi
 - you phone also re-connects to your WiFi
 - the correct time will appear on the wordclock after a while
+
 
 
 
