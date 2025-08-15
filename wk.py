@@ -1,6 +1,6 @@
-# woordklok v5.56
-# direct update, no button 13-aug-25
-# 
+# woordklok v5.61
+# detect lightsensor 15-aug-25
+# need to implement default brightness when no lightsensor detected
 import argparse
 import json
 import logging
@@ -12,6 +12,7 @@ import bisect
 import math
 from rpi_ws281x import PixelStrip, Color
 from python_tsl2591 import tsl2591
+import smbus2
 from smbus2 import SMBus
 from flask import Flask, request, render_template, jsonify, send_file
 
@@ -59,7 +60,6 @@ class BH1750:
         return (data[0] << 8 | data[1]) / 1.2
 
 class LanguageSettings:
-    """Encapsulates all language-specific settings and logic"""
     def __init__(self, config, language, grid_size):
         self.config = config
         self.language = language
@@ -67,7 +67,6 @@ class LanguageSettings:
         self.load_language_settings()
         
     def load_language_settings(self):
-        """Load all language-dependent settings"""
         self.it_is = self.config["IT_IS"].get(self.language, {})
         self.minute_blocks = self.config["MINUTE_BLOCKS"].get(self.language, {})
         self.words = self.config["WORDS"].get(self.language, {}).get(str(self.grid_size), {})
@@ -75,8 +74,7 @@ class LanguageSettings:
         self.hour_words = self.config["HOUR_WORDS"].get(self.language, {})
         
     def update_language(self, new_language):
-        """Update to a new language"""
-        if new_language in ["NL", "EN"]:  # Add more languages as needed
+        if new_language in ["NL", "EN"]:
             self.language = new_language
             self.load_language_settings()
             return True
@@ -89,10 +87,7 @@ class WordClock:
         self.woordklok = config["WOORDKLOK"]
         self.grid = config["GRID"]
         self.light_interval = config["LIGHT_INTERVAL"]
-        self.light_sensor_type = config.get("LIGHT_SENSOR")
-        
         self.language_settings = LanguageSettings(config, config["LANGUAGE"], self.grid)
-
         self.led_pin = config["LED_PIN"]
         self.led_freq_hz = config["LED_FREQ_HZ"]
         self.led_dma = config["LED_DMA"]
@@ -131,39 +126,65 @@ class WordClock:
         logging.info(f"Random   : {self.rand_color}") 
         logging.info(f"Language : {self.language_settings.language}")
         logging.info(f"Grid     : {self.grid}") 
-        logging.info(f"Sensor   : TSL2591") 
         logging.info(f"Lut In   : {self.lut_in}")
         logging.info(f"Lut Out  : {self.lut_out}")
         
-        # Initialize hardware
-        self.initialize_hardware()
-
-
-    # Initialize LED strip and light sensor
-    def initialize_hardware(self):
+        self.initialize_led()
+        self.initialize_lightsensor()
+   
+    def initialize_led(self):
         try:
             self.strip = PixelStrip(
                 self.led_count, self.led_pin, self.led_freq_hz,
                 self.led_dma, False, 100, self.led_channel
             )
             self.strip.begin()
-            logging.info("LED strip initialized successfully.")
+            logging.info("LED strip initialized.")
         except Exception as e:
             logging.error(f"Failed to initialize LED strip: {e}")
             exit(1)
 
+    def initialize_lightsensor(self):        
+        BH1750_ADDRESS = 0x23  # Can also be 0x5C for some BH1750 variants
+        TSL2591_ADDRESS = 0x29
+        
+       bus = smbus2.SMBus(1)  # 1 indicates /dev/i2c-1
+        
         try:
-            if self.light_sensor_type == "BH1750":
+            try:
+                # BH1750 power on command
+                bus.write_byte(BH1750_ADDRESS, 0x01)
+                time.sleep(0.1)
+                # Try to read (continuous high res mode)
+                bus.write_byte(BH1750_ADDRESS, 0x10)
+                time.sleep(0.1)
+                data = bus.read_i2c_block_data(BH1750_ADDRESS, 0x10, 2)
                 self.light_sensor = BH1750()
-                logging.info("BH1750 light sensor initialized successfully.")
-            else:
-                self.light_sensor = tsl2591()
-                logging.info("TSL2591 light sensor initialized successfully.")
-        except Exception as e:
-            logging.error(f"Failed to initialize light sensor: {e}")
-            exit(1)
+                self.light_sensor_type = "BH1750"
+                logging.info("BH1750 light sensor detected and initialized.")
+                return "BH1750"
+            except (IOError, OSError):
+                pass
+            
+             try:
+                # Read TSL2591 ID register (should return 0x50)
+                bus.write_byte(TSL2591_ADDRESS, 0xB2)  # 0xB2 is command bit + ID register
+                id_reg = bus.read_byte(TSL2591_ADDRESS)
+                if id_reg == 0x50:
+                    self.light_sensor = tsl2591()
+                    self.light_sensor_type = "TSL2591"
+                    logging.info("TSL2591 light sensor detected and initialized.")
+                    return "TSL2591"
+            except (IOError, OSError):
+                pass
+            
+            self.light_sensor = "none"
+            logging.warning("No light sensor detected")
+            return "No light sensor detected"
+        
+        finally:
+            bus.close()
 
-    # Update the language settings
     def update_language(self, new_language):
         return self.language_settings.update_language(new_language)
 
@@ -235,7 +256,7 @@ class WordClock:
     
     def update_brightness(self):
         if not self.auto_brightness_enabled:
-            return  # Skip auto-brightness in calibration mode
+            return
 
         try:
             if self.light_sensor_type == "BH1750":
@@ -267,13 +288,11 @@ class WordClock:
                 alpha = 0.3  # Smoothing factor (0-1, higher = more smoothing)
                 brightness = alpha * self.last_brightness + (1 - alpha) * brightness
             self.last_brightness = brightness
-#L            logging.info(f"Lux, Bright: {lux}, {brightness}")
             self.strip.setBrightness(int(brightness))
         except Exception as e:
             logging.error(f"Failed to update brightness: {e}")
 
     def activate_word(self, word):
-        """Activate a word on the display"""
         if word in self.language_settings.words:
             start, end = self.language_settings.words[word]
             for i in range(start, end + 1):
@@ -282,7 +301,6 @@ class WordClock:
                     self.set_led_color(led_index, self.letter_active_color)
                     
     def update_clock(self):
-        """Update the clock display based on the current time."""
         now = time.localtime()
         hours = now.tm_hour % 12 or 12
         minutes = now.tm_min
@@ -414,7 +432,6 @@ class WordClock:
     # End Subs ------------------------------------------------------------------------------
 
 def load_config(config_file):
-    """Load configuration from a JSON file."""
     script_dir = os.path.dirname(os.path.abspath(__file__))
     config_path = os.path.join(script_dir, config_file)
     try:
@@ -422,13 +439,13 @@ def load_config(config_file):
             config = json.load(f)
             return config
     except FileNotFoundError:
-        print(f"Error: {config_file} not found at {config_path}")
+        logging.error(f"Error: {config_file} not found at {config_path}")
         return None
     except json.JSONDecodeError:
-        print(f"Error: {config_file} is not a valid JSON file.")
+        logging.error(f"Error: {config_file} is not a valid JSON file.")
         return None
     except Exception as e:
-        print(f"An unexpected error occurred: {e}")
+        logging.error(f"An unexpected error occurred: {e}")
         return None
 
 # Initialize word clock
@@ -445,7 +462,6 @@ def index():
     initial_purist = word_clock.purist
     woordklok_name = word_clock.woordklok
     woordklok_version = word_clock.version
-    
     rainbow_effect_names=word_clock.rainbow_anim.effect_names  # Pass just the names list
     
     return render_template(
@@ -497,12 +513,6 @@ def update_settings():
         logging.error(f"Failed to update settings: {e}")
         return jsonify({"error": str(e)}), 500
 
-
-
-
-
-
-
 @app.route('/set_rainbow_effect', methods=['POST'])
 def set_rainbow_effect():
     effect_num = request.json.get('effect', 0)
@@ -531,7 +541,7 @@ def get_brightness():
         logging.error(f"Failed to fetch brightness: {e}")
         return jsonify({"error": "Failed to fetch brightness"}), 500
 
-#--------------------------------------------------------start--calibration
+#--------------------------------------------------------calibration
 @app.route("/calibration.html")
 def calibration_page():
     """Serve the calibration interface"""
@@ -636,12 +646,10 @@ def cancel_calibration():
     except Exception as e:
         logging.error(f"Failed to cancel calibration: {e}")
         return jsonify({"error": str(e)}), 500
-#--------------------------------------------------------end----calibration
+#------------------------------------------------------------calibration
 
 # Main function to run the word clock
 def run_clock():
-
-    # Run the word clock in a separate thread.
 
     try:
       last_time = time.time()
@@ -677,6 +685,7 @@ def run_clock():
             
     except KeyboardInterrupt:
         logging.info("Exiting...")
+
     finally:
         # Clean up on exit
         for i in range(word_clock.led_count):

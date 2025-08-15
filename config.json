@@ -1,5 +1,5 @@
 {
-    "VERSION": " 5.56",
+    "VERSION": " 5.61",
     "PURIST": true,
     "WOORDKLOK": "6",
     "LANGUAGE": "NL",
@@ -7,8 +7,6 @@
     "CLOCK_TYPE": "regular",
     "RAND_COLOR": "blue",
     "LIGHT_INTERVAL": 1,
-    "xLIGHT_SENSOR" : "BH1750",
-    "LIGHT_SENSOR" : "TSL2591",
     "LED_PIN": 18,
     "LED_FREQ_HZ": 800000,
     "LED_DMA": 10,
