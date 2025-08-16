@@ -147,8 +147,7 @@ class WordClock:
     def initialize_lightsensor(self):        
         BH1750_ADDRESS = 0x23  # Can also be 0x5C for some BH1750 variants
         TSL2591_ADDRESS = 0x29
-        
-       bus = smbus2.SMBus(1)  # 1 indicates /dev/i2c-1
+        bus = smbus2.SMBus(1)  # 1 indicates /dev/i2c-1
         
         try:
             try:
@@ -166,7 +165,7 @@ class WordClock:
             except (IOError, OSError):
                 pass
             
-             try:
+            try:
                 # Read TSL2591 ID register (should return 0x50)
                 bus.write_byte(TSL2591_ADDRESS, 0xB2)  # 0xB2 is command bit + ID register
                 id_reg = bus.read_byte(TSL2591_ADDRESS)
