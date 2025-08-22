@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 5.61 -->
+<!--version: 5.71 -->
 <html>
 <head>
     <title>Woordklok Calibration</title>
@@ -131,13 +131,13 @@
         <div class="sensor-readings">
             <h3>Current Sensor Readings</h3>
             <p>Light Level: <span id="currentLux" class="sensor-value">0</span> lux</p>
-            <p>Current Brightness: <span id="currentBrightness" class="sensor-value">0</span>%</p>
+            <p>Current Brightness: <span id="currentBrightness" class="sensor-value">0</span></p>
         </div>
 
         <div class="slider-container">
             <h3>Manual Brightness Control</h3>
-            <input type="range" id="brightnessSlider" min="1" max="100" value="50">
-            <div class="slider-value"><span id="sliderValue">50</span>%</div>
+            <input type="range" id="brightnessSlider" min="1" max="255" value="50">
+            <div class="slider-value"><span id="sliderValue">50</span></div>
         </div>
 
         <div class="controls">
@@ -160,7 +160,7 @@
                 <tr>
                     <th>#</th>
                     <th>Lux</th>
-                    <th>Bright%</th>
+                    <th>Bright</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -232,7 +232,7 @@
                         <tr>
                             <td>${index + 1}</td>
                             <td><input type="number" class="lux-input" value="${point.lux.toFixed(2)}" step="0.1" min="0"></td>
-                            <td><input type="number" class="brightness-input" value="${point.brightness}" min="1" max="100"></td>
+                            <td><input type="number" class="brightness-input" value="${point.brightness}" min="1" max="255"></td>
                             <td>
                                 <button class="update-btn" data-index="${index}">Upd</button>
                                 <button class="delete-btn" data-index="${index}">Del</button>

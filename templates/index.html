@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 5.61 -->
+<!--version: 5.71 -->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -168,9 +168,10 @@
                 <option value="EN" {% if initial_language == "EN" %}selected{% endif %}>EN</option>
             </select>
             <div class="line"></div>
+            {% if woordklok_calibrate %}
             <button id="enterCalibration">Calibration mode</button>
+            {% endif %}
         </div>
-
         <div class="brightness-display">
             <h6><span>Lux:Bright = </span>
             <span id="brightnessValue">0</span></h6>
