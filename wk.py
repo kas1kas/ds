@@ -1,6 +1,8 @@
-# woordklok v5.61
-# detect lightsensor 15-aug-25
-# need to implement default brightness when no lightsensor detected
+__version__ = "5.71"
+# Woordklok
+# config changes 20-aug-25
+# almost implemented default brightness when no lightsensor detected
+# and minimum level at 0 lux
 import argparse
 import json
 import logging
@@ -84,14 +86,15 @@ class WordClock:
     def __init__(self, config):
         self.version = config["VERSION"]
         self.purist = config["PURIST"]
+        self.calibrate = config["CALIBRATE"]
         self.woordklok = config["WOORDKLOK"]
         self.grid = config["GRID"]
         self.light_interval = config["LIGHT_INTERVAL"]
         self.language_settings = LanguageSettings(config, config["LANGUAGE"], self.grid)
-        self.led_pin = config["LED_PIN"]
-        self.led_freq_hz = config["LED_FREQ_HZ"]
-        self.led_dma = config["LED_DMA"]
-        self.led_channel = config["LED_CHANNEL"]
+        self.led_pin = 18
+        self.led_freq_hz = 800000
+        self.led_dma = 10
+        self.led_channel = 0
         self.background_color = config["BACKGROUND_COLOR"]
         self.letter_active_color = config["LETTER_ACTIVE_COLOR"]
         self.dot_active_color = config["DOT_ACTIVE_COLOR"]
@@ -108,7 +111,8 @@ class WordClock:
         self.current_mode = "normal"  # 'normal' or 'calibration'
         self.auto_brightness_enabled = True
         self.rainbow_anim = self.RainbowAnimation(self)  # Create animation instance
-        
+        self.light_sensor_type = "none"                   # default before autodetect
+                
         if self.grid=="16":
           self.led_count = 256
           self.columns =16
@@ -147,6 +151,7 @@ class WordClock:
     def initialize_lightsensor(self):        
         BH1750_ADDRESS = 0x23  # Can also be 0x5C for some BH1750 variants
         TSL2591_ADDRESS = 0x29
+        
         bus = smbus2.SMBus(1)  # 1 indicates /dev/i2c-1
         
         try:
@@ -178,6 +183,7 @@ class WordClock:
                 pass
             
             self.light_sensor = "none"
+            self.light_sensor_type = "none"
             logging.warning("No light sensor detected")
             return "No light sensor detected"
         
@@ -254,7 +260,7 @@ class WordClock:
             return led_index
     
     def update_brightness(self):
-        if not self.auto_brightness_enabled:
+        if not self.auto_brightness_enabled or self.light_sensor_type == "none":
             return
 
         try:
@@ -288,6 +294,9 @@ class WordClock:
                 brightness = alpha * self.last_brightness + (1 - alpha) * brightness
             self.last_brightness = brightness
             self.strip.setBrightness(int(brightness))
+            
+            #logging.info(f"lux, bright: {self.light_sensor_type}, {self.auto_brightness_enabled}, {lux}, {brightness}")
+            
         except Exception as e:
             logging.error(f"Failed to update brightness: {e}")
 
@@ -461,6 +470,7 @@ def index():
     initial_purist = word_clock.purist
     woordklok_name = word_clock.woordklok
     woordklok_version = word_clock.version
+    woordklok_calibrate = word_clock.calibrate
     rainbow_effect_names=word_clock.rainbow_anim.effect_names  # Pass just the names list
     
     return render_template(
@@ -471,6 +481,7 @@ def index():
         initial_purist=initial_purist,
         woordklok_name = woordklok_name,
         woordklok_version = woordklok_version,
+        woordklok_calibrate = word_clock.calibrate,
         rainbow_effect_names=word_clock.rainbow_anim.effect_names  # Pass the effect names directly
     )
 
@@ -598,8 +609,8 @@ def set_temporary_brightness():
         data = request.get_json()
         brightness = int(data.get("brightness"))
         
-        if not 0 <= brightness <= 100:
-            return jsonify({"error": "Brightness must be 0-100"}), 400
+        if not 0 <= brightness <= 255:
+            return jsonify({"error": "Brightness must be 0-255"}), 400
             
         word_clock.strip.setBrightness(brightness)
         word_clock.strip.show()
