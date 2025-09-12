@@ -1,8 +1,7 @@
-__version__ = "5.71"
+__version__ = "5.81"
 # Woordklok
-# config changes 20-aug-25
-# almost implemented default brightness when no lightsensor detected
-# and minimum level at 0 lux
+# config changes 12-SEP-25
+# implemented default brightness when no lightsensor detected
 import argparse
 import json
 import logging
@@ -95,6 +94,7 @@ class WordClock:
         self.led_freq_hz = 800000
         self.led_dma = 10
         self.led_channel = 0
+        self.def_brightness = config["DEF_BRIGHTNESS"]
         self.background_color = config["BACKGROUND_COLOR"]
         self.letter_active_color = config["LETTER_ACTIVE_COLOR"]
         self.dot_active_color = config["DOT_ACTIVE_COLOR"]
@@ -143,6 +143,7 @@ class WordClock:
                 self.led_dma, False, 100, self.led_channel
             )
             self.strip.begin()
+            self.strip.setBrightness(self.def_brightness)
             logging.info("LED strip initialized.")
         except Exception as e:
             logging.error(f"Failed to initialize LED strip: {e}")
@@ -184,7 +185,9 @@ class WordClock:
             
             self.light_sensor = "none"
             self.light_sensor_type = "none"
+            self.calibrate = False
             logging.warning("No light sensor detected")
+            logging.info(f"Default brightness: {self.def_brightness}")
             return "No light sensor detected"
         
         finally:
