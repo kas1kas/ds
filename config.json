@@ -1,7 +1,7 @@
 {
     "VERSION": "5.82",
     "PURIST": true,
-    "CALIBRATE": true, 
+    "CALIBRATE": false, 
     "WOORDKLOK": "10-16",
     "LANGUAGE": "NL",
     "GRID" : "16",
