@@ -1,5 +1,5 @@
 {
-    "VERSION": "5.82",
+    "VERSION": "5.83",
     "PURIST": true,
     "CALIBRATE": false, 
     "WOORDKLOK": "10-16",
@@ -14,7 +14,6 @@
     "DOT_ACTIVE_COLOR": [255, 255, 255],
     "DOT_INACTIVE_COLOR": [0,0,0],
     "DOT_DARK_COLOR": [100,0,0],
-    "LUT_IN": {
     "LUT_IN": {
            "0" :   [  0.2, 1, 2, 3, 5,10, 20, 30],
            "5" :   [  0.2, 1, 2, 3, 5,10, 20, 30],
