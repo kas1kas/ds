@@ -1,7 +1,7 @@
-__version__ = "5.81"
+__version__ = "5.83"
 # Woordklok
-# config changes 12-SEP-25
-# implemented default brightness when no lightsensor detected
+# config changes 09-FEB-26
+# Oeteldonk theme
 import argparse
 import json
 import logging
@@ -22,7 +22,6 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 
 # Initialize Flask app
 app = Flask(__name__)
-
 
 # BH1750 Sensor Implementation
 class BH1750:
@@ -213,6 +212,17 @@ class WordClock:
     def cls(self):
         for i in range(self.led_count):
            self.set_led_color(i, self.background_color)
+
+    def oeteldonk(self):
+        for x in range(11):
+           for y in range(10):
+              if y>6:
+                 bgcolor=[169,169,0]
+              elif y>2:
+                 bgcolor=[169,169,169]
+              else:
+                 bgcolor=[169,0,0]
+              self.setcolor_x_y(x, y, bgcolor)             
 
     def set_mode(self, mode):
         """Set the current operation mode"""
@@ -514,7 +524,7 @@ def update_settings():
         
         # Update clock type if changed
         if 'clock_type' in data:
-            if data['clock_type'] in ["regular", "random", "rainbow", "dark", "test"]:
+            if data['clock_type'] in ["regular", "random", "rainbow", "dark", "oeteldonk"]:
                 word_clock.clock_type = data['clock_type']
         
         # Update purist mode if changed
@@ -676,8 +686,12 @@ def run_clock():
            word_clock.cls()
            word_clock.update_clock()
 
-        elif word_clock.clock_type == "test":
+        elif word_clock.clock_type == "oeteldonk":
+           word_clock.oeteldonk()
+           oetel = word_clock.letter_active_color
+           word_clock.letter_active_color = [0,255,255]
            word_clock.update_clock()
+           word_clock.letter_active_color = oetel
 
         elif word_clock.clock_type == "dark":
            if time.time() - last_dtime >= word_clock.light_interval:
