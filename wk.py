@@ -455,22 +455,30 @@ class WordClock:
 # Merge configs before creating the instance
 def load_merged_config(gen_file, loc_file):
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    config_path = os.path.join(script_dir, gen_file)
+
+    # Create full paths for both files
+    gen_path = os.path.join(script_dir, gen_file)
+    loc_path = os.path.join(script_dir, loc_file)
 
     try:
-        with open(gen_file) as f:
+        # Use the full paths when opening the files
+        with open(gen_path) as f:
             config_gen = json.load(f)
-        with open(loc_file) as f:
+        with open(loc_path) as f:
             config_loc = json.load(f)
 
         # Merge (loc overrides gen if there are conflicts)
         merged_config = {**config_gen, **config_loc}
         return merged_config
-    except FileNotFoundError:
-        logging.error(f"Error: {merged_config_file} not found at {config_path}")
+    except FileNotFoundError as e:
+        # Determine which file wasn't found
+        if gen_path in str(e):
+            logging.error(f"Error: {gen_file} not found at {gen_path}")
+        else:
+            logging.error(f"Error: {loc_file} not found at {loc_path}")
         return None
-    except json.JSONDecodeError:
-        logging.error(f"Error: {merged_config_file} is not a valid JSON file.")
+    except json.JSONDecodeError as e:
+        logging.error(f"Error: Invalid JSON in {e.filename}")
         return None
     except Exception as e:
         logging.error(f"An unexpected error occurred: {e}")
