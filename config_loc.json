@@ -1,0 +1,23 @@
+{
+    "VERSION": "5.91",
+    "PURIST": true,
+    "CALIBRATE": false, 
+    "WOORDKLOK": "8",
+    "LANGUAGE": "NL",
+    "GRID" : "11",
+    "CLOCK_TYPE": "random",
+    "RAND_COLOR": "blue",
+    "LIGHT_INTERVAL": 1,
+    "DEF_BRIGHTNESS" : 4,
+    "BACKGROUND_COLOR": [0, 0, 0],
+    "LETTER_ACTIVE_COLOR": [255, 255, 255],
+    "DOT_ACTIVE_COLOR": [255, 255, 255],
+    "DOT_INACTIVE_COLOR": [0,0,0],
+    "DOT_DARK_COLOR": [100,0,0],
+    "LUT_IN": {
+           "8" :   [  0, 0.1, 1, 2, 4,  10, 15, 20, 40]
+    },  
+    "LUT_OUT": {
+           "8" :   [3, 3,  7, 14, 29, 75,120,160,180,210]
+    }
+}

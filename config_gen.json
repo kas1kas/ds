@@ -1,0 +1,143 @@
+{
+    "VERSION": "5.91",
+    "MINUTE_DOTS": {
+        "11":{
+           "MLT": 1,
+           "MLB": 0,
+           "MRB": 112,
+           "MRT": 113
+        },
+        "16": {
+           "MLT": 14,
+           "MLB": 1,
+           "MRB": 225,
+           "MRT": 238
+        }
+    },
+    "IT_IS": {
+        "NL": ["HET", "IS"], 
+        "EN": ["IT", "IS"]
+    },
+    "HOUR_WORDS": {
+        "NL": ["EEN", "TWEE", "DRIE", "VIER", "VIJF2", "ZES", 
+               "ZEVEN", "ACHT", "NEGEN", "TIEN2", "ELF", "TWAALF"],
+        "EN": ["ONE", "TWO", "THREE", "FOUR", "FIVE2", "SIX", 
+               "SEVEN", "EIGHT", "NINE", "TEN2", "ELEVEN", "TWELVE"]
+    },
+    "WORDS": {
+        "NL": {
+           "11":{
+               "HET": [8, 10],
+               "IS": [5, 6],
+               "VIJF": [0, 3],
+               "TIEN": [18, 21],
+               "KWART": [22, 26],
+               "OVER": [29, 32],
+               "VOOR": [11, 14],
+               "VOOR2": [51, 54],
+               "OVER2": [33, 36],
+               "HALF": [40, 43],
+               "EEN": [45, 47],
+               "TWEE": [62, 65],
+               "DRIE": [55, 58],
+               "VIER": [73, 76],
+               "ZES": [66, 68],
+               "VIJF2": [69, 72],
+               "ZEVEN": [83, 87],
+               "ACHT": [95, 98],
+               "NEGEN": [77, 81],
+               "TIEN2": [92, 95],
+               "ELF": [88, 90],
+               "TWAALF": [104, 109],
+               "UUR": [99, 101]
+           },
+           "16":{
+               "HET": [8, 10],
+               "IS": [5, 6],
+               "VIJF": [0, 3],
+               "TIEN": [18, 21],
+               "KWART": [22, 26],
+               "OVER": [29, 32],
+               "VOOR": [11, 14],
+               "VOOR2": [51, 54],
+               "OVER2": [33, 36],
+               "HALF": [40, 43],
+               "EEN": [45, 47],
+               "TWEE": [62, 65],
+               "DRIE": [55, 58],
+               "VIER": [73, 76],
+               "ZES": [66, 68],
+               "VIJF2": [69, 72],
+               "ZEVEN": [83, 87],
+               "ACHT": [95, 98],
+               "NEGEN": [77, 81],
+               "TIEN2": [92, 95],
+               "ELF": [88, 90],
+               "TWAALF": [104, 109],
+               "UUR": [99, 101]
+           }
+        },   
+        "EN": {
+           "11":{
+               "IT": [9, 10],
+               "IS": [6, 7],
+               "FIVE": [23, 26],
+               "TEN": [36, 38],
+               "A": [21,21],
+               "QUARTER": [13, 19],
+               "PAST": [51, 54],
+               "TO": [33, 34],
+               "TWENTY": [27, 32],
+               "TWENTYFIVE": [23, 32],
+               "HALF": [40, 43],
+               "ONE": [63, 65],
+               "TWO": [66, 68],
+               "THREE": [55, 59],
+               "FOUR": [73, 76],
+               "FIVE2": [69, 72],
+               "SIX": [60, 62],
+               "SEVEN": [94, 98],
+               "EIGHT": [83, 87],
+               "NINE": [44, 47],
+               "TEN2": [107, 109],
+               "ELEVEN": [77, 82],
+               "TWELVE": [88, 93],
+               "OCLOCK": [99, 104]
+           }
+        }
+    },
+    "MIN_BLOCK_CHECK": {
+        "NL": 4,
+        "EN": 7
+    },
+    "MINUTE_BLOCKS": {
+        "NL": {
+            "0": ["UUR"],
+            "1": ["VIJF", "OVER"],
+            "2": ["TIEN", "OVER"],
+            "3": ["KWART", "OVER2"],
+            "4": ["TIEN", "VOOR", "HALF"],
+            "5": ["VIJF", "VOOR", "HALF"],
+            "6": ["HALF"],
+            "7": ["VIJF", "OVER", "HALF"],
+            "8": ["TIEN", "OVER", "HALF"],
+            "9": ["KWART", "VOOR2"],
+            "10": ["TIEN", "VOOR"],
+            "11": ["VIJF", "VOOR"]
+        },
+        "EN": {
+            "0": ["OCLOCK"],
+            "1": ["FIVE", "PAST"],
+            "2": ["TEN", "PAST"],
+            "3": ["A", "QUARTER", "PAST"],
+            "4": ["TWENTY", "PAST"],
+            "5": ["TWENTYFIVE", "PAST"],
+            "6": ["HALF", "PAST"],
+            "7": ["TWENTYFIVE", "TO"],
+            "8": ["TWENTY", "TO"],
+            "9": ["A", "QUARTER", "TO"],
+            "10": ["TEN", "TO"],
+            "11": ["FIVE", "TO"]
+        }
+    }
+}
