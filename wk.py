@@ -1,7 +1,7 @@
-__version__ = "5.83"
+__version__ = "5.91"
 # Woordklok
-# config changes 09-FEB-26
-# Oeteldonk theme
+# config split into two files and merged before start
+# config_loc and config_gen
 import argparse
 import json
 import logging
@@ -452,25 +452,32 @@ class WordClock:
        
     # End Subs ------------------------------------------------------------------------------
 
-def load_config(config_file):
+# Merge configs before creating the instance
+def load_merged_config(gen_file, loc_file):
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    config_path = os.path.join(script_dir, config_file)
+    config_path = os.path.join(script_dir, gen_file)
+
     try:
-        with open(config_path, 'r') as f:
-            config = json.load(f)
-            return config
+        with open(gen_file) as f:
+            config_gen = json.load(f)
+        with open(loc_file) as f:
+            config_loc = json.load(f)
+
+        # Merge (loc overrides gen if there are conflicts)
+        merged_config = {**config_gen, **config_loc}
+        return merged_config
     except FileNotFoundError:
-        logging.error(f"Error: {config_file} not found at {config_path}")
+        logging.error(f"Error: {merged_config_file} not found at {config_path}")
         return None
     except json.JSONDecodeError:
-        logging.error(f"Error: {config_file} is not a valid JSON file.")
+        logging.error(f"Error: {merged_config_file} is not a valid JSON file.")
         return None
     except Exception as e:
         logging.error(f"An unexpected error occurred: {e}")
         return None
 
 # Initialize word clock
-config = load_config("config.json")
+config = load_merged_config('config_gen.json', 'config_loc.json')
 word_clock = WordClock(config)
 
 # Flask routes
