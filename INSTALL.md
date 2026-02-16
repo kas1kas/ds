@@ -26,8 +26,8 @@
 - cd wifi-connect/scripts
 - sudo ./rpi_headless_wifi_install.sh
 ## 6 config and test
-- cd /home/pi/ds
-- edit the config file: woordklok name, matrix, lut
+- cd ~/.wordclock
+- edit file config_loc.json: woordklok name, matrix, lut, see chapter below: personalisation
 - swk (start wordclock alias for: sudo python3 /home/pi/ds/wk.py
 ## 7 reboot
 The clock should start automatically within a minute
@@ -53,6 +53,31 @@ if not, click on the down arrow and your network
 - you phone also re-connects to your WiFi
 - the correct time will appear on the wordclock after a while
 
+## Personalisation
+edit the file ~/.wordclock/config_loc.json. Do not add the comments between (). These are only here to explain.
+{
+    "VERSION": "5.91",             (do not edit)
+    "PURIST": true,                (show HET IS / IT IS, or not)
+    "CALIBRATE": false,            (show calibration menu or not)
+    "WOORDKLOK": "8",              (enter your name or clock number)
+    "LANGUAGE": "NL",              (NL or EN supported at the moment)
+    "GRID" : "11",                 (11: 11x10 or 16: 16x16 supported)
+    "CLOCK_TYPE": "random",        (clockface after reboot: normal, random, dark, see menu while running)
+    "RAND_COLOR": "blue",          (blue or orange supported)
+    "LIGHT_INTERVAL": 1,           (screen update speed, more is slower)
+    "DEF_BRIGHTNESS" : 4,          (when no light sensor is detected)
+    "BACKGROUND_COLOR": [0, 0, 0],           (colors in R,G,B)
+    "LETTER_ACTIVE_COLOR": [255, 255, 255],
+    "DOT_ACTIVE_COLOR": [255, 255, 255],
+    "DOT_INACTIVE_COLOR": [0,0,0],
+    "DOT_DARK_COLOR": [100,0,0],
+    "LUT_IN": {
+           "8" :   [  0, 0.1, 1, 2, 4,  10, 15, 20, 40]      (value measured by light sensor, needs variable in WOORDKLOK at the moment)
+    },  
+    "LUT_OUT": {
+           "8" :   [3, 3,  7, 14, 29, 75,120,160,180,210]    (translated version for LED brightness, needs variable in WOORDKLOK at the moment)
+    }
+}
 
 
 
