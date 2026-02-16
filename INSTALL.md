@@ -18,7 +18,7 @@
 > with bookworm, debian 12
 - sudo pip3 install flask-restx rpi-ws281x python-tsl2591 --break-system-packages
 ## 4 install wordclock software
-- git clone https://github.com/kas1kas/ds.git
+- curl -L https://raw.githubusercontent.com/kas1kas/ds/main/install.sh | bash
 - ds/setwk.sh
 - exec bash
 ## 5 install WiFi-connect
@@ -52,6 +52,7 @@ if not, click on the down arrow and your network
 - the wordklock clock is now connected to your WiFi
 - you phone also re-connects to your WiFi
 - the correct time will appear on the wordclock after a while
+
 
 
 
