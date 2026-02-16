@@ -50,17 +50,15 @@ fi
 if [ -d "$INSTALL_DIR/.git" ]; then
     log "Existing installation found. Updating from GitHub..." "$YELLOW"
     
-    # Backup user configs before update (just in case)
-    log "Creating backup of user configs..."
-    mkdir -p "$BACKUP_DIR"
+    # Backup user config before update (just in case)
     if [ -f "$USER_CONFIG_DIR/config_loc.json" ]; then
-        cp "$USER_CONFIG_DIR/config_loc.json" "$BACKUP_DIR/" 2>/dev/null || log "No config_loc.json to backup" "$YELLOW"
-    fi
-    if [ -f "$USER_CONFIG_DIR/config_gen.json" ]; then
-        cp "$USER_CONFIG_DIR/config_gen.json" "$BACKUP_DIR/" 2>/dev/null || log "No config_gen.json to backup" "$YELLOW"
+        log "Creating backup of user config..."
+        mkdir -p "$BACKUP_DIR"
+        cp "$USER_CONFIG_DIR/config_loc.json" "$BACKUP_DIR/" 
+        log "Backup created at $BACKUP_DIR/config_loc.json" "$GREEN"
     fi
     
-    # Update repository
+    # Update repository - this will update config_gen.json automatically!
     cd "$INSTALL_DIR"
     git fetch origin
     LOCAL=$(git rev-parse HEAD)
@@ -70,6 +68,7 @@ if [ -d "$INSTALL_DIR/.git" ]; then
         log "Updates available. Pulling changes..."
         git pull origin main || git pull origin master || error_exit "Failed to pull updates"
         log "Repository updated successfully" "$GREEN"
+        log "Note: config_gen.json has been updated with latest changes" "$YELLOW"
     else
         log "Already up to date" "$GREEN"
     fi
@@ -85,11 +84,11 @@ mkdir -p "$USER_CONFIG_DIR"
 chmod 755 "$USER_CONFIG_DIR"
 log "User config directory: $USER_CONFIG_DIR"
 
-# Step 4: Copy config files to user directory (without overwriting user modifications)
-log "Setting up configuration files..." "$YELLOW"
+# Step 4: ONLY copy config_loc.json to user directory (config_gen.json stays in repo!)
+log "Setting up user configuration file..." "$YELLOW"
 
 # Function to copy config if it doesn't exist
-copy_config() {
+copy_user_config() {
     local src="$1"
     local dst="$2"
     local name="$3"
@@ -99,42 +98,56 @@ copy_config() {
             cp "$src" "$dst"
             chmod 644 "$dst"
             log "  ✅ Created $name from repository" "$GREEN"
+            log "  📝 EDIT THIS FILE: $dst" "$YELLOW"
         else
             log "  ⚠️  Warning: $src not found in repository" "$YELLOW"
         fi
     else
-        log "  ✅ $name already exists - keeping user version" "$GREEN"
+        log "  ✅ $name already exists - keeping your custom settings" "$GREEN"
+        log "  📝 Your config: $dst" "$BLUE"
         
-        # Optional: Show if repository version is different
+        # Show if repository version is different (for information only)
         if [ -f "$src" ]; then
             if ! cmp -s "$src" "$dst"; then
-                log "  📝 Note: Repository template differs from your config. Compare with: diff $src $dst" "$YELLOW"
+                log "  📝 Note: New template available. Compare with: diff $src $dst" "$YELLOW"
             fi
         fi
     fi
 }
 
-# Copy config files from the main directory
-log "Looking for config files in $INSTALL_DIR..."
-copy_config "$INSTALL_DIR/config_gen.json" "$USER_CONFIG_DIR/config_gen.json" "General config (config_gen.json)"
-copy_config "$INSTALL_DIR/config_loc.json" "$USER_CONFIG_DIR/config_loc.json" "Local config (config_loc.json)"
+# ONLY copy config_loc.json - this is the user's personal config
+copy_user_config "$INSTALL_DIR/config_loc.json" "$USER_CONFIG_DIR/config_loc.json" "Personal config (config_loc.json)"
+
+# config_gen.json stays in the repository and will be updated with git pull!
+log "  ℹ️  System config (config_gen.json) remains in $INSTALL_DIR and will update with git" "$BLUE"
 
 # Step 5: Create a README in the user config directory
 if [ ! -f "$USER_CONFIG_DIR/README.txt" ]; then
     cat > "$USER_CONFIG_DIR/README.txt" << EOF
-WordClock User Configuration Directory
-======================================
-This directory contains your personal WordClock configuration files.
+WordClock User Configuration
+============================
 
-- config_gen.json: General settings (can be updated from repository)
-- config_loc.json: Local/User settings (preserved during updates)
+This directory contains your PERSONAL WordClock configuration.
 
-These files are NEVER overwritten during updates.
-If you want to reset to defaults, delete the file and run the install script again.
+FILES:
+------
+config_loc.json  - YOUR personal settings (edit this one!)
+                  This file will NEVER be overwritten during updates.
 
-To compare your config with the latest repository version:
-  diff ~/.wordclock/config_gen.json ~/ds/config_gen.json
-  diff ~/.wordclock/config_loc.json ~/ds/config_loc.json
+IMPORTANT:
+----------
+- System settings (config_gen.json) are in: /home/pi/ds/config_gen.json
+- That file updates automatically when you run 'git pull'
+- Your personal settings here will be preserved forever
+
+TO EDIT YOUR SETTINGS:
+---------------------
+nano ~/.wordclock/config_loc.json
+
+TO COMPARE WITH LATEST TEMPLATE:
+------------------------------
+diff ~/.wordclock/config_loc.json ~/ds/config_loc.json
+
 EOF
     log "  ✅ Created README in user config directory" "$GREEN"
 fi
@@ -145,10 +158,6 @@ if command -v pip3 &> /dev/null; then
     if [ -f "$INSTALL_DIR/requirements.txt" ]; then
         log "Installing Python packages from requirements.txt..." "$YELLOW"
         pip3 install --user -r "$INSTALL_DIR/requirements.txt" || log "⚠️  Warning: Some packages may not have installed" "$YELLOW"
-    else
-        # Check for common dependencies
-        log "No requirements.txt found. Checking for common packages..." "$YELLOW"
-        pip3 list | grep -E "RPi.GPIO|pillow|numpy" || log "Some common packages may be missing" "$YELLOW"
     fi
 else
     log "pip3 not found. Installing python3-pip..." "$YELLOW"
@@ -157,7 +166,7 @@ fi
 
 # Step 7: Set up proper permissions
 log "Setting file permissions..."
-chmod +x "$INSTALL_DIR/wk.py" 2>/dev/null || log "⚠️  wk.py not found or not executable" "$YELLOW"
+chmod +x "$INSTALL_DIR/wk.py" 2>/dev/null || log "⚠️  wk.py not found" "$YELLOW"
 chmod -R 755 "$INSTALL_DIR"
 
 # Step 8: Create a version file
@@ -179,34 +188,33 @@ import os
 import sys
 
 try:
-    # Check if user configs exist
-    gen_path = '$USER_CONFIG_DIR/config_gen.json'
-    loc_path = '$USER_CONFIG_DIR/config_loc.json'
-    
-    if not os.path.exists(gen_path):
-        print('⚠️  Warning: config_gen.json not found in user directory')
+    # Load system config from repository (this updates with git)
+    system_config_path = '$INSTALL_DIR/config_gen.json'
+    if not os.path.exists(system_config_path):
+        print(f'❌ System config not found: {system_config_path}')
         sys.exit(1)
     
-    if not os.path.exists(loc_path):
-        print('⚠️  Warning: config_loc.json not found in user directory')
-        sys.exit(1)
+    with open(system_config_path) as f:
+        system_config = json.load(f)
+    print('✅ System config loaded from repository')
     
-    # Try loading both configs
-    with open(gen_path) as f:
-        config_gen = json.load(f)
-    with open(loc_path) as f:
-        config_loc = json.load(f)
+    # Load user config from hidden folder (preserved)
+    user_config_path = '$USER_CONFIG_DIR/config_loc.json'
+    if os.path.exists(user_config_path):
+        with open(user_config_path) as f:
+            user_config = json.load(f)
+        print('✅ User config loaded from ~/.wordclock/')
+    else:
+        user_config = {}
+        print('⚠️  No user config found - using defaults only')
     
     # Test merge
-    merged = {**config_gen, **config_loc}
+    merged = {**system_config, **user_config}
     
-    # Check for VERSION key (common required key)
-    if 'VERSION' not in merged:
-        print('⚠️  Warning: VERSION key not found in config')
+    if 'VERSION' in merged:
+        print(f'✅ Configuration valid (version: {merged[\"VERSION\"]})')
     else:
-        print('✅ Configuration files are valid JSON')
-        print('✅ Config loaded successfully')
-        print(f'✅ Config version: {merged.get(\"VERSION\", \"unknown\")}')
+        print('⚠️  Warning: VERSION key not found in config')
         
 except json.JSONDecodeError as e:
     print(f'❌ Invalid JSON: {e}')
@@ -215,51 +223,26 @@ except Exception as e:
     print(f'❌ Config error: {e}')
     sys.exit(1)
 " 2>&1 | tee -a "$LOG_FILE"
-    
-    if [ ${PIPESTATUS[0]} -eq 0 ]; then
-        log "✅ Configuration test PASSED" "$GREEN"
-    else
-        log "⚠️  Configuration test had warnings - please check your config files" "$YELLOW"
-    fi
 fi
 
 # Step 10: Cleanup old backups
 log "Cleaning up old backups..."
 rm -rf "$BACKUP_DIR"
 
-# Step 11: Show what files were copied
-log "Checking config files in user directory..."
-if [ -f "$USER_CONFIG_DIR/config_gen.json" ]; then
-    log "  ✅ config_gen.json exists in user directory" "$GREEN"
-else
-    log "  ⚠️  config_gen.json not found in user directory" "$YELLOW"
-fi
-
-if [ -f "$USER_CONFIG_DIR/config_loc.json" ]; then
-    log "  ✅ config_loc.json exists in user directory" "$GREEN"
-else
-    log "  ⚠️  config_loc.json not found in user directory" "$YELLOW"
-fi
-
-# Final message
+# Step 11: Summary
 log ""
 log "=== Installation Complete! ===" "$GREEN"
 log ""
-log "📁 Installation directory: $INSTALL_DIR"
-log "⚙️  User config directory: $USER_CONFIG_DIR"
-log "📝 Log file: $LOG_FILE"
+log "📁 System files (updated by git): $INSTALL_DIR"
+log "   - config_gen.json (updates automatically)" "$BLUE"
 log ""
-log "To run WordClock:" "$BLUE"
-log "  cd $INSTALL_DIR && python3 wk.py" "$BLUE"
+log "⚙️  Your personal config (NEVER overwritten): $USER_CONFIG_DIR/config_loc.json" "$GREEN"
 log ""
-log "To update in the future:" "$BLUE"
-log "  cd $INSTALL_DIR && git pull" "$BLUE"
-log "  # Your configs in ~/.wordclock/ are preserved" "$GREEN"
+log "📝 To edit your personal settings:" "$YELLOW"
+log "   nano ~/.wordclock/config_loc.json" "$BLUE"
 log ""
-log "Your config files are now in ~/.wordclock/ :" "$BLUE"
-if [ -d "$USER_CONFIG_DIR" ]; then
-    ls -la "$USER_CONFIG_DIR/" | grep -v "README" | sed 's/^/  /' || echo "  (No config files yet)"
-fi
+log "🔄 To update system files (including config_gen.json):" "$YELLOW"
+log "   cd ~/ds && git pull" "$BLUE"
 log ""
 
 # Check for any errors in log
