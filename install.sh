@@ -242,7 +242,7 @@ log "📝 To edit your personal settings:" "$YELLOW"
 log "   nano ~/.wordclock/config_loc.json" "$BLUE"
 log ""
 log "🔄 To update system files (including config_gen.json):" "$YELLOW"
-log "   cd ~/ds && git pull" "$BLUE"
+log "   ~/ds/update.sh" "$BLUE"
 log ""
 
 # Check for any errors in log
