@@ -453,39 +453,56 @@ class WordClock:
     # End Subs ------------------------------------------------------------------------------
 
 # Merge configs before creating the instance
-def load_merged_config(gen_file, loc_file):
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-
-    # Create full paths for both files
-    gen_path = os.path.join(script_dir, gen_file)
-    loc_path = os.path.join(script_dir, loc_file)
-
+def load_merged_config():
+    """
+    Load and merge system config (from git) with user config (preserved)
+    User settings in config_loc.json override system defaults in config_gen.json
+    """
+    script_dir = '/home/pi/ds'
+    user_config_dir = '/home/pi/.wordclock'
+    
+    # Paths
+    system_config_path = os.path.join(script_dir, 'config_gen.json')
+    user_config_path = os.path.join(user_config_dir, 'config_loc.json')
+    
     try:
-        # Use the full paths when opening the files
-        with open(gen_path) as f:
+        # Load system config (this gets updated with git pull)
+        with open(system_config_path) as f:
             config_gen = json.load(f)
-        with open(loc_path) as f:
-            config_loc = json.load(f)
-
-        # Merge (loc overrides gen if there are conflicts)
-        merged_config = {**config_gen, **config_loc}
-        return merged_config
-    except FileNotFoundError as e:
-        # Determine which file wasn't found
-        if gen_path in str(e):
-            logging.error(f"Error: {gen_file} not found at {gen_path}")
+        logging.info(f"Loaded system config from {system_config_path}")
+        
+        # Load user config if it exists (preserved across updates)
+        if os.path.exists(user_config_path):
+            with open(user_config_path) as f:
+                config_loc = json.load(f)
+            logging.info(f"Loaded user config from {user_config_path}")
         else:
-            logging.error(f"Error: {loc_file} not found at {loc_path}")
+            config_loc = {}
+            logging.warning(f"No user config found at {user_config_path}, using defaults only")
+        
+        # MERGE: user settings override system defaults
+        merged_config = {**config_gen, **config_loc}
+        
+        # Log what was merged (optional, helpful for debugging)
+        overridden_keys = set(config_loc.keys()) & set(config_gen.keys())
+        if overridden_keys:
+            logging.info(f"User settings overriding system defaults for: {overridden_keys}")
+        
+        return merged_config
+        
+    except FileNotFoundError as e:
+        logging.error(f"Required config file not found: {e}")
+        logging.error(f"Please ensure {system_config_path} exists")
         return None
     except json.JSONDecodeError as e:
-        logging.error(f"Error: Invalid JSON in {e.filename}")
+        logging.error(f"Invalid JSON in config file: {e}")
         return None
     except Exception as e:
-        logging.error(f"An unexpected error occurred: {e}")
+        logging.error(f"Unexpected error loading config: {e}")
         return None
-
+        
 # Initialize word clock
-config = load_merged_config('config_gen.json', 'config_loc.json')
+config = load_merged_config()
 word_clock = WordClock(config)
 
 # Flask routes
