@@ -13,7 +13,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-REPO_URL="https://github.com/here_my_projectname/ds.git"
+REPO_URL="https://github.com/kas1kas/ds.git"
 INSTALL_DIR="/home/pi/ds"
 USER_CONFIG_DIR="/home/pi/.wordclock"
 BACKUP_DIR="/home/pi/.wordclock_backup"
