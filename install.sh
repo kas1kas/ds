@@ -13,7 +13,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-REPO_URL="https://github.com/kas1kas/ds.git"
+REPO_URL="https://github.com/here_my_projectname/ds.git"
 INSTALL_DIR="/home/pi/ds"
 USER_CONFIG_DIR="/home/pi/.wordclock"
 BACKUP_DIR="/home/pi/.wordclock_backup"
@@ -114,7 +114,8 @@ copy_config() {
     fi
 }
 
-# Copy config files from the main directory (not from default_configs)
+# Copy config files from the main directory
+log "Looking for config files in $INSTALL_DIR..."
 copy_config "$INSTALL_DIR/config_gen.json" "$USER_CONFIG_DIR/config_gen.json" "General config (config_gen.json)"
 copy_config "$INSTALL_DIR/config_loc.json" "$USER_CONFIG_DIR/config_loc.json" "Local config (config_loc.json)"
 
@@ -199,15 +200,13 @@ try:
     # Test merge
     merged = {**config_gen, **config_loc}
     
-    # Check for required keys (adjust these to match your actual required config keys)
-    required_keys = ['VERSION']  # Add your required keys here
-    missing_keys = [key for key in required_keys if key not in merged]
-    
-    if missing_keys:
-        print(f'⚠️  Warning: Missing required config keys: {missing_keys}')
+    # Check for VERSION key (common required key)
+    if 'VERSION' not in merged:
+        print('⚠️  Warning: VERSION key not found in config')
     else:
         print('✅ Configuration files are valid JSON')
         print('✅ Config loaded successfully')
+        print(f'✅ Config version: {merged.get(\"VERSION\", \"unknown\")}')
         
 except json.JSONDecodeError as e:
     print(f'❌ Invalid JSON: {e}')
@@ -228,6 +227,20 @@ fi
 log "Cleaning up old backups..."
 rm -rf "$BACKUP_DIR"
 
+# Step 11: Show what files were copied
+log "Checking config files in user directory..."
+if [ -f "$USER_CONFIG_DIR/config_gen.json" ]; then
+    log "  ✅ config_gen.json exists in user directory" "$GREEN"
+else
+    log "  ⚠️  config_gen.json not found in user directory" "$YELLOW"
+fi
+
+if [ -f "$USER_CONFIG_DIR/config_loc.json" ]; then
+    log "  ✅ config_loc.json exists in user directory" "$GREEN"
+else
+    log "  ⚠️  config_loc.json not found in user directory" "$YELLOW"
+fi
+
 # Final message
 log ""
 log "=== Installation Complete! ===" "$GREEN"
@@ -244,7 +257,9 @@ log "  cd $INSTALL_DIR && git pull" "$BLUE"
 log "  # Your configs in ~/.wordclock/ are preserved" "$GREEN"
 log ""
 log "Your config files are now in ~/.wordclock/ :" "$BLUE"
-ls -la "$USER_CONFIG_DIR/" | grep -v "README" | sed 's/^/  /'
+if [ -d "$USER_CONFIG_DIR" ]; then
+    ls -la "$USER_CONFIG_DIR/" | grep -v "README" | sed 's/^/  /' || echo "  (No config files yet)"
+fi
 log ""
 
 # Check for any errors in log
