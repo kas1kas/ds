@@ -1,7 +1,7 @@
-__version__ = "5.91"
+__version__ = "6.1"
 # Woordklok
-# config split into two files and merged before start
-# config_loc and config_gen
+# new install and update scripts for config files
+# added instructions
 import argparse
 import json
 import logging
