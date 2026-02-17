@@ -231,7 +231,7 @@ rm -rf "$BACKUP_DIR"
 
 # Step 11: Set up crontab and aliases
 
-log "Setting up crontab (overwriting any existing entries)..."
+log "Setting up new crontab"
 echo "@reboot sudo python3 /home/pi/ds/wk.py" | crontab -
 
 # Verify crontab was set up
@@ -243,13 +243,9 @@ else
 fi
 
 # Create the alias file
-ALIAS_SOURCE="ds/alias.txt"
-
-# Create the alias file
+ALIAS_SOURCE="/home/pi/ds/alias.txt"
 ALIAS_FILE="/home/pi/.bash_aliases"
 log "Creating alias file from $ALIAS_SOURCE..."
-
-# Copy the alias file contents, adding a header
 cp "$ALIAS_SOURCE" "$ALIAS_FILE"
 
 # Make sure the alias file is sourced in .bashrc
@@ -265,7 +261,7 @@ fi
 log "Sourcing the alias file..."
 source "$ALIAS_FILE"
 
- print(f✅'Aliases setup completed successfully."
+print(f✅'Aliases setup completed successfully.')
 
 # Step 11: Summary
 log ""
