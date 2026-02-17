@@ -239,7 +239,6 @@ if crontab -l | grep -q "@reboot sudo python3 /home/pi/ds/wk.py"; then
     log "✅ Crontab entry successfully installed."
 else
     log "❌ Failed to install crontab entry."
-    sys.exit(1)
 fi
 
 # Create the alias file
