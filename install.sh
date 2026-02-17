@@ -236,9 +236,9 @@ echo "@reboot sudo python3 /home/pi/ds/wk.py" | crontab -
 
 # Verify crontab was set up
 if crontab -l | grep -q "@reboot sudo python3 /home/pi/ds/wk.py"; then
-    print(f'✅Crontab entry successfully installed.')
+    log "✅ Crontab entry successfully installed."
 else
-    print(f'❌ Failed to install crontab entry.')
+    log "❌ Failed to install crontab entry."
     sys.exit(1)
 fi
 
@@ -261,7 +261,7 @@ fi
 log "Sourcing the alias file..."
 source "$ALIAS_FILE"
 
-print(f'✅Aliases setup completed successfully.')
+log "✅ Aliases setup completed successfully."
 
 # Step 11: Summary
 log ""
