@@ -1,7 +1,7 @@
-__version__ = "6.1"
+__version__ = "6.2"
 # Woordklok
-# new install and update scripts for config files
-# added instructions
+# LUT without clock nr/name
+# 
 import argparse
 import json
 import logging
@@ -104,8 +104,8 @@ class WordClock:
         self.dot_dark_color = config["DOT_DARK_COLOR"]       
         self.clock_type = config["CLOCK_TYPE"]
         self.rand_color = config["RAND_COLOR"]
-        self.lut_in =  config.get("LUT_IN").get(self.woordklok,{})
-        self.lut_out=  config.get("LUT_OUT").get(self.woordklok,{}) 
+        self.lut_in =  config.get("LUT_IN")
+        self.lut_out=  config.get("LUT_OUT") 
         self.CURSOR_UP = "\x1b[2A"
         self.current_mode = "normal"  # 'normal' or 'calibration'
         self.auto_brightness_enabled = True
