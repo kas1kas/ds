@@ -229,6 +229,44 @@ fi
 log "Cleaning up old backups..."
 rm -rf "$BACKUP_DIR"
 
+# Step 11: Set up crontab and aliases
+
+log "Setting up crontab (overwriting any existing entries)..."
+echo "@reboot sudo python3 /home/pi/ds/wk.py" | crontab -
+
+# Verify crontab was set up
+if crontab -l | grep -q "@reboot sudo python3 /home/pi/ds/wk.py"; then
+    print(f✅'Crontab entry successfully installed.')
+else
+    print(f'❌ Failed to install crontab entry.')
+    sys.exit(1)
+fi
+
+# Create the alias file
+ALIAS_SOURCE="ds/alias.txt"
+
+# Create the alias file
+ALIAS_FILE="/home/pi/.bash_aliases"
+log "Creating alias file from $ALIAS_SOURCE..."
+
+# Copy the alias file contents, adding a header
+cp "$ALIAS_SOURCE" "$ALIAS_FILE"
+
+# Make sure the alias file is sourced in .bashrc
+if ! grep -q "source ~/.bash_aliases" /home/pi/.bashrc; then
+    echo "Adding source command to .bashrc..."
+    echo -e "\n# Source aliases if file exists" >> /home/pi/.bashrc
+    echo "if [ -f ~/.bash_aliases ]; then" >> /home/pi/.bashrc
+    echo "    . ~/.bash_aliases" >> /home/pi/.bashrc
+    echo "fi" >> /home/pi/.bashrc
+fi
+
+# Source the alias file for current session
+log "Sourcing the alias file..."
+source "$ALIAS_FILE"
+
+ print(f✅'Aliases setup completed successfully."
+
 # Step 11: Summary
 log ""
 log "=== Installation Complete! ===" "$GREEN"
