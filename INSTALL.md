@@ -19,8 +19,6 @@
 - sudo pip3 install flask-restx rpi-ws281x python-tsl2591 --break-system-packages
 ## 4 install wordclock software
 - curl -L https://raw.githubusercontent.com/kas1kas/ds/main/install.sh | bash
-- ds/setwk.sh
-- exec bash
 ## 5 install WiFi-connect
 - git clone https://github.com/kas1kas/wifi-connect.git
 - cd wifi-connect/scripts
@@ -76,6 +74,7 @@ edit the file ~/.wordclock/config_loc.json. Do not add the comments between (). 
     "LUT_OUT": [1, 5, 40,100,160]            (translated version for LED brightness)
 }
 ```
+
 
 
 
