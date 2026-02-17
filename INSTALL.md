@@ -55,7 +55,10 @@ if not, click on the down arrow and your network
 
 ## Personalisation
 edit the file ~/.wordclock/config_loc.json. Do not add the comments between (). These are only here to explain.
+
 -{
+-    |Entry|explanation |
+-    |--------------------|------------------------------------------------|
 -    |"VERSION": "5.91",|             (do not edit)|
 -    |"PURIST": true,|                (false/true: show HET IS / IT IS, or not)|
 -    |"CALIBRATE": false,|            (true/false: show calibration menu or not)|
@@ -74,6 +77,7 @@ edit the file ~/.wordclock/config_loc.json. Do not add the comments between (). 
 -    "LUT_IN": [  0,   1, 5,20,80],      (Look up table to match light with your environment)
 -    "LUT_OUT": [1, 5, 40,100,160]       (translated version for LED brightness)
 -}
+
 
 
 
