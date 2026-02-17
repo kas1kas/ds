@@ -71,13 +71,10 @@ edit the file ~/.wordclock/config_loc.json. Do not add the comments between (). 
 -    "DOT_ACTIVE_COLOR": [255, 255, 255],
 -    "DOT_INACTIVE_COLOR": [0,0,0],
 -    "DOT_DARK_COLOR": [100,0,0],
--   "LUT_IN": {                                               (Look up table to match light with your environment)
--           "8" :   [  0, 0.1, 1, 2, 4,  10, 15, 20, 40]      (value measured by light sensor, needs variable in WOORDKLOK at the moment)
--    },  
--    "LUT_OUT": {
--           "8" :   [3, 3,  7, 14, 29, 75,120,160,180,210]    (translated version for LED brightness, needs variable in WOORDKLOK at the moment)
--    }
+-    "LUT_IN": [  0,   1, 5,20,80],      (Look up table to match light with your environment)
+-    "LUT_OUT": [1, 5, 40,100,160]       (translated version for LED brightness)
 -}
+
 
 
 
