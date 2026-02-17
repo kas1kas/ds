@@ -132,13 +132,13 @@ This directory contains your PERSONAL WordClock configuration.
 FILES:
 ------
 config_loc.json  - YOUR personal settings (edit this one!)
-                  This file will NEVER be overwritten during updates.
+                  This file will NOT be overwritten during updates.
 
 IMPORTANT:
 ----------
 - System settings (config_gen.json) are in: /home/pi/ds/config_gen.json
 - That file updates automatically when you run 'git pull'
-- Your personal settings here will be preserved forever
+- Your personal settings here will be preserved.
 
 TO EDIT YOUR SETTINGS:
 ---------------------
@@ -236,7 +236,7 @@ log ""
 log "📁 System files (updated by git): $INSTALL_DIR"
 log "   - config_gen.json (updates automatically)" "$BLUE"
 log ""
-log "⚙️  Your personal config (NEVER overwritten): $USER_CONFIG_DIR/config_loc.json" "$GREEN"
+log "⚙️  Your personal config (NOT overwritten): $USER_CONFIG_DIR/config_loc.json" "$GREEN"
 log ""
 log "📝 To edit your personal settings:" "$YELLOW"
 log "   nano ~/.wordclock/config_loc.json" "$BLUE"
