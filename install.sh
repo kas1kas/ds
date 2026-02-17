@@ -235,11 +235,11 @@ log "Setting up new crontab"
 echo "@reboot sudo python3 /home/pi/ds/wk.py" | crontab -
 
 # Verify crontab was set up
-if crontab -l | grep -q "@reboot sudo python3 /home/pi/ds/wk.py"; then
-    log "✅ Crontab entry successfully installed."
-else
-    log "❌ Failed to install crontab entry."
-fi
+#if crontab -l | grep -q "@reboot sudo python3 /home/pi/ds/wk.py"; then
+#    log "✅ Crontab entry successfully installed."
+#else
+#    log "❌ Failed to install crontab entry."
+#fi
 
 # Create the alias file
 ALIAS_SOURCE="/home/pi/ds/alias.txt"
