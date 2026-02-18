@@ -27,7 +27,11 @@
 - cd ~/.wordclock
 - edit file config_loc.json: See chapter below: **personalisation**
 - swk (start wordclock alias for: sudo python3 /home/pi/ds/wk.py
-## 7 reboot
+## 7 Web interface
+- connect via phone or computer with your web browser
+- use the local IP-address (check your router) or use hostname (see step 1)
+- try various options in the UI
+## 8 reboot
 The clock should start automatically within a minute
 
 ## Moving the Wordclock
@@ -74,6 +78,7 @@ edit the file ~/.wordclock/config_loc.json. Do not add the comments between (). 
     "LUT_OUT": [1, 5, 40,100,160]            (translated version for LED brightness)
 }
 ```
+
 
 
 
