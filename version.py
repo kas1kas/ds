@@ -91,7 +91,7 @@ if __name__ == "__main__":
     # Define file paths
     python_files = ['wk.py'] 
     html_files = ['templates/index.html', 'templates/calibration.html']
-    json_files = ['config.json']
+    json_files = ['config_gen.json', 'config_loc.json']
     
     # Check versions
     inconsistencies = checker.check_versions(python_files, html_files, json_files)
@@ -100,3 +100,4 @@ if __name__ == "__main__":
     for file_path, version in inconsistencies:
         print(f"  {file_path}: {version}")
         
+
