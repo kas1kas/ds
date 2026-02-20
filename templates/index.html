@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!--version: 6.2 -->
+<!--version: 6.2.1 -->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -76,24 +76,17 @@
             align-items: center;
             justify-content: center;
         }
-        .color-preview {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            margin-left: 10px;
-            border: 1px solid #000;
-            vertical-align: middle;
-        }
         .color-picker-container {
             display: flex;
             align-items: center;
             justify-content: center;
             margin-bottom: 10px;
+            gap: 10px;
         }
         .rgb-value {
-            margin-left: 10px;
             font-size: 14px;
             font-family: monospace;
+            font-weight: bold;
         }
         /* Modal Styles */
         .modal {
@@ -134,12 +127,8 @@
         <div class="line"></div>
         <div class="color-picker-container">
             <input type="text" id="colorPicker">
-            <div id="colorPreview" class="color-preview"></div>
             <span id="rgbValue" class="rgb-value">RGB({{ initial_color[0] }}, {{ initial_color[1] }}, {{ initial_color[2] }})</span>
         </div>
-        <form id="colorForm">
-            <button type="submit">Set Color</button>
-        </form>
         <div class="line"></div>
         <div class="settings">
             <label for="clock_type"><b>Display:</b></label>
@@ -190,7 +179,6 @@
             document.getElementById('language').addEventListener('change', updateSettings);
             document.getElementById('clock_type').addEventListener('change', updateSettings);
             document.getElementById('purist').addEventListener('change', updateSettings);
-                
             
             // Initialize color picker
             const initialColor = {
@@ -207,18 +195,15 @@
                 allowEmpty: false,
                 change: function(color) {
                     const rgbColor = color.toRgb();
-                    const previewColor = `rgb(${rgbColor.r}, ${rgbColor.g}, ${rgbColor.b})`;
-                    $("#colorPreview").css("background-color", previewColor);
                     $("#rgbValue").text(`RGB(${rgbColor.r}, ${rgbColor.g}, ${rgbColor.b})`);
+                    
+                    // Send color immediately when changed
+                    setColor(rgbColor);
                 }
             });
-
-            $("#colorPreview").css("background-color", `rgb(${initialColor.r}, ${initialColor.g}, ${initialColor.b})`);
             
-            // Form submission
-            $("#colorForm").submit(function(e) {
-                e.preventDefault();
-                const color = $("#colorPicker").spectrum("get").toRgb();
+            // Function to set color via AJAX
+            function setColor(color) {
                 $.ajax({
                     url: "/set_color",
                     type: "POST",
@@ -235,8 +220,7 @@
                         alert("Failed to update color");
                     }
                 });
-            });
-
+            }
 
             $("#enterCalibration").click(function() {
                $.ajax({
@@ -266,8 +250,7 @@
             setInterval(updateBrightness, 3000);
             updateBrightness();
 
-            // Rainbow
-
+            // Rainbow effect
             function setRainbowEffect() {
                const effectNum = document.getElementById('rainbowEffectSelect').value;
                fetch('/set_rainbow_effect', {
@@ -283,6 +266,7 @@
                });
             } 
             
+            // Update settings
             function updateSettings() {
                const settings = {
                    language: document.getElementById("language").value,
