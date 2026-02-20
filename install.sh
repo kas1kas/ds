@@ -245,7 +245,7 @@ echo "@reboot sudo python3 /home/pi/ds/wk.py" | crontab -
 ALIAS_SOURCE="/home/pi/ds/alias.txt"
 ALIAS_FILE="/home/pi/.bash_aliases"
 log "Creating alias file from $ALIAS_SOURCE..."
-cp "$ALIAS_SOURCE" "$ALIAS_FILE"
+sudo cp "$ALIAS_SOURCE" "$ALIAS_FILE"
 
 # Make sure the alias file is sourced in .bashrc
 if ! grep -q "source ~/.bash_aliases" /home/pi/.bashrc; then
