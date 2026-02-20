@@ -6,27 +6,41 @@
 - set hostname
 - set wifi
 ## 2 start and configure
-- sudo raspi-config
+```
+sudo raspi-config
+```
 - interface options - enable I2C
 - reboot
 ## 3 install packages
-- make sure you are in: /home/pi
-- sudo apt update
-- sudo apt install git python3-pip
-> with bullseye, debian 11:
-- sudo pip3 install flask-restx rpi-ws281x python-tsl2591
-> with bookworm, debian 12
-- sudo pip3 install flask-restx rpi-ws281x python-tsl2591 --break-system-packages
+```
+cd ~
+sudo apt update
+sudo apt install git python3-pip
+```
+- with bullseye, debian 11:
+```
+sudo pip3 install flask-restx rpi-ws281x python-tsl2591
+```
+- with bookworm, debian 12
+```
+sudo pip3 install flask-restx rpi-ws281x python-tsl2591 --break-system-packages
+```
 ## 4 install wordclock software
-- curl -L https://raw.githubusercontent.com/kas1kas/ds/main/install.sh | bash
+```
+curl -L https://raw.githubusercontent.com/kas1kas/ds/main/install.sh | bash
+```
 ## 5 install WiFi-connect
-- git clone https://github.com/kas1kas/wifi-connect.git
-- cd wifi-connect/scripts
-- sudo ./rpi_headless_wifi_install.sh
+```
+git clone https://github.com/kas1kas/wifi-connect.git
+cd wifi-connect/scripts
+sudo ./rpi_headless_wifi_install.sh
+```
 ## 6 config and test
-- nano ~/.wordclock/config_loc.json
 - See chapter below: **personalisation**
-- swk (start wordclock alias for: sudo python3 /home/pi/ds/wk.py
+```
+nano ~/.wordclock/config_loc.json
+swk
+```
 ## 7 Web interface
 - connect via phone or computer with your web browser
 - use the local IP-address (check your router) or use hostname (see step 1)
@@ -78,6 +92,7 @@ edit the file ~/.wordclock/config_loc.json. Do not add the comments between (). 
     "LUT_OUT": [1, 5, 40, 100, 160]          (translated version for LED brightness)
 }
 ```
+
 
 
 
