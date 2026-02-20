@@ -1,6 +1,6 @@
-__version__ = "6.2"
+__version__ = "6.3"
 # Woordklok
-# LUT without clock nr/name
+# index file changes to remove color button and square
 # 
 import argparse
 import json
