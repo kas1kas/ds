@@ -82,7 +82,7 @@ class LanguageSettings:
 
 class WordClock:
     def __init__(self, config):
-        self.version = config["VERSION"]
+        self.version = __version__
         self.purist = config["PURIST"]
         self.calibrate = config["CALIBRATE"]
         self.woordklok = config["WOORDKLOK"]
