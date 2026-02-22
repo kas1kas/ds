@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<!--version: 7.0 -->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Woordklok Control</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/spectrum/1.8.1/spectrum.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0px;
+        }
+        .container {
+            background-color: #fff;
+            padding: 10px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 100%;
+            max-width: 300px;
+        }
+        .container h3 {
+           margin-top: 0;
+           margin-bottom: 10px; 
+       }
+        .container h6 {
+           margin-top: 0;
+           margin-bottom: 6px; 
+       }
+         .brightness-display {
+            margin-bottom: 10px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+         .line {
+            width: 99%;
+            margin-top: 4px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid blue;
+            justify-content: center;
+        }
+
+        button {
+            padding: 4px 4px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 0;
+            width: 50%;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .settings {
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            align-items: center;
+            justify-content: center;
+        }
+        .settings select {
+            padding: 8px;
+            width: 50%;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            align-items: center;
+            justify-content: center;
+        }
+        .color-picker-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 10px;
+            gap: 10px;
+        }
+        .rgb-value {
+            font-size: 14px;
+            font-family: monospace;
+            font-weight: bold;
+        }
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 50%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 10% auto;
+            padding: 10px;
+            border: 1px solid #888;
+            width: 60%;
+            max-width: 500px;
+            border-radius: 10px;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover {
+            color: black;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h3>Woordklok</h3>
+        <h3>{{woordklok_name}}</h3>
+        <div class="line"></div>
+        <div class="color-picker-container">
+            <input type="text" id="colorPicker">
+            <span id="rgbValue" class="rgb-value">RGB({{ initial_color[0] }}, {{ initial_color[1] }}, {{ initial_color[2] }})</span>
+        </div>
+        <div class="line"></div>
+        <div class="control-group">
+            <label for="clock_type"><b>Display:</b></label>
+            <select id="clock_type" onchange="updateClockType()">
+                {% for effect in available_effects %}
+                <option value="{{ effect.id }}" {% if effect.id == initial_clock_type %}selected{% endif %}>
+                   {{ effect.name }}
+                </option>
+                {% endfor %}
+            </select>
+            <div class="line"></div>
+            {% if woordklok_calibrate %}
+            <button id="enterCalibration">Brightness</button>
+            {% endif %}
+        </div>
+        <div class="brightness-display">
+            <h6><span>Lux:Bright = </span>
+            <span id="brightnessValue">0</span></h6>
+        </div>
+        <h6>GraWoosh {{woordklok_version}}</h6>
+    </div>
+    <!-- Dynamic effect settings container -->
+    <div id="effect_settings" class="control-group">
+        <!-- Settings will be loaded here -->
+    </div>
+
+    <!-- Calibration Modal -->
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/spectrum/1.8.1/spectrum.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            
+            // Add event listeners for all dropdowns
+            document.getElementById('rainbowEffectSelect').addEventListener('change', setRainbowEffect);
+            document.getElementById('language').addEventListener('change', updateSettings);
+            document.getElementById('clock_type').addEventListener('change', updateSettings);
+            document.getElementById('purist').addEventListener('change', updateSettings);
+            
+            // Initialize color picker
+            const initialColor = {
+                r: {{ initial_color[0] }},
+                g: {{ initial_color[1] }},
+                b: {{ initial_color[2] }}
+            };
+
+            $("#colorPicker").spectrum({
+                color: `rgb(${initialColor.r}, ${initialColor.g}, ${initialColor.b})`,
+                preferredFormat: "rgb",
+                showInput: true,
+                showInitial: true,
+                allowEmpty: false,
+                change: function(color) {
+                    const rgbColor = color.toRgb();
+                    $("#rgbValue").text(`RGB(${rgbColor.r}, ${rgbColor.g}, ${rgbColor.b})`);
+                    
+                    // Send color immediately when changed
+                    setColor(rgbColor);
+                }
+            });
+            
+            // Function to update clock type
+	    function updateClockType() {
+	        const select = document.getElementById('clock_type');
+	        const effectId = select.value;
+    
+    	        fetch('/set_effect', {
+        	    method: 'POST',
+        	    headers: {'Content-Type': 'application/json'},
+        	    body: JSON.stringify({effect_id: effectId})
+    	        })
+                .then(response => response.json())
+                .then(data => {
+        	    if (data.status === 'success') {
+            	        loadEffectSettings();
+                    }
+                });
+            }
+
+            function loadEffectSettings() {
+                fetch('/get_effect_settings')
+                .then(response => response.json())
+                .then(data => {
+                     document.getElementById('effect_settings').innerHTML = data.settings_html;
+                });
+            }
+
+            // Load settings on page load
+            document.addEventListener('DOMContentLoaded', loadEffectSettings);
+
+
+
+            // Function to set color via AJAX
+            function setColor(color) {
+                $.ajax({
+                    url: "/set_color",
+                    type: "POST",
+                    data: {
+                        red: color.r,
+                        green: color.g,
+                        blue: color.b
+                    },
+                    success: function() {
+                        console.log("Color updated successfully");
+                    },
+                    error: function(xhr) {
+                        console.error("Error updating color:", xhr.responseText);
+                        alert("Failed to update color");
+                    }
+                });
+            }
+
+            $("#enterCalibration").click(function() {
+               $.ajax({
+                   url: "/set_mode",
+                   type: "POST",
+                   contentType: "application/json",
+                   data: JSON.stringify({ mode: "calibration" }),
+                   success: function() {
+                       window.location.href = "/calibration.html";
+                   },
+                   error: function(xhr) {
+                       alert("Error entering calibration mode: " + xhr.responseText);
+                   }
+               });
+           });
+
+           // Brightness updates
+            function updateBrightness() {
+                $.get("/get_brightness", function(data) {
+                    if (data.brightness) {
+                        $("#brightnessValue").text(data.brightness);
+                    }
+                }).fail(function(xhr) {
+                    console.error("Error getting brightness:", xhr.responseText);
+                });
+            }
+            setInterval(updateBrightness, 3000);
+            updateBrightness();
+
+            // Rainbow effect
+            function setRainbowEffect() {
+               const effectNum = document.getElementById('rainbowEffectSelect').value;
+               fetch('/set_rainbow_effect', {
+                   method: 'POST',
+                   headers: {
+                       'Content-Type': 'application/json',
+                   },
+                   body: JSON.stringify({ effect: parseInt(effectNum) })
+               })
+               .then(response => response.json())
+               .then(data => {
+                   console.log('Effect set to:', data.effect_name);
+               });
+            } 
+            
+            // Update settings
+            function updateSettings() {
+               const settings = {
+                   language: document.getElementById("language").value,
+                   clock_type: document.getElementById("clock_type").value,
+                   purist: document.getElementById("purist").value
+               };
+               
+               // Send all settings at once
+               fetch('/update_settings', {
+                   method: 'POST',
+                   headers: {'Content-Type': 'application/json'},
+                   body: JSON.stringify(settings)
+               })
+               .then(response => {
+                   if (!response.ok) throw new Error('Network response was not ok');
+                   console.log("Settings updated successfully");
+               })
+               .catch(error => console.error('Error:', error));
+           }
+
+        });
+    </script>
+</body>
+</html>
