@@ -143,10 +143,14 @@ class WordClock:
             self.default_effect = clock_type_map.get(old_type, "normal")
             logging.info(f"Using legacy CLOCK_TYPE '{old_type}' mapped to effect '{self.default_effect}'")
         else:
-            self.default_effect = "normal"
-        
+            self.default_effect = "normal"        
         self.current_effect_id = self.default_effect        
         # backwards compatibility section ----------------------------end        
+
+        # Initialize LED strip FIRST - before any effects that might try to use it
+        self.initialize_led()
+        self.initialize_lightsensor()
+        
 #        self.current_effect_id = "normal"
         self.effects_info = discover_effects()
         self.effects = {}  # Will store instantiated effects
@@ -165,6 +169,8 @@ class WordClock:
             self.current_effect = default_effect
             self.current_effect_id = self.default_effect
             default_effect.start()
+            # Small delay to ensure effect is ready
+            time.sleep(0.1)
             default_effect.update()  # Force first frame
             logging.info(f"Started default effect: {default_effect.name}")        
 
@@ -180,8 +186,6 @@ class WordClock:
         logging.info(f"Lut Out  : {self.lut_out}")
         logging.info(f"Loaded   : {len(self.effects_info)} effects")
         
-        self.initialize_led()
-        self.initialize_lightsensor()
    
     def initialize_led(self):
         try:
@@ -244,8 +248,12 @@ class WordClock:
         return self.language_settings.update_language(new_language)
     
     def cls(self):
-        for i in range(self.led_count):
-           self.set_led_color(i, self.background_color)
+    """Clear display with safety check"""
+    if not hasattr(self, 'strip') or not self.strip:
+        logging.warning("Cannot clear - LED strip not initialized")
+        return
+    for i in range(self.led_count):
+        self.set_led_color(i, self.background_color)
         
     def _load_effect(self, effect_id):
         """Load and instantiate an effect"""
@@ -281,7 +289,6 @@ def set_effect(self, effect_id):
     
     return False
 
-    
     def set_mode(self, mode):
         """Set the current operation mode"""
         self.current_mode = mode
