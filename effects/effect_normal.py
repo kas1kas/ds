@@ -21,13 +21,11 @@ class EffectNormal(BaseEffect):
         if self.first_update:
             self.first_update = False
             self.last_minute = current_minute
-            logging.debug("NORMAL: First update - showing time")
             self.word_clock.cls()
             self.word_clock.update_clock()
         # Otherwise only update when minute changes
         elif current_minute != self.last_minute:
             self.last_minute = current_minute
-            logging.debug("NORMAL: Minute changed, updating display")
             self.word_clock.cls()
             self.word_clock.update_clock()
     
