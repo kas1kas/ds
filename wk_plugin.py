@@ -124,6 +124,21 @@ class WordClock:
           self.columns = 11
           self.rows = 10
 
+        # Effect system
+        self.current_effect_id = "normal"
+        self.effects_info = discover_effects()
+        self.effects = {}  # Will store instantiated effects
+        self.current_effect = None
+        
+        # Load available effects into config
+        self.available_effects = [
+            {'id': eid, 'name': info['name'], 'description': info['description']}
+            for eid, info in self.effects_info.items()
+        ]  
+        
+        # Instantiate all effects (or lazy-load them)
+        self._load_effect("normal")  # Load default effect
+        
         logging.info(f"Design   : Woosh") 
         logging.info(f"Made by  : GraWoosh Labs") 
         logging.info(f"Woordklok: {self.woordklok}")
@@ -134,6 +149,7 @@ class WordClock:
         logging.info(f"Grid     : {self.grid}") 
         logging.info(f"Lut In   : {self.lut_in}")
         logging.info(f"Lut Out  : {self.lut_out}")
+        logging.info(f"Loaded   : {len(self.effects_info)} effects")
         
         self.initialize_led()
         self.initialize_lightsensor()
@@ -215,23 +231,6 @@ class WordClock:
     def cls(self):
         for i in range(self.led_count):
            self.set_led_color(i, self.background_color)
-
-    # Effect system
-    self.current_effect_id = "normal"
-    self.effects_info = discover_effects()
-    self.effects = {}  # Will store instantiated effects
-    self.current_effect = None
-        
-    # Load available effects into config
-    self.available_effects = [
-        {'id': eid, 'name': info['name'], 'description': info['description']}
-        for eid, info in self.effects_info.items()
-    ]
-        
-    # Instantiate all effects (or lazy-load them)
-    self._load_effect("normal")  # Load default effect
-        
-    logging.info(f"Loaded {len(self.effects_info)} effects")
         
     def _load_effect(self, effect_id):
         """Load and instantiate an effect"""
