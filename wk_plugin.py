@@ -713,42 +713,6 @@ def set_temporary_brightness():
 
         return jsonify({"error": str(e)}), 500
 
-#@app.route("/calibration/save", methods=["POST"])
-#def save_calibration():
-#    """Save calibration to config"""
-#    try:
-#        data = request.get_json()
-#        word_clock.lut_in = data.get("lut_in", [])
-#        word_clock.lut_out = data.get("lut_out", [])
-        
-        # Save to config file
-#        config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
-#        with open(config_path, 'r+') as f:
-#            config = json.load(f)
-#            config['LUT_IN'][word_clock.woordklok] = word_clock.lut_in
-#            config['LUT_OUT'][word_clock.woordklok] = word_clock.lut_out
-#            f.seek(0)
-#            json.dump(config, f, indent=4)
-#            f.truncate()
-        
-#        return jsonify({"status": "success"}), 200
-#    except Exception as e:
-#        logging.error(f"Failed to save calibration: {e}")
-#        return jsonify({"error": str(e)}), 500
-
-#@app.route("/calibration/cancel", methods=["POST"])
-#def cancel_calibration():
-#    """Cancel calibration and restore original settings"""
-#    try:
-#        if hasattr(word_clock, 'calibration_data'):
-#            word_clock.strip.setBrightness(word_clock.calibration_data['original_brightness'])
-#            word_clock.strip.show()
-#            del word_clock.calibration_data
-#        return jsonify({"status": "success"}), 200
-#    except Exception as e:
-#        logging.error(f"Failed to cancel calibration: {e}")
-#        return jsonify({"error": str(e)}), 500
-
 #------------------------------------------------------------calibration
 
 # Main function to run the word clock
