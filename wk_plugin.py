@@ -789,3 +789,13 @@ def run_clock():
             word_clock.current_effect.stop()
         word_clock.cls()
         word_clock.strip.show()
+
+if __name__ == "__main__":
+    # Start the Flask web server in a separate thread
+    from threading import Thread
+    flask_thread = Thread(target=lambda: app.run(host="0.0.0.0", port=80))
+    flask_thread.daemon = True
+    flask_thread.start()
+
+    # Run the word clock
+    run_clock()
