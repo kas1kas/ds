@@ -229,26 +229,29 @@ class WordClock:
             return effect
         return None
     
-    def set_effect(self, effect_id):
-        """Switch to a different effect"""
-        if effect_id not in self.effects_info:
-            logging.error(f"Unknown effect: {effect_id}")
-            return False
-        
-        # Stop current effect
-        if self.current_effect:
-            self.current_effect.stop()
-        
-        # Load and start new effect
-        new_effect = self._load_effect(effect_id)
-        if new_effect:
-            self.current_effect = new_effect
-            self.current_effect_id = effect_id
-            new_effect.start()
-            logging.info(f"Switched to effect: {new_effect.name}")
-            return True
-        
+def set_effect(self, effect_id):
+    """Switch to a different effect"""
+    if effect_id not in self.effects_info:
+        logging.error(f"Unknown effect: {effect_id}")
         return False
+    
+    # Stop current effect
+    if self.current_effect:
+        self.current_effect.stop()
+    
+    # Load and start new effect
+    new_effect = self._load_effect(effect_id)
+    if new_effect:
+        self.current_effect = new_effect
+        self.current_effect_id = effect_id
+        new_effect.start()
+        # Force an immediate update
+        new_effect.update()  # Add this line!
+        logging.info(f"Switched to effect: {new_effect.name}")
+        return True
+    
+    return False
+
     
     def set_mode(self, mode):
         """Set the current operation mode"""
