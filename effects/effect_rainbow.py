@@ -1,18 +1,17 @@
+import time
 import math
 import random
-import time
 from .base_effect import BaseEffect
 
 class EffectRainbow(BaseEffect):
     name = "Rainbow"
     description = "Animated rainbow patterns"
-    requires_time_update = False
     
     def __init__(self, word_clock):
         super().__init__(word_clock)
         self.j = 0
         self.last_frame_time = 0
-        self.frame_delay = 0.01
+        self.frame_delay = 0.05
         self.effect = 0  # Sub-effect for rainbow variations
         self.effect_names = ["Diagonal", "Horizontal", "Vertical", "Circular", 
                             "Spiral", "Wave", "Twinkle"]
@@ -28,10 +27,11 @@ class EffectRainbow(BaseEffect):
             pos -= 170
             return (0, pos * 3, 255 - pos * 3)
     
-    def set_effect(self, effect_num):
-        if 0 <= effect_num < len(self.effect_names):
-            self.effect = effect_num
-            self.j = 0
+    def start(self):
+        self.logger.info(f"Starting rainbow effect")
+    
+    def stop(self):
+        self.logger.info(f"Stopping rainbow effect")
     
     def update(self):
         current_time = time.time()
@@ -40,8 +40,11 @@ class EffectRainbow(BaseEffect):
         
         self.last_frame_time = current_time
         
-        for x in range(11):
-            for y in range(10):
+        # Clear display
+        self.word_clock.cls()
+        
+        for x in range(self.word_clock.columns):
+            for y in range(self.word_clock.rows):
                 if self.effect == 0:  # Diagonal
                     k = (x * y + self.j) & 255
                 elif self.effect == 1:  # Horizontal
@@ -63,35 +66,39 @@ class EffectRainbow(BaseEffect):
                     wave = math.sin(x/2.0 + self.j/20.0) * 5
                     k = int(y + wave + self.j) & 255
                 elif self.effect == 6:  # Twinkle
-                    if x == 0 and y == 0:
-                        self._update_twinkle()
-                    continue
+                    k = (x + y + self.j) & 255
                 
                 color = self.kwheel(k)
                 self.word_clock.setcolor_x_y(x, y, color)
         
-        # Show time overlay if needed (optional)
+        # Show the time overlay
         self.word_clock.update_clock()
-        self.word_clock.strip.show()
         self.j = (self.j + 1) % (256 * 5)
     
-    def _update_twinkle(self):
-        for _ in range(10):
-            x = random.randint(0, 10)
-            y = random.randint(0, 9)
-            k = (x + y + self.j) & 255
-            color = self.kwheel(k)
-            self.word_clock.setcolor_x_y(x, y, color)
+    def set_sub_effect(self, effect_num):
+        if 0 <= effect_num < len(self.effect_names):
+            self.effect = effect_num
+            self.j = 0
+            return True
+        return False
     
     def get_settings_template(self):
-        """Return HTML for rainbow effect settings"""
         options = ''.join([f'<option value="{i}">{name}</option>' 
                           for i, name in enumerate(self.effect_names)])
         return f'''
         <div class="rainbow-settings">
             <label>Rainbow Pattern:</label>
-            <select id="rainbow_pattern" onchange="setRainbowEffect(this.value)">
+            <select id="rainbow_pattern" onchange="setRainbowSubEffect(this.value)">
                 {options}
             </select>
         </div>
+        <script>
+        function setRainbowSubEffect(value) {{
+            fetch('/rainbow/set_effect', {{
+                method: 'POST',
+                headers: {{'Content-Type': 'application/json'}},
+                body: JSON.stringify({{sub_effect: parseInt(value)}})
+            }});
+        }}
+        </script>
         '''
