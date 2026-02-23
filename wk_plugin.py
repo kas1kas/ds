@@ -585,19 +585,27 @@ def update_settings():
 def get_brightness():
     """Get the current brightness value."""
     try:
+        if word_clock.light_sensor_type == "none":
+            return jsonify({"brightness": f"No sensor: {word_clock.strip.getBrightness()}"}), 200
+            
         if word_clock.light_sensor_type == "BH1750":
             lux = round(word_clock.light_sensor.measure_high_res(), 2)
         else:
             light_data = word_clock.light_sensor.get_current()
             lux = round(abs(light_data['lux']), 2)
+        
+        # Safely find brightness
+        if word_clock.lut_in and word_clock.lut_out:
+            index = min(bisect.bisect_right(word_clock.lut_in, lux), len(word_clock.lut_out) - 1)
+            brt = word_clock.lut_out[index]
+            brightness_display = f"{lux}: {brt}"
+        else:
+            brightness_display = f"{lux}: {word_clock.strip.getBrightness()}"
             
-        index = bisect.bisect_right(word_clock.lut_in, lux)
-        brt = word_clock.lut_out[index]
-        brightness_display = f"{lux}: {brt}"
         return jsonify({"brightness": brightness_display}), 200
     except Exception as e:
         logging.error(f"Failed to fetch brightness: {e}")
-        return jsonify({"error": "Failed to fetch brightness"}), 500
+        return jsonify({"brightness": "Error reading sensor"}), 200  # Return 200 with error message instead of 500
 
 #--------------------------------------------------------calibration
 @app.route("/calibration.html")
