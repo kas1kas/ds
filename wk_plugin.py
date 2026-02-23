@@ -125,7 +125,29 @@ class WordClock:
           self.rows = 10
 
         # Effect system
-        self.current_effect_id = "normal"
+
+        # backwards compatibility section ----------------------------start
+        clock_type_map = {
+            "regular": "normal",
+            "random": "random",
+            "rainbow": "rainbow",
+            "dark": "dark",
+            "oeteldonk": "oeteldonk"
+        }
+        
+        # Try new DEFAULT_EFFECT first, fallback to old CLOCK_TYPE
+        if "DEFAULT_EFFECT" in config:
+            self.default_effect = config["DEFAULT_EFFECT"]
+        elif "CLOCK_TYPE" in config:
+            old_type = config["CLOCK_TYPE"]
+            self.default_effect = clock_type_map.get(old_type, "normal")
+            logging.info(f"Using legacy CLOCK_TYPE '{old_type}' mapped to effect '{self.default_effect}'")
+        else:
+            self.default_effect = "normal"
+        
+        self.current_effect_id = self.default_effect        
+        # backwards compatibility section ----------------------------end        
+#        self.current_effect_id = "normal"
         self.effects_info = discover_effects()
         self.effects = {}  # Will store instantiated effects
         self.current_effect = None
