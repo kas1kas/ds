@@ -213,21 +213,7 @@ class WordClock:
 
     def update_language(self, new_language):
         return self.language_settings.update_language(new_language)
-
-    def set_random_led(self, tint):
-       self.setcolor_x_y(random.randint(0,10),random.randint(0,9),self.random_color(tint))
-       
-    def random_color(self, tint):
-      if tint == "blue":
-         r = random.randint(  29, 69)   # shades of blue 
-         g = random.randint(  31, 71)
-         b = random.randint(105,245)
-      elif tint == "orange":
-         r = random.randint( 100,155)   # shades of orange 
-         g = random.randint(  20, 40)
-         b = random.randint(   0,  2)
-      return (r, g, b) 
-      
+    
     def cls(self):
         for i in range(self.led_count):
            self.set_led_color(i, self.background_color)
@@ -264,17 +250,6 @@ class WordClock:
         
         return False
     
-    def oeteldonk(self):
-        for x in range(11):
-           for y in range(10):
-              if y>6:
-                 bgcolor=[169,169,0]
-              elif y>2:
-                 bgcolor=[169,169,169]
-              else:
-                 bgcolor=[169,0,0]
-              self.setcolor_x_y(x, y, bgcolor)             
-
     def set_mode(self, mode):
         """Set the current operation mode"""
         self.current_mode = mode
@@ -415,18 +390,6 @@ class WordClock:
                 led_index = 2 + (x * 10) + (9 - y)
         self.set_led_color(led_index, color)
     
-    def kwheel(self, pos):
-         if pos < 85:
-            return (pos * 3, 255 - pos * 3, 0), Color(255-pos * 3, pos * 3, 255)
-         elif pos < 170:
-            pos -= 85
-            return (255 - pos * 3, 0, pos * 3), Color(pos * 3, 255, 255-pos * 3)
-         else:
-            pos -= 170
-            return (0, pos * 3, 255 - pos * 3), Color(255, 255-pos * 3, pos * 3)
-
-       
-
     # End Subs ------------------------------------------------------------------------------
 
 # Merge configs before creating the instance
@@ -541,22 +504,6 @@ def get_effect_settings():
         return jsonify({"settings_html": ""}), 200
     except Exception as e:
         logging.error(f"Failed to get effect settings: {e}")
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/rainbow/set_effect', methods=['POST'])
-def set_rainbow_sub_effect():
-    try:
-        data = request.get_json()
-        sub_effect = data.get('sub_effect')
-        
-        # Check if current effect is rainbow
-        if hasattr(word_clock.current_effect, 'set_sub_effect'):
-            word_clock.current_effect.set_sub_effect(sub_effect)
-            return jsonify({"status": "success"}), 200
-        else:
-            return jsonify({"error": "Current effect is not rainbow"}), 400
-    except Exception as e:
-        logging.error(f"Failed to set rainbow sub-effect: {e}")
         return jsonify({"error": str(e)}), 500
 
 @app.route("/set_color", methods=["POST"])
@@ -730,44 +677,35 @@ def cancel_calibration():
 # Main function to run the word clock
 def run_clock():
     try:
-        last_time = time.time()
-        last_dtime = time.time()
+        last_brightness_update = time.time()
         last_minute_check = time.time()
         
         while True:
             current_time = time.time()
             
-            # Update brightness periodically
-            if current_time - last_time >= word_clock.light_interval:
+            # Periodic updates
+            if current_time - last_brightness_update >= word_clock.light_interval:
                 word_clock.update_brightness()
-                last_time = current_time
+                last_brightness_update = current_time
             
-            # Check if minute changed for time-dependent effects
             if current_time - last_minute_check >= 60:
                 if word_clock.current_effect and word_clock.current_effect.requires_time_update:
                     word_clock.current_effect.on_time_change()
                 last_minute_check = current_time
             
-            # Update current effect
+            # Just update current effect - no fallback needed since we always have an effect
             if word_clock.current_effect:
                 word_clock.current_effect.update()
-            else:
-                # Fallback to normal clock if no effect
-                word_clock.cls()
-                word_clock.update_clock()
             
-            # Small delay to prevent CPU hogging
             time.sleep(0.01)
             
     except KeyboardInterrupt:
         logging.info("Exiting...")
-    
     finally:
-        # Clean up on exit
+        # Cleanup
         if word_clock.current_effect:
             word_clock.current_effect.stop()
-        for i in range(word_clock.led_count):
-            word_clock.set_led_color(i, word_clock.background_color)
+        word_clock.cls()
         word_clock.strip.show()
 
 if __name__ == "__main__":
