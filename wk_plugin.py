@@ -114,7 +114,9 @@ class WordClock:
         self.current_mode = "normal"  # 'normal' or 'calibration'
         self.auto_brightness_enabled = True
         self.light_sensor_type = "none"                   # default before autodetect
-                
+        self.settings_version = 0
+        self.last_settings_version = 0
+        
         if self.grid=="16":
           self.led_count = 256
           self.columns =16
@@ -245,8 +247,23 @@ class WordClock:
             bus.close()
 
     def update_language(self, new_language):
-        return self.language_settings.update_language(new_language)
-    
+        result = self.language_settings.update_language(new_language)
+        if result:
+            self.settings_version += 1
+            self.force_display_update()  # Force update when language changes
+        return result
+        
+    def force_display_update(self):
+        """Force current effect to redisplay time immediately"""
+        logging.debug("Forcing display update due to settings change")
+        if self.current_effect:
+            # Clear and show time immediately
+            self.cls()
+            self.update_clock()
+            # Let the effect know it should refresh
+            if hasattr(self.current_effect, 'reset_timing'):
+                self.current_effect.reset_timing()
+                
     def cls(self):
         """Clear display with safety check"""
         if not hasattr(self, 'strip') or not self.strip:
@@ -576,15 +593,21 @@ def set_color():
 def update_settings():
     try:
         data = request.get_json()
+        needs_update = False
         
-        # Update language if changed
         if 'language' in data:
-            word_clock.update_language(data['language'])
+            if word_clock.update_language(data['language']):
+                needs_update = True
         
-        # Update purist mode if changed
         if 'purist' in data:
             word_clock.purist = data['purist'] == "true"
+            word_clock.settings_version += 1
+            needs_update = True
             logging.info(f"Purist mode set to: {word_clock.purist}")
+        
+        # Force immediate display update if settings changed
+        if needs_update:
+            word_clock.force_display_update()
         
         return jsonify({"status": "success"}), 200
     except Exception as e:
@@ -686,42 +709,43 @@ def set_temporary_brightness():
         return jsonify({"error": str(e)}), 500
 
         return jsonify({"error": str(e)}), 500
-
-@app.route("/calibration/save", methods=["POST"])
-def save_calibration():
-    """Save calibration to config"""
-    try:
-        data = request.get_json()
-        word_clock.lut_in = data.get("lut_in", [])
-        word_clock.lut_out = data.get("lut_out", [])
+///
+#@app.route("/calibration/save", methods=["POST"])
+#def save_calibration():
+#    """Save calibration to config"""
+#    try:
+#        data = request.get_json()
+#        word_clock.lut_in = data.get("lut_in", [])
+#        word_clock.lut_out = data.get("lut_out", [])
         
         # Save to config file
-        config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
-        with open(config_path, 'r+') as f:
-            config = json.load(f)
-            config['LUT_IN'][word_clock.woordklok] = word_clock.lut_in
-            config['LUT_OUT'][word_clock.woordklok] = word_clock.lut_out
-            f.seek(0)
-            json.dump(config, f, indent=4)
-            f.truncate()
+#        config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
+#        with open(config_path, 'r+') as f:
+#            config = json.load(f)
+#            config['LUT_IN'][word_clock.woordklok] = word_clock.lut_in
+#            config['LUT_OUT'][word_clock.woordklok] = word_clock.lut_out
+#            f.seek(0)
+#            json.dump(config, f, indent=4)
+#            f.truncate()
         
-        return jsonify({"status": "success"}), 200
-    except Exception as e:
-        logging.error(f"Failed to save calibration: {e}")
-        return jsonify({"error": str(e)}), 500
+#        return jsonify({"status": "success"}), 200
+#    except Exception as e:
+#        logging.error(f"Failed to save calibration: {e}")
+#        return jsonify({"error": str(e)}), 500
 
-@app.route("/calibration/cancel", methods=["POST"])
-def cancel_calibration():
-    """Cancel calibration and restore original settings"""
-    try:
-        if hasattr(word_clock, 'calibration_data'):
-            word_clock.strip.setBrightness(word_clock.calibration_data['original_brightness'])
-            word_clock.strip.show()
-            del word_clock.calibration_data
-        return jsonify({"status": "success"}), 200
-    except Exception as e:
-        logging.error(f"Failed to cancel calibration: {e}")
-        return jsonify({"error": str(e)}), 500
+#@app.route("/calibration/cancel", methods=["POST"])
+#def cancel_calibration():
+#    """Cancel calibration and restore original settings"""
+#    try:
+#        if hasattr(word_clock, 'calibration_data'):
+#            word_clock.strip.setBrightness(word_clock.calibration_data['original_brightness'])
+#            word_clock.strip.show()
+#            del word_clock.calibration_data
+#        return jsonify({"status": "success"}), 200
+#    except Exception as e:
+#        logging.error(f"Failed to cancel calibration: {e}")
+#        return jsonify({"error": str(e)}), 500
+
 #------------------------------------------------------------calibration
 
 # Main function to run the word clock
