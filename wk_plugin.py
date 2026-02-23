@@ -254,7 +254,13 @@ class WordClock:
             return
         for i in range(self.led_count):
             self.set_led_color(i, self.background_color)
-        
+
+    def set_led_color(self, led_index, color):
+        try:
+            self.strip.setPixelColor(led_index, Color(color[0], color[1], color[2]))
+        except Exception as e:
+            logging.error(f"Failed to set LED {led_index}: {e}")    
+    
     def _load_effect(self, effect_id):
         """Load and instantiate an effect"""
         if effect_id in self.effects:
@@ -265,29 +271,29 @@ class WordClock:
             self.effects[effect_id] = effect
             return effect
         return None
+#### ------------------------------------------------------------------------####    
+    def set_effect(self, effect_id):
+        """Switch to a different effect"""
+        if effect_id not in self.effects_info:
+            logging.error(f"Unknown effect: {effect_id}")
+            return False
     
-def set_effect(self, effect_id):
-    """Switch to a different effect"""
-    if effect_id not in self.effects_info:
-        logging.error(f"Unknown effect: {effect_id}")
+        # Stop current effect
+        if self.current_effect:
+            self.current_effect.stop()
+    
+        # Load and start new effect
+        new_effect = self._load_effect(effect_id)
+        if new_effect:
+            self.current_effect = new_effect
+            self.current_effect_id = effect_id
+            new_effect.start()
+            # Force an immediate update
+            new_effect.update()  # Add this line!
+            logging.info(f"Switched to effect: {new_effect.name}")
+            return True
+    
         return False
-    
-    # Stop current effect
-    if self.current_effect:
-        self.current_effect.stop()
-    
-    # Load and start new effect
-    new_effect = self._load_effect(effect_id)
-    if new_effect:
-        self.current_effect = new_effect
-        self.current_effect_id = effect_id
-        new_effect.start()
-        # Force an immediate update
-        new_effect.update()  # Add this line!
-        logging.info(f"Switched to effect: {new_effect.name}")
-        return True
-    
-    return False
 
     def set_mode(self, mode):
         """Set the current operation mode"""
