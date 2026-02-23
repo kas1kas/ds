@@ -1,19 +1,33 @@
-import time  # Add this import
+import time
 from .base_effect import BaseEffect
 
 class EffectNormal(BaseEffect):
     name = "Normal Clock"
-    description = "Standard word clock display"
     
     def __init__(self, word_clock):
         super().__init__(word_clock)
         self.last_minute = -1
+        self.first_update = True  # Add this flag
+    
+    def start(self):
+        """Reset first_update flag when effect starts"""
+        self.first_update = True
+        self.last_minute = -1
     
     def update(self):
-        # Check if minute changed
         current_minute = time.localtime().tm_min
-        if current_minute != self.last_minute:
+        
+        # Always show time on first update after switching
+        if self.first_update:
+            self.first_update = False
             self.last_minute = current_minute
+            logging.debug("NORMAL: First update - showing time")
+            self.word_clock.cls()
+            self.word_clock.update_clock()
+        # Otherwise only update when minute changes
+        elif current_minute != self.last_minute:
+            self.last_minute = current_minute
+            logging.debug("NORMAL: Minute changed, updating display")
             self.word_clock.cls()
             self.word_clock.update_clock()
     
