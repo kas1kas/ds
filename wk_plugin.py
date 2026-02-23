@@ -116,6 +116,7 @@ class WordClock:
         self.light_sensor_type = "none"                   # default before autodetect
         self.settings_version = 0
         self.last_settings_version = 0
+        self.color_version = 0
         
         if self.grid=="16":
           self.led_count = 256
@@ -583,7 +584,8 @@ def set_color():
 
         word_clock.letter_active_color = (red, green, blue)
         word_clock.dot_active_color = (red, green, blue)
-
+        word_clock.color_version += 1  # Trigger color update
+        
         return "Color updated successfully!", 200
     except Exception as e:
         logging.error(f"Failed to set color: {e}")
@@ -718,6 +720,7 @@ def run_clock():
         last_time = time.time()
         last_minute_check = time.time()
         last_settings_check = word_clock.settings_version
+        last_color_version = word_clock.color_version
         
         while True:
             current_time = time.time()
@@ -726,10 +729,12 @@ def run_clock():
             if current_time - last_time >= word_clock.light_interval:
                 word_clock.update_brightness()
                 last_time = current_time
-            
             # Check if settings changed (language, purist)
-            if word_clock.settings_version != last_settings_check:
+            if word_clock.settings_version != last_settings_check or
+                word_clock.color_version != last_color_version):
                 last_settings_check = word_clock.settings_version
+                last_color_version = word_clock.color_version
+      
                 # Clear and show time with new settings
                 word_clock.cls()
                 word_clock.update_clock()
