@@ -1,4 +1,4 @@
-__version__ = "7.01"
+__version__ = "7.02"
 # Woordklok
 # updating to effects plugin version
 # 
@@ -566,18 +566,15 @@ def set_color():
 def update_settings():
     try:
         data = request.get_json()
+        
         # Update language if changed
         if 'language' in data:
             word_clock.update_language(data['language'])
         
-        # Update clock type if changed
-        if 'clock_type' in data:
-            if data['clock_type'] in ["regular", "random", "rainbow", "dark", "oeteldonk"]:
-                word_clock.clock_type = data['clock_type']
-        
         # Update purist mode if changed
         if 'purist' in data:
             word_clock.purist = data['purist'] == "true"
+            logging.info(f"Purist mode set to: {word_clock.purist}")
         
         return jsonify({"status": "success"}), 200
     except Exception as e:
