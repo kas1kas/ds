@@ -298,23 +298,26 @@ class WordClock:
         # Stop current effect
         if self.current_effect:
             self.current_effect.stop()
-
-        # Clear the display completely before switching
+    
+        # COMPLETE CLEANUP - This should ALWAYS work
         self.cls()
         self.strip.show()
-        time.sleep(0.05)
-
+        time.sleep(0.01)  # Small delay
+    
+        # Double-check with individual LED reset (belt AND suspenders)
+        for i in range(self.led_count):
+            self.set_led_color(i, self.background_color)
+        self.strip.show()
+    
         # Load and start new effect
         new_effect = self._load_effect(effect_id)
         if new_effect:
             self.current_effect = new_effect
             self.current_effect_id = effect_id
             new_effect.start()
-            # Force an immediate update
-            new_effect.update()
+            new_effect.update()  # First update
             logging.info(f"Switched to effect: {new_effect.name}")
             return True
-    
         return False
 
     def set_mode(self, mode):
@@ -751,23 +754,29 @@ def set_temporary_brightness():
 # Main function to run the word clock
 def run_clock():
     try:
-        last_brightness_update = time.time()
+        last_time = time.time()
         last_minute_check = time.time()
+        last_settings_check = word_clock.settings_version
         
         while True:
             current_time = time.time()
             
-            # Periodic updates
-            if current_time - last_brightness_update >= word_clock.light_interval:
+            # Update brightness
+            if current_time - last_time >= word_clock.light_interval:
                 word_clock.update_brightness()
-                last_brightness_update = current_time
+                last_time = current_time
             
-            if current_time - last_minute_check >= 60:
-                if word_clock.current_effect and word_clock.current_effect.requires_time_update:
-                    word_clock.current_effect.on_time_change()
-                last_minute_check = current_time
+            # Check if settings changed (language, purist)
+            if word_clock.settings_version != last_settings_check:
+                last_settings_check = word_clock.settings_version
+                # Clear and show time with new settings
+                word_clock.cls()
+                word_clock.update_clock()
+                # Let effect know it should reset timing
+                if word_clock.current_effect and hasattr(word_clock.current_effect, 'reset_timing'):
+                    word_clock.current_effect.reset_timing()
             
-            # Just update current effect - no fallback needed since we always have an effect
+            # Update current effect
             if word_clock.current_effect:
                 word_clock.current_effect.update()
             
@@ -776,18 +785,7 @@ def run_clock():
     except KeyboardInterrupt:
         logging.info("Exiting...")
     finally:
-        # Cleanup
         if word_clock.current_effect:
             word_clock.current_effect.stop()
         word_clock.cls()
         word_clock.strip.show()
-
-if __name__ == "__main__":
-    # Start the Flask web server in a separate thread
-    from threading import Thread
-    flask_thread = Thread(target=lambda: app.run(host="0.0.0.0", port=80, debug=False, use_reloader=False))
-    flask_thread.daemon = True
-    flask_thread.start()
-    
-    # Run the word clock
-    run_clock()
