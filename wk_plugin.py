@@ -281,7 +281,12 @@ class WordClock:
         # Stop current effect
         if self.current_effect:
             self.current_effect.stop()
-    
+
+        # Clear the display completely before switching
+        self.cls()
+        self.strip.show()
+        time.sleep(0.05)
+
         # Load and start new effect
         new_effect = self._load_effect(effect_id)
         if new_effect:
@@ -289,7 +294,7 @@ class WordClock:
             self.current_effect_id = effect_id
             new_effect.start()
             # Force an immediate update
-            new_effect.update()  # Add this line!
+            new_effect.update()
             logging.info(f"Switched to effect: {new_effect.name}")
             return True
     
