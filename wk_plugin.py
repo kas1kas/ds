@@ -138,7 +138,14 @@ class WordClock:
         
         # Instantiate all effects (or lazy-load them)
         self._load_effect("normal")  # Load default effect
-        
+        default_effect = self._load_effect(self.default_effect)
+        if default_effect:
+            self.current_effect = default_effect
+            self.current_effect_id = self.default_effect
+            default_effect.start()
+            default_effect.update()  # Force first frame
+            logging.info(f"Started default effect: {default_effect.name}")        
+
         logging.info(f"Design   : Woosh") 
         logging.info(f"Made by  : GraWoosh Labs") 
         logging.info(f"Woordklok: {self.woordklok}")
