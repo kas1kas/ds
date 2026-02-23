@@ -9,12 +9,31 @@ class EffectRandom(BaseEffect):
     def __init__(self, word_clock):
         super().__init__(word_clock)
         self.last_update = 0
-        self.update_interval = 0.01  # Much faster - 10ms (original was very fast)
-        self.tint = word_clock.rand_color  # Get tint from config (blue or orange)
+        self.update_interval = 0.001  # Fast - 1ms
+        self.tint = word_clock.rand_color  # Get tint from config
     
     def random_color(self):
-        """Use the word_clock's random_color method"""
-        return self.word_clock.random_color(self.tint)
+        """Random color based on tint - moved from WordClock class"""
+        if self.tint == "blue":
+            r = random.randint(29, 69)    # shades of blue 
+            g = random.randint(31, 71)
+            b = random.randint(105, 245)
+        elif self.tint == "orange":
+            r = random.randint(100, 155)  # shades of orange 
+            g = random.randint(20, 40)
+            b = random.randint(0, 2)
+        else:
+            # Default to blue if tint is invalid
+            r = random.randint(29, 69)
+            g = random.randint(31, 71)
+            b = random.randint(105, 245)
+        return (r, g, b)
+    
+    def start(self):
+        """Called when effect starts"""
+        self.logger.info(f"Starting random effect with {self.tint} tint")
+        # Clear screen first
+        self.word_clock.cls()
     
     def update(self):
         current_time = time.time()
@@ -27,20 +46,20 @@ class EffectRandom(BaseEffect):
         x = random.randint(0, self.word_clock.columns - 1)
         y = random.randint(0, self.word_clock.rows - 1)
         
-        # Get random color using the original method with tint
+        # Get random color using local method
         color = self.random_color()
         
         # Set the LED
         self.word_clock.setcolor_x_y(x, y, color)
         
-        # Update clock display (shows time with random colors behind it)
+        # Update clock display
         self.word_clock.update_clock()
     
     def get_settings_template(self):
         """Show current tint setting"""
         return f"""
         <div class="random-settings">
-            <p>Random effect with <b>{self.tint}</b> tint</p>
-            <p><small>To change tint, edit RAND_COLOR in config</small></p>
+            <p>Random effect - <b>{self.tint}</b> tint</p>
+            <p>Speed: Fast (original)</p>
         </div>
         """
