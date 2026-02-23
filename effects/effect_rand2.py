@@ -2,7 +2,7 @@ import time
 import random
 from .base_effect import BaseEffect
 
-class EffectRandom(BaseEffect):
+class EffectRand2(BaseEffect):
     name = "Rand2"
     
     def __init__(self, word_clock):
