@@ -2,8 +2,8 @@ import time
 import random
 from .base_effect import BaseEffect
 
-class EffectRand2(BaseEffect):
-    name = "Rand2"
+class EffectRandom(BaseEffect):
+    name = "Random"
     
     def __init__(self, word_clock):
         super().__init__(word_clock)
@@ -14,7 +14,7 @@ class EffectRand2(BaseEffect):
     def random_color(self):
         if self.tint == "blue":
             return (random.randint(29, 69), random.randint(31, 71), random.randint(105, 245))
-        else:  # orange
+        else:
             return (random.randint(100, 155), random.randint(20, 40), random.randint(0, 2))
     
     def update(self):
@@ -25,4 +25,4 @@ class EffectRand2(BaseEffect):
         x = random.randint(0, self.word_clock.columns - 1)
         y = random.randint(0, self.word_clock.rows - 1)
         self.word_clock.setcolor_x_y(x, y, self.random_color())
-        self.word_clock.update_clock()
+        self.word_clock.update_clock()  # Just call this, don't manage clearing
