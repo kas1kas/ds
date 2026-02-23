@@ -34,19 +34,18 @@
            margin-top: 0;
            margin-bottom: 6px; 
        }
-         .brightness-display {
+        .brightness-display {
             margin-bottom: 10px;
             font-size: 18px;
             font-weight: bold;
         }
-         .line {
+        .line {
             width: 99%;
             margin-top: 4px;
             margin-bottom: 10px;
             border-bottom: 1px solid blue;
             justify-content: center;
         }
-
         button {
             padding: 4px 4px;
             background-color: #007bff;
@@ -118,6 +117,15 @@
         .close:hover {
             color: black;
         }
+        /* Effect settings container */
+        #effect_settings {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            width: 100%;
+            max-width: 300px;
+        }
     </style>
 </head>
 <body>
@@ -139,16 +147,19 @@
                 </option>
                 {% endfor %}
             </select>
+            
             <label for="purist"><b>Purist mode:</b></label>
-            <select id="purist">
+            <select id="purist" onchange="updateSettings()">
                 <option value="true" {% if initial_purist == True %}selected{% endif %}>True</option>
                 <option value="false" {% if initial_purist == False %}selected{% endif %}>False</option>
             </select>
+            
             <label for="language"><b>Language:</b></label>
-            <select id="language">
+            <select id="language" onchange="updateSettings()">
                 <option value="NL" {% if initial_language == "NL" %}selected{% endif %}>NL</option>
                 <option value="EN" {% if initial_language == "EN" %}selected{% endif %}>EN</option>
             </select>
+            
             <div class="line"></div>
             {% if woordklok_calibrate %}
             <button id="enterCalibration">Brightness</button>
@@ -160,24 +171,16 @@
         </div>
         <h6>GraWoosh {{woordklok_version}}</h6>
     </div>
+    
     <!-- Dynamic effect settings container -->
-    <div id="effect_settings" class="control-group">
+    <div id="effect_settings">
         <!-- Settings will be loaded here -->
     </div>
-
-    <!-- Calibration Modal -->
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/spectrum/1.8.1/spectrum.min.js"></script>
     <script>
         $(document).ready(function () {
-            
-            // Add event listeners for all dropdowns
-            document.getElementById('rainbowEffectSelect').addEventListener('change', setRainbowEffect);
-            document.getElementById('language').addEventListener('change', updateSettings);
-            document.getElementById('clock_type').addEventListener('change', updateSettings);
-            document.getElementById('purist').addEventListener('change', updateSettings);
-            
             // Initialize color picker
             const initialColor = {
                 r: {{ initial_color[0] }},
@@ -200,36 +203,36 @@
                 }
             });
             
+            // Load effect settings on page load
+            loadEffectSettings();
+            
             // Function to update clock type
-	    function updateClockType() {
-	        const select = document.getElementById('clock_type');
-	        const effectId = select.value;
-    
-    	        fetch('/set_effect', {
-        	    method: 'POST',
-        	    headers: {'Content-Type': 'application/json'},
-        	    body: JSON.stringify({effect_id: effectId})
-    	        })
+            window.updateClockType = function() {
+                const select = document.getElementById('clock_type');
+                const effectId = select.value;
+                
+                fetch('/set_effect', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({effect_id: effectId})
+                })
                 .then(response => response.json())
                 .then(data => {
-        	    if (data.status === 'success') {
-            	        loadEffectSettings();
+                    if (data.status === 'success') {
+                        loadEffectSettings();
                     }
-                });
+                })
+                .catch(error => console.error('Error:', error));
             }
 
             function loadEffectSettings() {
                 fetch('/get_effect_settings')
                 .then(response => response.json())
                 .then(data => {
-                     document.getElementById('effect_settings').innerHTML = data.settings_html;
-                });
+                    document.getElementById('effect_settings').innerHTML = data.settings_html || '';
+                })
+                .catch(error => console.error('Error loading effect settings:', error));
             }
-
-            // Load settings on page load
-            document.addEventListener('DOMContentLoaded', loadEffectSettings);
-
-
 
             // Function to set color via AJAX
             function setColor(color) {
@@ -279,27 +282,10 @@
             setInterval(updateBrightness, 3000);
             updateBrightness();
 
-            // Rainbow effect
-            function setRainbowEffect() {
-               const effectNum = document.getElementById('rainbowEffectSelect').value;
-               fetch('/set_rainbow_effect', {
-                   method: 'POST',
-                   headers: {
-                       'Content-Type': 'application/json',
-                   },
-                   body: JSON.stringify({ effect: parseInt(effectNum) })
-               })
-               .then(response => response.json())
-               .then(data => {
-                   console.log('Effect set to:', data.effect_name);
-               });
-            } 
-            
             // Update settings
-            function updateSettings() {
+            window.updateSettings = function() {
                const settings = {
                    language: document.getElementById("language").value,
-                   clock_type: document.getElementById("clock_type").value,
                    purist: document.getElementById("purist").value
                };
                
