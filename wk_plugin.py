@@ -591,6 +591,28 @@ def set_color():
         logging.error(f"Failed to set color: {e}")
         return "Failed to update color.", 500
 
+@app.route('/rainbow/set_effect', methods=['POST'])
+def set_rainbow_sub_effect():
+    """Set the rainbow pattern sub-effect"""
+    try:
+        data = request.get_json()
+        sub_effect = data.get('sub_effect')
+        
+        # Check if current effect is rainbow
+        if (word_clock.current_effect and 
+            hasattr(word_clock.current_effect, 'set_sub_effect')):
+            
+            if word_clock.current_effect.set_sub_effect(sub_effect):
+                return jsonify({"status": "success"}), 200
+            else:
+                return jsonify({"error": "Invalid sub-effect"}), 400
+        else:
+            return jsonify({"error": "Current effect is not rainbow"}), 400
+            
+    except Exception as e:
+        logging.error(f"Failed to set rainbow sub-effect: {e}")
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/update_settings', methods=['POST'])
 def update_settings():
     try:
