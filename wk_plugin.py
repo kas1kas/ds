@@ -248,12 +248,12 @@ class WordClock:
         return self.language_settings.update_language(new_language)
     
     def cls(self):
-    """Clear display with safety check"""
-    if not hasattr(self, 'strip') or not self.strip:
-        logging.warning("Cannot clear - LED strip not initialized")
-        return
-    for i in range(self.led_count):
-        self.set_led_color(i, self.background_color)
+        """Clear display with safety check"""
+        if not hasattr(self, 'strip') or not self.strip:
+            logging.warning("Cannot clear - LED strip not initialized")
+            return
+        for i in range(self.led_count):
+            self.set_led_color(i, self.background_color)
         
     def _load_effect(self, effect_id):
         """Load and instantiate an effect"""
