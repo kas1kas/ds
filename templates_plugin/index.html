@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!--version: 7.0 -->
+<!--version: 7.01 -->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -130,7 +130,7 @@
             <span id="rgbValue" class="rgb-value">RGB({{ initial_color[0] }}, {{ initial_color[1] }}, {{ initial_color[2] }})</span>
         </div>
         <div class="line"></div>
-        <div class="control-group">
+        <div class="settings">
             <label for="clock_type"><b>Display:</b></label>
             <select id="clock_type" onchange="updateClockType()">
                 {% for effect in available_effects %}
@@ -138,6 +138,16 @@
                    {{ effect.name }}
                 </option>
                 {% endfor %}
+            </select>
+            <label for="purist"><b>Purist mode:</b></label>
+            <select id="purist">
+                <option value="true" {% if initial_purist == True %}selected{% endif %}>True</option>
+                <option value="false" {% if initial_purist == False %}selected{% endif %}>False</option>
+            </select>
+            <label for="language"><b>Language:</b></label>
+            <select id="language">
+                <option value="NL" {% if initial_language == "NL" %}selected{% endif %}>NL</option>
+                <option value="EN" {% if initial_language == "EN" %}selected{% endif %}>EN</option>
             </select>
             <div class="line"></div>
             {% if woordklok_calibrate %}
