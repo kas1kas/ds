@@ -730,7 +730,7 @@ def run_clock():
                 word_clock.update_brightness()
                 last_time = current_time
             # Check if settings changed (language, purist)
-            if word_clock.settings_version != last_settings_check or
+            if (word_clock.settings_version != last_settings_check or
                 word_clock.color_version != last_color_version):
                 last_settings_check = word_clock.settings_version
                 last_color_version = word_clock.color_version
