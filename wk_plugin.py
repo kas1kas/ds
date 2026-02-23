@@ -543,8 +543,21 @@ def get_effect_settings():
         logging.error(f"Failed to get effect settings: {e}")
         return jsonify({"error": str(e)}), 500
 
-# Keep all other routes (set_color, update_settings, calibration routes, etc.)
-# but remove the set_rainbow_effect route
+@app.route('/rainbow/set_effect', methods=['POST'])
+def set_rainbow_sub_effect():
+    try:
+        data = request.get_json()
+        sub_effect = data.get('sub_effect')
+        
+        # Check if current effect is rainbow
+        if hasattr(word_clock.current_effect, 'set_sub_effect'):
+            word_clock.current_effect.set_sub_effect(sub_effect)
+            return jsonify({"status": "success"}), 200
+        else:
+            return jsonify({"error": "Current effect is not rainbow"}), 400
+    except Exception as e:
+        logging.error(f"Failed to set rainbow sub-effect: {e}")
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/set_color", methods=["POST"])
 def set_color():
