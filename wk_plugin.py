@@ -712,7 +712,7 @@ def set_temporary_brightness():
         return jsonify({"error": str(e)}), 500
 
         return jsonify({"error": str(e)}), 500
-///
+
 #@app.route("/calibration/save", methods=["POST"])
 #def save_calibration():
 #    """Save calibration to config"""
