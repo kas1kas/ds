@@ -1,3 +1,4 @@
+import time  # Add this import
 from .base_effect import BaseEffect
 
 class EffectNormal(BaseEffect):
