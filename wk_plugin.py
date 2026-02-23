@@ -1,6 +1,6 @@
-__version__ = "7.0"
+__version__ = "7.01"
 # Woordklok
-# index file changes to remove color button and square
+# updating to effects plugin version
 # 
 import argparse
 import json
