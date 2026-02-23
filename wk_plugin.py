@@ -345,9 +345,6 @@ class WordClock:
         # Advance to next LED
         self.current_dot_index = (self.current_dot_index + 1) % 4
 
-    def set_led_color(self, led_index, color):
-         self.strip.setPixelColor(led_index, Color(color[0], color[1], color[2]))
-
     def map_grid_to_led(self, grid_index):
         if self.grid == "16":                              #16x16 grid
            grd = grid_index + 34 + 5 * (grid_index // 11) 
