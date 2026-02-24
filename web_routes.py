@@ -191,11 +191,6 @@ def register_routes():
             logging.error(f"Failed to set rainbow sub-effect: {e}")
             return jsonify({"error": str(e)}), 500
 
-    @app.route("/calibration.html")
-    def calibration_page():
-        """Serve the calibration interface"""
-        return render_template("calibration.html")
-
     @app.route("/set_mode", methods=["POST"])
     def set_mode():
         try:
@@ -208,6 +203,11 @@ def register_routes():
         except Exception as e:
             logging.error(f"Mode switch failed: {e}")
             return jsonify({"error": str(e)}), 500
+
+    @app.route("/calibration.html")
+    def calibration_page():
+        """Serve the calibration interface"""
+        return render_template("calibration.html")
 
     @app.route("/get_calibration_data", methods=["GET"])
     def get_calibration_data():
@@ -256,29 +256,6 @@ def register_routes():
             return jsonify({"status": "success"}), 200
         except Exception as e:
             logging.error(f"Failed to set temporary brightness: {e}")
-            return jsonify({"error": str(e)}), 500
-
-    @app.route("/calibration/save", methods=["POST"])
-    def save_calibration():
-        """Save calibration to config"""
-        try:
-            data = request.get_json()
-            word_clock.lut_in = data.get("lut_in", [])
-            word_clock.lut_out = data.get("lut_out", [])
-            
-            # Save to config file
-            config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
-            with open(config_path, 'r+') as f:
-                config = json.load(f)
-                config['LUT_IN'] = word_clock.lut_in
-                config['LUT_OUT'] = word_clock.lut_out
-                f.seek(0)
-                json.dump(config, f, indent=4)
-                f.truncate()
-            
-            return jsonify({"status": "success"}), 200
-        except Exception as e:
-            logging.error(f"Failed to save calibration: {e}")
             return jsonify({"error": str(e)}), 500
 
     @app.route("/calibration/cancel", methods=["POST"])
