@@ -6,11 +6,9 @@ from .base_effect import BaseEffect
 
 logger = logging.getLogger(__name__)
 
-def discover_effects(effects_dir=None):
+def discover_effects():
     """Discover all effect classes in the effects directory"""
-    if effects_dir is None:
-        effects_dir = os.path.dirname(__file__)
-    
+    effects_dir = os.path.dirname(__file__)
     effects = {}
     
     # Scan all Python files in effects directory
@@ -24,8 +22,8 @@ def discover_effects(effects_dir=None):
                 # Find all classes that inherit from BaseEffect
                 for name, obj in inspect.getmembers(module, inspect.isclass):
                     if issubclass(obj, BaseEffect) and obj != BaseEffect:
-                        # Create instance without word_clock for now
-                        effect_id = obj.__name__.lower().replace('effect', '')
+                        # Create effect ID from filename (remove 'effect_' prefix)
+                        effect_id = module_name[7:]  # Remove 'effect_' prefix
                         effects[effect_id] = {
                             'class': obj,
                             'name': getattr(obj, 'name', name),
@@ -38,11 +36,3 @@ def discover_effects(effects_dir=None):
                 logger.error(f"Failed to load effect module {module_name}: {e}")
     
     return effects
-
-def load_effect(effect_id, word_clock, effects_info):
-    """Instantiate an effect by ID"""
-    if effect_id not in effects_info:
-        return None
-    
-    effect_class = effects_info[effect_id]['class']
-    return effect_class(word_clock)
