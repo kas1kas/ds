@@ -1,5 +1,5 @@
 import time
-from .base_effect import BaseEffect
+from effects.base_effect import BaseEffect  # Change to absolute import
 
 class EffectDark(BaseEffect):
     name = "Dark Mode"
@@ -10,10 +10,7 @@ class EffectDark(BaseEffect):
         self.last_update = 0
         self.light_interval = getattr(word_clock, 'light_interval', 1)
     
-    def start(self):
-        self.word_clock.cls()
-    
-    def update(self):
+    def draw(self):  # Change from start() to draw()
         current_time = time.time()
         if current_time - self.last_update < self.light_interval:
             return
