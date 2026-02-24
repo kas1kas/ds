@@ -490,6 +490,10 @@ def load_merged_config():
 config = load_merged_config()
 word_clock = WordClock(config)
 
+# Initialize web routes (must be after word_clock is created)
+import web_routes
+web_routes.init_routes(word_clock, app)
+
 # Main function to run the word clock
 # In run_clock function, add frame counter:
 
@@ -519,9 +523,6 @@ def run_clock():
     finally:
         word_clock.cls()
         word_clock.strip.show()
-
-# Import web routes (must be after word_clock is created)
-import web_routes
 
 if __name__ == "__main__":
     # Start the Flask web server in a separate thread
