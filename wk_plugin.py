@@ -279,13 +279,13 @@ class WordClock:
             logging.error(f"Failed to clear display: {e}")
 
     def force_complete_refresh(self):
-    """Completely refresh the display"""
-    self.cls()
-    if self.current_effect:
-        self.current_effect.update()
-    else:
-        self.update_clock()
-    self.strip.show()
+        """Completely refresh the display"""
+        self.cls()
+        if self.current_effect:
+            self.current_effect.update()
+        else:
+            self.update_clock()
+        self.strip.show()
     
     def set_led_color(self, led_index, color):
         try:
