@@ -30,9 +30,9 @@ def discover_effects():
                             'description': getattr(obj, 'description', ''),
                             'module': module_name
                         }
-                        logger.info(f"Discovered effect: {effect_id} - {obj.name}")
+                        #logger.info(f"Discovered effect: {effect_id} - {obj.name}")
                         
             except Exception as e:
-                logger.error(f"Failed to load effect module {module_name}: {e}")
+                logger.error(f"__INIT_.py: Failed to load effect module {module_name}: {e}")
     
     return effects
