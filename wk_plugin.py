@@ -1,4 +1,4 @@
-__version__ = "7.11"
+__version__ = "7.12"
 # Woordklok - Simple plugin version
 # 
 import argparse
@@ -341,9 +341,18 @@ class WordClock:
                 led_index = self.map_grid_to_led(i)
                 if led_index != -1:
                     self.set_led_color(led_index, self.letter_active_color)
-                    
+    def clear_words(self):
+        """Clear only the word LEDs (grid area), leave minute dots"""
+        for i in range(self.led_count):
+            # Skip minute dot LEDs
+            if i not in self.minute_dots.values():
+                self.set_led_color(i, self.background_color)                
+    
     def update_clock(self):
-        """Draw the current time without CLS"""
+        """Draw current time - clears old words first"""
+        # Clear only the word area
+        self.clear_words()
+
         now = time.localtime()
         hours = now.tm_hour % 12 or 12
         minutes = now.tm_min
