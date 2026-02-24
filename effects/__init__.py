@@ -2,7 +2,7 @@ import os
 import importlib
 import inspect
 import logging
-from .base_effect import BaseEffect
+from effects.base_effect import BaseEffect  # Absolute import
 
 logger = logging.getLogger(__name__)
 
