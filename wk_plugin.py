@@ -387,6 +387,7 @@ class WordClock:
                          self.random_color(tint))
        
     def random_color(self, tint):
+        """Generate random color based on tint from config"""
         if tint == "blue":
             r = random.randint(29, 69)
             g = random.randint(31, 71)
@@ -395,7 +396,19 @@ class WordClock:
             r = random.randint(100, 155)
             g = random.randint(20, 40)
             b = random.randint(0, 2)
-        else:
+        elif tint == "red":
+            r = random.randint(200, 255)
+            g = random.randint(0, 50)
+            b = random.randint(0, 50)
+        elif tint == "green":
+            r = random.randint(0, 50)
+            g = random.randint(200, 255)
+            b = random.randint(0, 50)
+        elif tint == "purple":
+            r = random.randint(150, 255)
+            g = random.randint(0, 50)
+            b = random.randint(150, 255)
+        else:  # full random
             r = random.randint(0, 255)
             g = random.randint(0, 255)
             b = random.randint(0, 255)
