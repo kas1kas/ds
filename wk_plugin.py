@@ -1,6 +1,5 @@
-__version__ = "7.04"
-# Woordklok
-# updating to effects plugin version
+__version__ = "7.1"
+# Woordklok - Simple plugin version
 # 
 import argparse
 import json
@@ -19,7 +18,6 @@ from flask import Flask, request, render_template, jsonify, send_file
 
 # Import effect system
 from effects import discover_effects, load_effect
-from effects.base_effect import BaseEffect
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -106,90 +104,61 @@ class WordClock:
         self.dot_order = ["MLT", "MLB", "MRB", "MRT"]     # Fixed cycling order
         self.current_dot_index = 0                        # Initialize cycling position
         self.dot_dark_color = config["DOT_DARK_COLOR"]       
-        self.clock_type = config["CLOCK_TYPE"]
+        self.clock_type = config["CLOCK_TYPE"]            # For backward compatibility
         self.rand_color = config["RAND_COLOR"]
         self.lut_in =  config.get("LUT_IN")
         self.lut_out=  config.get("LUT_OUT") 
-        self.CURSOR_UP = "\x1b[2A"
         self.current_mode = "normal"  # 'normal' or 'calibration'
         self.auto_brightness_enabled = True
         self.light_sensor_type = "none"                   # default before autodetect
-        self.settings_version = 0
-        self.last_settings_version = 0
-        self.color_version = 0
-        self.last_force_clear = time.time()
-        self.force_clear_interval = 30  # Force clear every 30 seconds
         
         if self.grid=="16":
           self.led_count = 256
-          self.columns =16
-          self.rows=16
+          self.columns = 16
+          self.rows = 16
         else:
           self.led_count = 114
           self.columns = 11
           self.rows = 10
 
-        # Effect system
-
-        # backwards compatibility section ----------------------------start
-        clock_type_map = {
-            "regular": "normal",
-            "random": "random",
-            "rainbow": "rainbow",
-            "dark": "dark",
-            "oeteldonk": "oeteldonk"
-        }
-        
-        # Try new DEFAULT_EFFECT first, fallback to old CLOCK_TYPE
-        if "DEFAULT_EFFECT" in config:
-            self.default_effect = config["DEFAULT_EFFECT"]
-        elif "CLOCK_TYPE" in config:
-            old_type = config["CLOCK_TYPE"]
-            self.default_effect = clock_type_map.get(old_type, "normal")
-            logging.info(f"Using legacy CLOCK_TYPE '{old_type}' mapped to effect '{self.default_effect}'")
-        else:
-            self.default_effect = "normal"        
-        self.current_effect_id = self.default_effect        
-        # backwards compatibility section ----------------------------end        
-
-        # Initialize LED strip FIRST - before any effects that might try to use it
+        # Initialize LED strip
         self.initialize_led()
         self.initialize_lightsensor()
         
-        self.effects_info = discover_effects()
-        self.effects = {}  # Will store instantiated effects
-        self.current_effect = None
+        # Load effects - simple dictionary of effect instances
+        self.effects = {}
+        self.current_effect_id = "normal"  # Default
         
-        # Load available effects into config
-        self.available_effects = [
-            {'id': eid, 'name': info['name'], 'description': info['description']}
-            for eid, info in self.effects_info.items()
-        ]  
+        # Discover and create all effects
+        effects_info = discover_effects()
+        for effect_id, info in effects_info.items():
+            try:
+                effect_class = info['class']
+                self.effects[effect_id] = effect_class(self)
+                logging.info(f"Loaded effect: {effect_id}")
+            except Exception as e:
+                logging.error(f"Failed to load effect {effect_id}: {e}")
         
-        # Instantiate all effects (or lazy-load them)
-        self._load_effect("normal")  # Load default effect
-        default_effect = self._load_effect(self.default_effect)
-        if default_effect:
-            self.current_effect = default_effect
-            self.current_effect_id = self.default_effect
-            default_effect.start()
-            # Small delay to ensure effect is ready
-            time.sleep(0.1)
-            default_effect.update()  # Force first frame
-            logging.info(f"Started default effect: {default_effect.name}")        
-
+        # Set initial effect
+        if "DEFAULT_EFFECT" in config:
+            self.current_effect_id = config["DEFAULT_EFFECT"]
+        elif self.current_effect_id in self.effects:
+            pass  # Keep default
+        else:
+            # Find first available effect
+            self.current_effect_id = next(iter(self.effects.keys()), "normal")
+        
         logging.info(f"Design   : Woosh") 
         logging.info(f"Made by  : GraWoosh Labs") 
         logging.info(f"Woordklok: {self.woordklok}")
         logging.info(f"version  : {self.version}")
-        logging.info(f"Clock    : {self.clock_type}") 
+        logging.info(f"Effect   : {self.current_effect_id}") 
         logging.info(f"Random   : {self.rand_color}") 
         logging.info(f"Language : {self.language_settings.language}")
         logging.info(f"Grid     : {self.grid}") 
         logging.info(f"Lut In   : {self.lut_in}")
         logging.info(f"Lut Out  : {self.lut_out}")
-        logging.info(f"Loaded   : {len(self.effects_info)} effects")
-        
+        logging.info(f"Loaded   : {len(self.effects)} effects")
    
     def initialize_led(self):
         try:
@@ -249,89 +218,16 @@ class WordClock:
             bus.close()
 
     def update_language(self, new_language):
-        result = self.language_settings.update_language(new_language)
-        if result:
-            self.settings_version += 1
-            self.force_display_update()  # Force update when language changes
-        return result
-        
-    def force_display_update(self):
-        """Force current effect to redisplay time immediately"""
-        logging.debug("Forcing display update due to settings change")
-        if self.current_effect:
-            # Clear and show time immediately
-            self.cls()
-            self.update_clock()
-            # Let the effect know it should refresh
-            if hasattr(self.current_effect, 'reset_timing'):
-                self.current_effect.reset_timing()
-                
-    def cls(self):
-        """Clear display with safety check"""
-        if not hasattr(self, 'strip') or not self.strip:
-            logging.warning("Cannot clear - LED strip not initialized")
-            return
-        try:
-            for i in range(self.led_count):
-                self.set_led_color(i, self.background_color)
-            self.strip.show()  # Add show() to ensure it's applied
-        except Exception as e:
-            logging.error(f"Failed to clear display: {e}")
+        return self.language_settings.update_language(new_language)
 
-    def force_complete_refresh(self):
-        """Completely refresh the display"""
-        self.cls()
-        if self.current_effect:
-            self.current_effect.update()
-        else:
-            self.update_clock()
-        self.strip.show()
-    
-    def set_led_color(self, led_index, color):
-        try:
-            self.strip.setPixelColor(led_index, Color(color[0], color[1], color[2]))
-        except Exception as e:
-            logging.error(f"Failed to set LED {led_index}: {e}")    
-    
-    def _load_effect(self, effect_id):
-        """Load and instantiate an effect"""
-        if effect_id in self.effects:
-            return self.effects[effect_id]
-        
-        effect = load_effect(effect_id, self, self.effects_info)
-        if effect:
-            self.effects[effect_id] = effect
-            return effect
-        return None
-#### ------------------------------------------------------------------------####    
     def set_effect(self, effect_id):
         """Switch to a different effect"""
-        if effect_id not in self.effects_info:
-            logging.error(f"Unknown effect: {effect_id}")
-            return False
-    
-        # Stop current effect
-        if self.current_effect:
-            self.current_effect.stop()
-    
-        # COMPLETE CLEANUP - This should ALWAYS work
-        self.cls()
-        self.strip.show()
-        time.sleep(0.01)  # Small delay
-    
-        # Double-check with individual LED reset (belt AND suspenders)
-        for i in range(self.led_count):
-            self.set_led_color(i, self.background_color)
-        self.strip.show()
-    
-        # Load and start new effect
-        new_effect = self._load_effect(effect_id)
-        if new_effect:
-            self.current_effect = new_effect
+        if effect_id in self.effects:
             self.current_effect_id = effect_id
-            new_effect.start()
-            new_effect.update()  # First update
-            logging.info(f"Switched to effect: {new_effect.name}")
+            # Clear the display when switching
+            self.cls()
+            self.strip.show()
+            logging.info(f"Switched to effect: {effect_id}")
             return True
         return False
 
@@ -359,6 +255,10 @@ class WordClock:
               
         # Advance to next LED
         self.current_dot_index = (self.current_dot_index + 1) % 4
+
+    def set_led_color(self, led_index, color):
+        if 0 <= led_index < self.led_count:
+            self.strip.setPixelColor(led_index, Color(color[0], color[1], color[2]))
 
     def map_grid_to_led(self, grid_index):
         if self.grid == "16":                              #16x16 grid
@@ -409,14 +309,12 @@ class WordClock:
                 # Fallback to simple mapping if not enough calibration points
                 brightness = self.lut_out[0] if lux < self.lut_in[0] else self.lut_out[-1]
         
-            # Apply exponential smoothing (optional, makes transitions smoother)
+            # Apply exponential smoothing
             if hasattr(self, 'last_brightness'):
-                alpha = 0.3  # Smoothing factor (0-1, higher = more smoothing)
+                alpha = 0.3  # Smoothing factor
                 brightness = alpha * self.last_brightness + (1 - alpha) * brightness
             self.last_brightness = brightness
             self.strip.setBrightness(int(brightness))
-            
-            #logging.info(f"lux, bright: {self.light_sensor_type}, {self.auto_brightness_enabled}, {lux}, {brightness}")
             
         except Exception as e:
             logging.error(f"Failed to update brightness: {e}")
@@ -430,45 +328,85 @@ class WordClock:
                     self.set_led_color(led_index, self.letter_active_color)
                     
     def update_clock(self):
+        """Update the clock display - clears and shows current time"""
         now = time.localtime()
         hours = now.tm_hour % 12 or 12
         minutes = now.tm_min
-        # -------------------------------------------------Set minute dots
+        
+        # Clear all LEDs first
+        self.cls()
+        
+        # Set minute dots
         minute_dots = minutes % 5
         for dot, index in self.minute_dots.items():
             self.set_led_color(index, self.dot_active_color \
                   if minute_dots >= list(self.minute_dots.keys()).index(dot) + 1 else self.dot_inactive_color)
-        # -------------------------------------------------Determine minute phrase and hour
+        
+        # Determine minute phrase and hour
         minute_block = minutes // 5
         adjusted_hours = hours    
-        # -------------------------------------------------Show "IT IS"
+        
+        # Show "IT IS"
         if not self.purist:
             for word in self.language_settings.it_is:
                 self.activate_word(word)
-        # -------------------------------------------------Adjust hour per language minutes
+        
+        # Adjust hour per language minutes
         if minute_block >= self.language_settings.min_block_check:
             adjusted_hours = (hours % 12) + 1
             if adjusted_hours == 13:
                 adjusted_hours = 1
-        # -------------------------------------------------Activate words based on minute block
+        
+        # Activate words based on minute block
         if str(minute_block) in self.language_settings.minute_blocks:
             for word in self.language_settings.minute_blocks[str(minute_block)]:
-                self.activate_word(word)                   # the minute and its modifiers
-            self.activate_word(self.language_settings.hour_words[adjusted_hours - 1])  # the hour        
+                self.activate_word(word)
+            self.activate_word(self.language_settings.hour_words[adjusted_hours - 1])
+        
         self.strip.show()
 
-    def setcolor_x_y(self, x, y, color):                   #for rainbow effect
+    def set_random_led(self, tint):
+        """Set a random LED with tint"""
+        self.setcolor_x_y(random.randint(0, self.columns-1), 
+                         random.randint(0, self.rows-1), 
+                         self.random_color(tint))
+       
+    def random_color(self, tint):
+        if tint == "blue":
+            r = random.randint(29, 69)
+            g = random.randint(31, 71)
+            b = random.randint(105, 245)
+        elif tint == "orange":
+            r = random.randint(100, 155)
+            g = random.randint(20, 40)
+            b = random.randint(0, 2)
+        else:
+            r = random.randint(0, 255)
+            g = random.randint(0, 255)
+            b = random.randint(0, 255)
+        return (r, g, b) 
+      
+    def cls(self):
+        """Clear all LEDs to background color"""
+        for i in range(self.led_count):
+            self.set_led_color(i, self.background_color)
+
+    def setcolor_x_y(self, x, y, color):
+        """Set LED color by grid coordinates"""
+        if x < 0 or x >= self.columns or y < 0 or y >= self.rows:
+            return
+            
         if self.grid == "16":
-            adjusted_x = x + 2                             # Skip the first two columns
-            adjusted_y = y + 3                             # and first three rows
-            if adjusted_x % 2 == 0:                        # Even columns: top to bottom
+            adjusted_x = x + 2  # Skip the first two columns
+            adjusted_y = y + 3  # and first three rows
+            if adjusted_x % 2 == 0:  # Even columns: top to bottom
                 led_index = (adjusted_x * 16) + adjusted_y
-            else:                                          # Odd columns: bottom to top
+            else:  # Odd columns: bottom to top
                 led_index = (adjusted_x * 16) + (15 - adjusted_y)
-        else:                                              # For 11x10 grid
-            if x % 2 == 0:                                 # Even columns: top to bottom
+        else:  # For 11x10 grid
+            if x % 2 == 0:  # Even columns: top to bottom
                 led_index = 2 + (x * 10) + y
-            else:                                          # Odd columns: bottom to top
+            else:  # Odd columns: bottom to top
                 led_index = 2 + (x * 10) + (9 - y)
         self.set_led_color(led_index, color)
     
@@ -505,7 +443,7 @@ def load_merged_config():
         # MERGE: user settings override system defaults
         merged_config = {**config_gen, **config_loc}
         
-        # Log what was merged (optional, helpful for debugging)
+        # Log what was merged
         overridden_keys = set(config_loc.keys()) & set(config_gen.keys())
         if overridden_keys:
             logging.info(f"User settings overriding system defaults for: {overridden_keys}")
@@ -514,7 +452,6 @@ def load_merged_config():
         
     except FileNotFoundError as e:
         logging.error(f"Required config file not found: {e}")
-        logging.error(f"Please ensure {system_config_path} exists")
         return None
     except json.JSONDecodeError as e:
         logging.error(f"Invalid JSON in config file: {e}")
@@ -533,25 +470,30 @@ def index():
     """Render the web interface with dynamic effect list."""
     initial_color = word_clock.letter_active_color
     initial_language = word_clock.language_settings.language
-    initial_clock_type = word_clock.current_effect_id  # Now using effect ID
+    initial_effect = word_clock.current_effect_id
     initial_purist = word_clock.purist
     woordklok_name = word_clock.woordklok
     woordklok_version = word_clock.version
     woordklok_calibrate = word_clock.calibrate
     
-    # Pass available effects to template
-    available_effects = word_clock.available_effects
+    # Create list of available effects for dropdown
+    available_effects = []
+    for effect_id, effect in word_clock.effects.items():
+        available_effects.append({
+            'id': effect_id,
+            'name': getattr(effect, 'name', effect_id.capitalize())
+        })
     
     return render_template(
         "index.html",
         initial_color=initial_color,
         initial_language=initial_language,
-        initial_clock_type=initial_clock_type,
+        initial_clock_type=initial_effect,
         initial_purist=initial_purist,
         woordklok_name=woordklok_name,
         woordklok_version=woordklok_version,
         woordklok_calibrate=woordklok_calibrate,
-        available_effects=available_effects  # Pass effects list
+        available_effects=available_effects
     )
 
 @app.route("/set_effect", methods=["POST"])
@@ -562,10 +504,7 @@ def set_effect():
         effect_id = data.get("effect_id")
         
         if word_clock.set_effect(effect_id):
-            return jsonify({
-                "status": "success",
-                "effect_name": word_clock.current_effect.name
-            }), 200
+            return jsonify({"status": "success"}), 200
         else:
             return jsonify({"error": "Effect not found"}), 404
             
@@ -577,12 +516,10 @@ def set_effect():
 def get_effect_settings():
     """Get HTML for current effect's settings"""
     try:
-        if word_clock.current_effect:
-            settings_html = word_clock.current_effect.get_settings_template()
-            return jsonify({
-                "settings_html": settings_html,
-                "effect_name": word_clock.current_effect.name
-            }), 200
+        current_effect = word_clock.effects.get(word_clock.current_effect_id)
+        if current_effect and hasattr(current_effect, 'get_settings_template'):
+            settings_html = current_effect.get_settings_template()
+            return jsonify({"settings_html": settings_html}), 200
         return jsonify({"settings_html": ""}), 200
     except Exception as e:
         logging.error(f"Failed to get effect settings: {e}")
@@ -598,7 +535,6 @@ def set_color():
 
         word_clock.letter_active_color = (red, green, blue)
         word_clock.dot_active_color = (red, green, blue)
-        word_clock.color_version += 1  # Trigger color update
         
         return "Color updated successfully!", 200
     except Exception as e:
@@ -612,16 +548,14 @@ def set_rainbow_sub_effect():
         data = request.get_json()
         sub_effect = data.get('sub_effect')
         
-        # Check if current effect is rainbow
-        if (word_clock.current_effect and 
-            hasattr(word_clock.current_effect, 'set_sub_effect')):
-            
-            if word_clock.current_effect.set_sub_effect(sub_effect):
+        current_effect = word_clock.effects.get(word_clock.current_effect_id)
+        if current_effect and hasattr(current_effect, 'set_sub_effect'):
+            if current_effect.set_sub_effect(sub_effect):
                 return jsonify({"status": "success"}), 200
             else:
                 return jsonify({"error": "Invalid sub-effect"}), 400
         else:
-            return jsonify({"error": "Current effect is not rainbow"}), 400
+            return jsonify({"error": "Current effect does not support sub-effects"}), 400
             
     except Exception as e:
         logging.error(f"Failed to set rainbow sub-effect: {e}")
@@ -631,21 +565,13 @@ def set_rainbow_sub_effect():
 def update_settings():
     try:
         data = request.get_json()
-        needs_update = False
         
         if 'language' in data:
-            if word_clock.update_language(data['language']):
-                needs_update = True
+            word_clock.update_language(data['language'])
         
         if 'purist' in data:
             word_clock.purist = data['purist'] == "true"
-            word_clock.settings_version += 1
-            needs_update = True
             logging.info(f"Purist mode set to: {word_clock.purist}")
-        
-        # Force immediate display update if settings changed
-        if needs_update:
-            word_clock.force_display_update()
         
         return jsonify({"status": "success"}), 200
     except Exception as e:
@@ -676,7 +602,7 @@ def get_brightness():
         return jsonify({"brightness": brightness_display}), 200
     except Exception as e:
         logging.error(f"Failed to fetch brightness: {e}")
-        return jsonify({"brightness": "Error reading sensor"}), 200  # Return 200 with error message instead of 500
+        return jsonify({"brightness": "Error reading sensor"}), 200
 
 #--------------------------------------------------------calibration
 @app.route("/calibration.html")
@@ -746,66 +672,75 @@ def set_temporary_brightness():
         logging.error(f"Failed to set temporary brightness: {e}")
         return jsonify({"error": str(e)}), 500
 
+@app.route("/calibration/save", methods=["POST"])
+def save_calibration():
+    """Save calibration to config"""
+    try:
+        data = request.get_json()
+        word_clock.lut_in = data.get("lut_in", [])
+        word_clock.lut_out = data.get("lut_out", [])
+        
+        # Save to config file
+        config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
+        with open(config_path, 'r+') as f:
+            config = json.load(f)
+            config['LUT_IN'] = word_clock.lut_in
+            config['LUT_OUT'] = word_clock.lut_out
+            f.seek(0)
+            json.dump(config, f, indent=4)
+            f.truncate()
+        
+        return jsonify({"status": "success"}), 200
+    except Exception as e:
+        logging.error(f"Failed to save calibration: {e}")
         return jsonify({"error": str(e)}), 500
 
+@app.route("/calibration/cancel", methods=["POST"])
+def cancel_calibration():
+    """Cancel calibration and restore original settings"""
+    try:
+        if hasattr(word_clock, 'original_brightness'):
+            word_clock.strip.setBrightness(word_clock.original_brightness)
+            word_clock.strip.show()
+        return jsonify({"status": "success"}), 200
+    except Exception as e:
+        logging.error(f"Failed to cancel calibration: {e}")
+        return jsonify({"error": str(e)}), 500
 #------------------------------------------------------------calibration
 
 # Main function to run the word clock
 def run_clock():
+    last_brightness_update = time.time()
+    last_frame_time = time.time()
+    frame_delay = 0.01  # 10ms between frames (100fps max)
+    
     try:
-        last_time = time.time()
-        last_settings_check = word_clock.settings_version
-        last_color_version = word_clock.color_version
-        last_force_clear = time.time()
-        minute_counter = 0
-        
         while True:
             current_time = time.time()
             
-            # Update brightness
-            if current_time - last_time >= word_clock.light_interval:
+            # Update brightness (every few seconds)
+            if current_time - last_brightness_update >= word_clock.light_interval:
                 word_clock.update_brightness()
-                last_time = current_time
+                last_brightness_update = current_time
             
-            # Check if settings changed (language, purist)
-            if (word_clock.settings_version != last_settings_check or
-                word_clock.color_version != last_color_version):
-                last_settings_check = word_clock.settings_version
-                last_color_version = word_clock.color_version
-                
-                # Clear and let effect redraw with new settings
-                word_clock.cls()
-                if word_clock.current_effect:
-                    if hasattr(word_clock.current_effect, 'reset_timing'):
-                        word_clock.current_effect.reset_timing()
+            # Get current effect and draw
+            current_effect = word_clock.effects.get(word_clock.current_effect_id)
+            if current_effect:
+                current_effect.draw()
             
-            # FORCE a complete clear every 30 seconds to prevent accumulation
-            if current_time - last_force_clear >= 30:
-                word_clock.cls()
-                last_force_clear = current_time
-                # If we're in normal mode, force a time update
-                if word_clock.current_effect_id == "normal":
-                    if hasattr(word_clock.current_effect, 'reset_timing'):
-                        word_clock.current_effect.reset_timing()
-            
-            # Update current effect
-            if word_clock.current_effect:
-                word_clock.current_effect.update()
-            
-            time.sleep(0.01)  # Small sleep to prevent CPU overload
+            # Small sleep to prevent CPU overload
+            time.sleep(frame_delay)
             
     except KeyboardInterrupt:
         logging.info("Exiting...")
     finally:
-        if word_clock.current_effect:
-            word_clock.current_effect.stop()
         word_clock.cls()
         word_clock.strip.show()
-        
+
 if __name__ == "__main__":
     # Start the Flask web server in a separate thread
     from threading import Thread
-    flask_thread = Thread(target=lambda: app.run(host="0.0.0.0", port=80))
+    flask_thread = Thread(target=lambda: app.run(host="0.0.0.0", port=80, debug=False, threaded=True))
     flask_thread.daemon = True
     flask_thread.start()
 
