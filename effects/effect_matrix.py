@@ -1,6 +1,6 @@
 import random
 import time
-from .base_effect import BaseEffect
+from matrix.base_effect import BaseEffect
 
 class EffectMatrix(BaseEffect):
     name = "Matrix Rain"
