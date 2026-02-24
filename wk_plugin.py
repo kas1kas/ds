@@ -661,6 +661,33 @@ def set_mode():
     except Exception as e:
         logging.error(f"Mode switch failed: {e}")
         return jsonify({"error": str(e)}), 500
+@app.route('/matrix/set_speed', methods=['POST'])
+def set_matrix_speed():
+    try:
+        data = request.get_json()
+        speed = data.get('speed')
+        current_effect = word_clock.effects.get(word_clock.current_effect_id)
+        if current_effect and hasattr(current_effect, 'set_speed'):
+            current_effect.set_speed(speed)
+            return jsonify({"status": "success"}), 200
+        return jsonify({"error": "Not matrix effect"}), 400
+    except Exception as e:
+        logging.error(f"Failed to set matrix speed: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/matrix/set_trail', methods=['POST'])
+def set_matrix_trail():
+    try:
+        data = request.get_json()
+        length = data.get('length')
+        current_effect = word_clock.effects.get(word_clock.current_effect_id)
+        if current_effect and hasattr(current_effect, 'set_trail'):
+            current_effect.set_trail(length)
+            return jsonify({"status": "success"}), 200
+        return jsonify({"error": "Not matrix effect"}), 400
+    except Exception as e:
+        logging.error(f"Failed to set matrix trail: {e}")
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/get_calibration_data", methods=["GET"])
 def get_calibration_data():
