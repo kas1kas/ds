@@ -12,14 +12,18 @@ class EffectTest(BaseEffect):
         self.word_clock.cls()
         self.word_clock.setcolor_x_y(0, 0, (255, 0, 0))
         self.word_clock.strip.show()
-        time.sleep(0.5)
+        print("[TEST] single red LED")
+        time.sleep(2)
         
         # Test 2: Try update_clock
         self.word_clock.cls()
         self.word_clock.update_clock()
-        time.sleep(0.5)
+        print("[TEST] Time")
+        time.sleep(2)
         
         # Test 3: Both together
         self.word_clock.cls()
         self.word_clock.setcolor_x_y(5, 5, (0, 255, 0))
         self.word_clock.update_clock()
+        print("[TEST] Red LED and Time, and waiting 10 seconds")
+        time.sleep(10)
