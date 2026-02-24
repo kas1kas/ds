@@ -1,4 +1,4 @@
-__version__ = "7.1"
+__version__ = "7.11"
 # Woordklok - Simple plugin version
 # 
 import argparse
@@ -541,9 +541,16 @@ def set_color():
         word_clock.letter_active_color = (red, green, blue)
         word_clock.dot_active_color = (red, green, blue)
         
-        # Force immediate redraw if in normal mode
-        if word_clock.current_effect_id == "normal":
-            word_clock.update_clock()
+        # Force immediate redraw for current effect
+        current_effect = word_clock.effects.get(word_clock.current_effect_id)
+        if current_effect:
+            # Clear and redraw
+            word_clock.cls()
+            if word_clock.current_effect_id == "normal":
+                word_clock.update_clock()
+            else:
+                # Let the effect draw next frame
+                pass
         
         return "Color updated successfully!", 200
     except Exception as e:
