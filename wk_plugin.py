@@ -17,7 +17,7 @@ from smbus2 import SMBus
 from flask import Flask, request, render_template, jsonify, send_file
 
 # Import effect system
-from .base_effect import BaseEffect
+from effects.base_effect import BaseEffect
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
