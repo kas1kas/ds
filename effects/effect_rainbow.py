@@ -1,99 +1,27 @@
-from effects.base_effect import BaseEffect
 import time
 import math
 import random
+from .base_effect import BaseEffect
 
-class RainbowEffect(BaseEffect):
-    def __init__(self, clock):
-        super().__init__(clock)
-        self.name = "Rainbow"
-        self.description = "Rainbow animation with multiple patterns"
+class EffectRainbow(BaseEffect):
+    name = "Rainbow"
+    description = "Animated rainbow patterns"
+    
+    def __init__(self, word_clock):
+        super().__init__(word_clock)
         self.j = 0
-        self.sub_effect = 0  # 0: Diagonal, 1: Horizontal, 2: Vertical, 3: Circular, 4: Spiral, 5: Wave, 6: Twinkle
-        self.last_update = 0
-        self.update_interval = 0.03  # 30ms between updates (much faster than original)
-        self.twinkle_pixels = []
-        self.last_clock_update = 0
-        self.clock_update_interval = 60  # Update clock display every 60 seconds
-        
-    def start(self):
-        """Start the effect"""
-        self.j = 0
-        self.last_update = time.time()
-        self.last_clock_update = time.time()
-        # Pre-calculate twinkle pixels
-        self.twinkle_pixels = [(random.randint(0, 10), random.randint(0, 9)) for _ in range(20)]
-        
-    def stop(self):
-        """Stop the effect"""
-        pass
-        
-    def update(self):
-        """Update the effect"""
-        current_time = time.time()
-        
-        # Control update rate
-        if current_time - self.last_update < self.update_interval:
-            return
-            
-        self.last_update = current_time
-        
-        # Update clock time occasionally (every minute)
-        if current_time - self.last_clock_update >= self.clock_update_interval:
-            self.clock.cls()
-            self.clock.update_clock()
-            self.last_clock_update = current_time
-        
-        # Clear the grid area (not the dots)
-        for x in range(11):
-            for y in range(10):
-                self.clock.setcolor_x_y(x, y, (0, 0, 0))
-        
-        # Apply selected rainbow pattern
-        center_x, center_y = 5, 4.5
-        
-        for x in range(11):
-            for y in range(10):
-                if self.sub_effect == 0:  # Diagonal
-                    k = (x * y + self.j) & 255
-                elif self.sub_effect == 1:  # Horizontal
-                    k = (x + self.j) & 255
-                elif self.sub_effect == 2:  # Vertical
-                    k = (y + self.j) & 255
-                elif self.sub_effect == 3:  # Circular ripple
-                    dx = x - center_x
-                    dy = y - center_y
-                    distance = math.sqrt(dx*dx + dy*dy)
-                    k = int(distance * 10 + self.j) & 255
-                elif self.sub_effect == 4:  # Spiral
-                    dx = x - center_x
-                    dy = y - center_y
-                    angle = math.atan2(dy, dx)
-                    distance = math.sqrt(dx*dx + dy*dy)
-                    k = int(angle/math.pi * 128 + distance*5 + self.j) & 255
-                elif self.sub_effect == 5:  # Wave
-                    wave = math.sin(x/2.0 + self.j/10.0) * 3
-                    k = int(y + wave + self.j) & 255
-                elif self.sub_effect == 6:  # Twinkle - faster
-                    # Update all pixels at once
-                    if x == 0 and y == 0:
-                        self.twinkle_pixels = [(random.randint(0, 10), random.randint(0, 9)) 
-                                              for _ in range(15)]
-                    if (x, y) in self.twinkle_pixels:
-                        k = (x + y + self.j) & 255
-                    else:
-                        continue
-                
-                # Get color and set LED
-                color = self.kwheel(k)
-                self.clock.setcolor_x_y(x, y, color)
-        
-        # Update the display
-        self.clock.strip.show()
-        self.j = (self.j + 5) % (256 * 5)  # Faster increment
+        self.last_frame_time = 0
+        self.frame_delay = 0.05  # 50ms between frames
+        self.effect = 0  # Sub-effect for rainbow variations
+        self.effect_names = ["Diagonal", "Horizontal", "Vertical", "Circular", 
+                            "Spiral", "Wave", "Twinkle"]
+        # Use self.word_clock (from base class) not self.clock
+        self.center_x = (self.word_clock.columns - 1) / 2
+        self.center_y = (self.word_clock.rows - 1) / 2
         
     def kwheel(self, pos):
-        """Generate rainbow color"""
+        """Color wheel - input 0-255, returns RGB tuple"""
+        pos = pos % 256
         if pos < 85:
             return (pos * 3, 255 - pos * 3, 0)
         elif pos < 170:
@@ -103,56 +31,104 @@ class RainbowEffect(BaseEffect):
             pos -= 170
             return (0, pos * 3, 255 - pos * 3)
     
+    def start(self):
+        self.logger.info(f"Starting rainbow effect")
+        self.j = 0
+        self.last_frame_time = 0
+        
+    def stop(self):
+        self.logger.info(f"Stopping rainbow effect")
+    
     def set_sub_effect(self, effect_num):
-        """Set the sub-effect (0-6)"""
-        try:
-            effect_num = int(effect_num)
-            if 0 <= effect_num <= 6:
-                self.sub_effect = effect_num
-                self.j = 0  # Reset animation
-                return True
-        except ValueError:
-            pass
+        """Change the rainbow pattern"""
+        if 0 <= effect_num < len(self.effect_names):
+            self.effect = effect_num
+            self.j = 0  # Reset animation
+            self.logger.info(f"Rainbow pattern set to: {self.effect_names[effect_num]}")
+            return True
         return False
     
+    def update(self):
+        current_time = time.time()
+        if current_time - self.last_frame_time < self.frame_delay:
+            return
+        
+        self.last_frame_time = current_time
+        
+        # Don't clear here - main loop handles clearing
+        # Just draw the rainbow pattern
+        for x in range(self.word_clock.columns):
+            for y in range(self.word_clock.rows):
+                if self.effect == 0:  # Diagonal
+                    k = (x * y + self.j) & 255
+                    
+                elif self.effect == 1:  # Horizontal
+                    k = (x + self.j) & 255
+                    
+                elif self.effect == 2:  # Vertical
+                    k = (y + self.j) & 255
+                    
+                elif self.effect == 3:  # Circular ripple
+                    dx = x - self.center_x
+                    dy = y - self.center_y
+                    distance = math.sqrt(dx*dx + dy*dy)
+                    k = int(distance * 10 + self.j) & 255
+                    
+                elif self.effect == 4:  # Spiral
+                    dx = x - self.center_x
+                    dy = y - self.center_y
+                    angle = math.atan2(dy, dx)
+                    distance = math.sqrt(dx*dx + dy*dy)
+                    k = int(angle * 50 + distance * 10 + self.j) & 255
+                    
+                elif self.effect == 5:  # Wave
+                    wave = math.sin(x * 0.8 + self.j * 0.1) * 3
+                    k = int(y * 20 + wave * 10 + self.j) & 255
+                    
+                elif self.effect == 6:  # Twinkle - random pixels
+                    # Use a different calculation for twinkle
+                    random.seed(x * 100 + y + self.j)
+                    k = random.randint(0, 255)
+                
+                color = self.kwheel(k)
+                self.word_clock.setcolor_x_y(x, y, color)
+        
+        # Overlay the time (this will also call strip.show())
+        self.word_clock.update_clock()
+        
+        # Advance animation
+        self.j = (self.j + 1) % (256 * 5)
+    
     def get_settings_template(self):
-        """Return HTML for effect settings"""
-        sub_effects = [
-            "Diagonal", "Horizontal", "Vertical", "Circular",
-            "Spiral", "Wave", "Twinkle"
-        ]
+        """Return HTML for rainbow effect settings"""
+        # Create options with current effect selected
+        options = []
+        for i, name in enumerate(self.effect_names):
+            selected = "selected" if i == self.effect else ""
+            options.append(f'<option value="{i}" {selected}>{name}</option>')
         
-        html = '''
-        <div class="effect-settings">
-            <h4>Rainbow Settings</h4>
-            <label for="rainbow_sub_effect">Pattern:</label>
-            <select id="rainbow_sub_effect" onchange="setRainbowSubEffect(this.value)">
-        '''
+        options_html = ''.join(options)
         
-        for i, name in enumerate(sub_effects):
-            selected = "selected" if i == self.sub_effect else ""
-            html += f'<option value="{i}" {selected}>{name}</option>'
-        
-        html += '''
+        return f'''
+        <div class="rainbow-settings">
+            <label for="rainbow_pattern"><b>Rainbow Pattern:</b></label>
+            <select id="rainbow_pattern" onchange="setRainbowPattern(this.value)">
+                {options_html}
             </select>
         </div>
-        
         <script>
-        function setRainbowSubEffect(effectNum) {
-            fetch('/rainbow/set_effect', {
+        function setRainbowPattern(value) {{
+            fetch('/rainbow/set_effect', {{
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({sub_effect: effectNum})
-            })
+                headers: {{'Content-Type': 'application/json'}},
+                body: JSON.stringify({{sub_effect: parseInt(value)}})
+            }})
             .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    console.log('Rainbow sub-effect set to', effectNum);
-                }
-            })
-            .catch(error => console.error('Error:', error));
-        }
+            .then(data => {{
+                if (data.status === 'success') {{
+                    console.log('Rainbow pattern changed');
+                }}
+            }});
+        }}
         </script>
         '''
-        
-        return html
