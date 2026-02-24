@@ -343,13 +343,10 @@ class WordClock:
                     self.set_led_color(led_index, self.letter_active_color)
                     
     def update_clock(self):
-        """Update the clock display - clears and shows current time"""
+        """Draw the current time without CLS"""
         now = time.localtime()
         hours = now.tm_hour % 12 or 12
         minutes = now.tm_min
-        
-        # Clear all LEDs first
-        self.cls()
         
         # Set minute dots
         minute_dots = minutes % 5
