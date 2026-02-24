@@ -126,7 +126,6 @@ class WordClock:
         logging.info(f"Design   : Woosh") 
         logging.info(f"Assist   : DS") 
         logging.info(f"Made by  : GraWoosh Labs") 
-        logging.info(f"Effect   : {self.current_effect_id}") 
         logging.info(f"Random   : {self.rand_color}") 
         logging.info(f"Language : {self.language_settings.language}")
         logging.info(f"Grid     : {self.grid}") 
@@ -168,6 +167,7 @@ class WordClock:
         else:
             # Find first available effect
             self.current_effect_id = next(iter(self.effects.keys()), "normal")
+        logging.info(f"Effect   : {self.current_effect_id}") 
            
     def initialize_led(self):
         try:
