@@ -1,4 +1,4 @@
-__version__ = "7.43"
+__version__ = "7.04"
 # Woordklok
 # updating to effects plugin version
 # 
