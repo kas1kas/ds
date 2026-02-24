@@ -1,11 +1,10 @@
 import random
 import time
-from matrix.base_effect import BaseEffect
+from effects.base_effect import BaseEffect  # Fix import
 
 class EffectMatrix(BaseEffect):
     name = "Matrix Rain"
     description = "Green rain with white time display"
-    requires_time_update = True
     
     def __init__(self, word_clock):
         super().__init__(word_clock)
@@ -15,50 +14,29 @@ class EffectMatrix(BaseEffect):
         self.matrix_green = (0, 255, 0)
         self.time_color = (255, 255, 255)  # White for time
         self.trail_length = 8  # How many LEDs per drop
+        self.orig_letter_color = None
+        self.orig_dot_active = None
         
-    def start(self):
-        """Initialize matrix rain"""
-        # Store original colors
-        self.orig_letter_color = self.word_clock.letter_active_color
-        self.orig_dot_active = self.word_clock.dot_active_color
+    def draw(self):  # Change from update() to draw()
+        if self.orig_letter_color is None:
+            # First run - store original colors
+            self.orig_letter_color = self.word_clock.letter_active_color
+            self.orig_dot_active = self.word_clock.dot_active_color
+            # Set matrix colors
+            self.word_clock.letter_active_color = self.time_color
+            self.word_clock.dot_active_color = self.time_color
+            # Create initial raindrops
+            num_drops = self.word_clock.columns // 2
+            for _ in range(num_drops):
+                self._create_drop()
         
-        # Set matrix colors
-        self.word_clock.letter_active_color = self.time_color
-        self.word_clock.dot_active_color = self.time_color
-        
-        # Create initial raindrops
-        num_drops = self.word_clock.columns // 2  # One drop per 2 columns
-        for _ in range(num_drops):
-            self._create_drop()
-    
-    def stop(self):
-        """Restore original colors"""
-        self.word_clock.letter_active_color = self.orig_letter_color
-        self.word_clock.dot_active_color = self.orig_dot_active
-    
-    def _create_drop(self):
-        """Create a new raindrop"""
-        col = random.randint(0, self.word_clock.columns - 1)
-        # Start above the grid
-        row = -random.randint(1, self.trail_length)
-        speed = random.uniform(0.5, 2.0)
-        drop = {
-            'col': col,
-            'row': row,
-            'speed': speed,
-            'brightness': random.uniform(0.3, 1.0),
-            'active': True
-        }
-        self.drops.append(drop)
-    
-    def update(self):
         current_time = time.time()
         if current_time - self.last_update < self.update_interval:
             return
         
         self.last_update = current_time
         
-        # Clear display (but keep background)
+        # Clear display
         for x in range(self.word_clock.columns):
             for y in range(self.word_clock.rows):
                 self.word_clock.setcolor_x_y(x, y, self.word_clock.background_color)
@@ -84,10 +62,23 @@ class EffectMatrix(BaseEffect):
                 # Create new drop to replace it
                 self._create_drop()
         
-        # Overlay the time (white letters)
-        # Save and restore background colors for time display
+        # Overlay the time
         self.word_clock.update_clock()
-        self.word_clock.strip.show()
+    
+    def _create_drop(self):
+        """Create a new raindrop"""
+        col = random.randint(0, self.word_clock.columns - 1)
+        # Start above the grid
+        row = -random.randint(1, self.trail_length)
+        speed = random.uniform(0.5, 2.0)
+        drop = {
+            'col': col,
+            'row': row,
+            'speed': speed,
+            'brightness': random.uniform(0.3, 1.0),
+            'active': True
+        }
+        self.drops.append(drop)
     
     def get_settings_template(self):
         """Settings for matrix effect"""
