@@ -137,10 +137,16 @@ class WordClock:
         for effect_id, info in effects_info.items():
             try:
                 effect_class = info['class']
+                logging.info(f"Creating effect: {effect_id} with class {effect_class.__name__}")
                 self.effects[effect_id] = effect_class(self)
-                logging.info(f"Loaded effect: {effect_id} - {effect_class.name}")
+                logging.info(f"✓ Successfully loaded effect: {effect_id} - {self.effects[effect_id].name}")
             except Exception as e:
-                logging.error(f"Failed to load effect {effect_id}: {e}")
+                logging.error(f"✗ Failed to load effect {effect_id}: {e}")
+                import traceback
+                traceback.print_exc()
+
+        logging.info(f"=== END EFFECT DISCOVERY ===")
+        logging.info(f"Total effects loaded: {len(self.effects)}")
                 
         # Set initial effect
         if "DEFAULT_EFFECT" in config:
@@ -725,16 +731,29 @@ def cancel_calibration():
 #------------------------------------------------------------calibration
 
 # Main function to run the word clock
+# In run_clock function, add frame counter:
+
 def run_clock():
     last_brightness_update = time.time()
     last_frame_time = time.time()
-    frame_delay = 0.01  # 10ms between frames (100fps max)
+    frame_delay = 0.01
+    frame_count = 0
+    last_log_time = time.time()
     
     try:
         while True:
             current_time = time.time()
             
-            # Update brightness (every few seconds)
+            # Log every 10 seconds
+            if current_time - last_log_time > 10:
+                current_effect_id = word_clock.current_effect_id
+                current_effect = word_clock.effects.get(current_effect_id)
+                effect_name = current_effect.name if current_effect else "None"
+                logging.info(f"RUNNING: effect={current_effect_id} ({effect_name}), frames={frame_count}")
+                last_log_time = current_time
+                frame_count = 0
+            
+            # Update brightness
             if current_time - last_brightness_update >= word_clock.light_interval:
                 word_clock.update_brightness()
                 last_brightness_update = current_time
@@ -742,9 +761,14 @@ def run_clock():
             # Get current effect and draw
             current_effect = word_clock.effects.get(word_clock.current_effect_id)
             if current_effect:
-                current_effect.draw()
+                try:
+                    current_effect.draw()
+                    frame_count += 1
+                except Exception as e:
+                    logging.error(f"Error in effect draw: {e}")
+                    import traceback
+                    traceback.print_exc()
             
-            # Small sleep to prevent CPU overload
             time.sleep(frame_delay)
             
     except KeyboardInterrupt:
