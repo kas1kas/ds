@@ -138,7 +138,19 @@ class WordClock:
                 logging.info(f"Loaded effect: {effect_id}")
             except Exception as e:
                 logging.error(f"Failed to load effect {effect_id}: {e}")
-        
+
+        #extra logging
+        effects_info = discover_effects()
+            logging.info(f"Discovered effects: {list(effects_info.keys())}")
+
+            for effect_id, info in effects_info.items():
+            try:
+                effect_class = info['class']
+                self.effects[effect_id] = effect_class(self)
+                logging.info(f"Loaded effect: {effect_id} - {effect_class.name}")
+            except Exception as e:
+            logging.error(f"Failed to load effect {effect_id}: {e}")
+                
         # Set initial effect
         if "DEFAULT_EFFECT" in config:
             self.current_effect_id = config["DEFAULT_EFFECT"]
@@ -484,6 +496,8 @@ def index():
             'name': getattr(effect, 'name', effect_id.capitalize())
         })
     
+    logging.info(f"Rendering index: language={initial_language}, purist={initial_purist}")  # Debug
+    
     return render_template(
         "index.html",
         initial_color=initial_color,
@@ -535,6 +549,10 @@ def set_color():
 
         word_clock.letter_active_color = (red, green, blue)
         word_clock.dot_active_color = (red, green, blue)
+        
+        # Force immediate redraw if in normal mode
+        if word_clock.current_effect_id == "normal":
+            word_clock.update_clock()
         
         return "Color updated successfully!", 200
     except Exception as e:
