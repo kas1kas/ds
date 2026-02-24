@@ -121,6 +121,18 @@ class WordClock:
           self.columns = 11
           self.rows = 10
 
+        logging.info(f"Woordklok: {self.woordklok}")
+        logging.info(f"version  : {self.version}")
+        logging.info(f"Design   : Woosh") 
+        logging.info(f"Assist   : DS") 
+        logging.info(f"Made by  : GraWoosh Labs") 
+        logging.info(f"Effect   : {self.current_effect_id}") 
+        logging.info(f"Random   : {self.rand_color}") 
+        logging.info(f"Language : {self.language_settings.language}")
+        logging.info(f"Grid     : {self.grid}") 
+        logging.info(f"Lut In   : {self.lut_in}")
+        logging.info(f"Lut Out  : {self.lut_out}")
+        
         # Initialize LED strip
         self.initialize_led()
         self.initialize_lightsensor()
@@ -137,16 +149,16 @@ class WordClock:
         for effect_id, info in effects_info.items():
             try:
                 effect_class = info['class']
-                logging.info(f"Creating effect: {effect_id} with class {effect_class.__name__}")
+                #logging.info(f"Creating effect: {effect_id} with class {effect_class.__name__}")
                 self.effects[effect_id] = effect_class(self)
-                logging.info(f"✓ Successfully loaded effect: {effect_id} - {self.effects[effect_id].name}")
+                #logging.info(f"✓ Successfully loaded effect: {effect_id} - {self.effects[effect_id].name}")
             except Exception as e:
                 logging.error(f"✗ Failed to load effect {effect_id}: {e}")
                 import traceback
                 traceback.print_exc()
 
-        logging.info(f"=== END EFFECT DISCOVERY ===")
-        logging.info(f"Total effects loaded: {len(self.effects)}")
+        #logging.info(f"=== END EFFECT DISCOVERY ===")
+        #logging.info(f"Total effects loaded: {len(self.effects)}")
                 
         # Set initial effect
         if "DEFAULT_EFFECT" in config:
@@ -156,19 +168,7 @@ class WordClock:
         else:
             # Find first available effect
             self.current_effect_id = next(iter(self.effects.keys()), "normal")
-        
-        logging.info(f"Design   : Woosh") 
-        logging.info(f"Made by  : GraWoosh Labs") 
-        logging.info(f"Woordklok: {self.woordklok}")
-        logging.info(f"version  : {self.version}")
-        logging.info(f"Effect   : {self.current_effect_id}") 
-        logging.info(f"Random   : {self.rand_color}") 
-        logging.info(f"Language : {self.language_settings.language}")
-        logging.info(f"Grid     : {self.grid}") 
-        logging.info(f"Lut In   : {self.lut_in}")
-        logging.info(f"Lut Out  : {self.lut_out}")
-        logging.info(f"Loaded   : {len(self.effects)} effects")
-   
+           
     def initialize_led(self):
         try:
             self.strip = PixelStrip(
