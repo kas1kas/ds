@@ -11,20 +11,12 @@ class EffectRandom(BaseEffect):
         self.update_interval = 0.02  # 50fps
     
     def draw(self):
-        """Draw random LEDs with time overlay"""
         current_time = time.time()
         if current_time - self.last_update < self.update_interval:
             return
         
         self.last_update = current_time
         
-        # Draw random LEDs (background)
-        num_leds = random.randint(20, 30)
-        for _ in range(num_leds):
-            x = random.randint(0, self.word_clock.columns - 1)
-            y = random.randint(0, self.word_clock.rows - 1)
-            color = self.word_clock.random_color(self.word_clock.rand_color)
-            self.word_clock.setcolor_x_y(x, y, color)
-        
-        # Draw time on top (clears old words automatically)
+        # Just like the original: set one random LED, then show time
+        self.word_clock.set_random_led(self.word_clock.rand_color)
         self.word_clock.update_clock()
