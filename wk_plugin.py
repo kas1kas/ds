@@ -230,15 +230,21 @@ class WordClock:
         return self.language_settings.update_language(new_language)
 
     def set_effect(self, effect_id):
-        """Switch to a different effect"""
-        if effect_id in self.effects:
-            self.current_effect_id = effect_id
-            # Clear the display when switching
-            self.cls()
-            self.strip.show()
-            logging.info(f"Switched to effect: {effect_id}")
-            return True
-        return False
+    """Switch to a different effect"""
+    if effect_id in self.effects:
+        self.current_effect_id = effect_id
+        # Clear the display when switching
+        self.cls()
+        self.strip.show()
+        
+        # Force an immediate draw of the new effect
+        current_effect = self.effects.get(effect_id)
+        if current_effect:
+            current_effect.draw()
+        
+        logging.info(f"Switched to effect: {effect_id}")
+        return True
+    return False
 
     def set_mode(self, mode):
         """Set the current operation mode"""
