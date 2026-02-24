@@ -1,4 +1,4 @@
-__version__ = "7.03"
+__version__ = "7.43"
 # Woordklok
 # updating to effects plugin version
 # 
@@ -154,7 +154,6 @@ class WordClock:
         self.initialize_led()
         self.initialize_lightsensor()
         
-#        self.current_effect_id = "normal"
         self.effects_info = discover_effects()
         self.effects = {}  # Will store instantiated effects
         self.current_effect = None
@@ -266,13 +265,26 @@ class WordClock:
                 self.current_effect.reset_timing()
                 
     def cls(self):
-        """Clear display with safety check"""
-        if not hasattr(self, 'strip') or not self.strip:
-            logging.warning("Cannot clear - LED strip not initialized")
-            return
+    """Clear display with safety check"""
+    if not hasattr(self, 'strip') or not self.strip:
+        logging.warning("Cannot clear - LED strip not initialized")
+        return
+    try:
         for i in range(self.led_count):
             self.set_led_color(i, self.background_color)
+        self.strip.show()  # Add show() to ensure it's applied
+    except Exception as e:
+        logging.error(f"Failed to clear display: {e}")
 
+    def force_complete_refresh(self):
+    """Completely refresh the display"""
+    self.cls()
+    if self.current_effect:
+        self.current_effect.update()
+    else:
+        self.update_clock()
+    self.strip.show()
+    
     def set_led_color(self, led_index, color):
         try:
             self.strip.setPixelColor(led_index, Color(color[0], color[1], color[2]))
@@ -743,6 +755,7 @@ def run_clock():
         last_minute_check = time.time()
         last_settings_check = word_clock.settings_version
         last_color_version = word_clock.color_version
+        last_force_refresh = time.time()
         
         while True:
             current_time = time.time()
@@ -751,24 +764,30 @@ def run_clock():
             if current_time - last_time >= word_clock.light_interval:
                 word_clock.update_brightness()
                 last_time = current_time
-            # Check if settings changed (language, purist)
+            
+            # Check if settings changed
             if (word_clock.settings_version != last_settings_check or
                 word_clock.color_version != last_color_version):
                 last_settings_check = word_clock.settings_version
                 last_color_version = word_clock.color_version
-      
-                # Clear and show time with new settings
-                word_clock.cls()
-                word_clock.update_clock()
-                # Let effect know it should reset timing
-                if word_clock.current_effect and hasattr(word_clock.current_effect, 'reset_timing'):
-                    word_clock.current_effect.reset_timing()
+                
+                # Force complete refresh
+                word_clock.force_complete_refresh()
+            
+            # Force a complete refresh every minute to prevent accumulation
+            if current_time - last_force_refresh >= 60:  # Every minute
+                word_clock.force_complete_refresh()
+                last_force_refresh = current_time
             
             # Update current effect
             if word_clock.current_effect:
                 word_clock.current_effect.update()
+            else:
+                # Fallback to normal clock update
+                word_clock.cls()
+                word_clock.update_clock()
             
-            time.sleep(0.01)
+            time.sleep(0.01)  # Small sleep to prevent CPU overload
             
     except KeyboardInterrupt:
         logging.info("Exiting...")
