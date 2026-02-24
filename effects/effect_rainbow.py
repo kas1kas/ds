@@ -1,7 +1,7 @@
 import time
 import math
 import random
-from .base_effect import BaseEffect
+from effects.base_effect import BaseEffect  # Absolute import
 
 class EffectRainbow(BaseEffect):
     name = "Rainbow"
