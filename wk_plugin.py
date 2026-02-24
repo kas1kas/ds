@@ -149,7 +149,7 @@ class WordClock:
                 self.effects[effect_id] = effect_class(self)
                 logging.info(f"Loaded effect: {effect_id} - {effect_class.name}")
             except Exception as e:
-            logging.error(f"Failed to load effect {effect_id}: {e}")
+                logging.error(f"Failed to load effect {effect_id}: {e}")
                 
         # Set initial effect
         if "DEFAULT_EFFECT" in config:
