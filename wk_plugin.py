@@ -267,16 +267,16 @@ class WordClock:
                 self.current_effect.reset_timing()
                 
     def cls(self):
-    """Clear display with safety check"""
-    if not hasattr(self, 'strip') or not self.strip:
-        logging.warning("Cannot clear - LED strip not initialized")
-        return
-    try:
-        for i in range(self.led_count):
-            self.set_led_color(i, self.background_color)
-        self.strip.show()  # Add show() to ensure it's applied
-    except Exception as e:
-        logging.error(f"Failed to clear display: {e}")
+        """Clear display with safety check"""
+        if not hasattr(self, 'strip') or not self.strip:
+            logging.warning("Cannot clear - LED strip not initialized")
+            return
+        try:
+            for i in range(self.led_count):
+                self.set_led_color(i, self.background_color)
+            self.strip.show()  # Add show() to ensure it's applied
+        except Exception as e:
+            logging.error(f"Failed to clear display: {e}")
 
     def force_complete_refresh(self):
     """Completely refresh the display"""
