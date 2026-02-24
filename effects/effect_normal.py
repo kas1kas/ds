@@ -1,5 +1,5 @@
 import time
-from .base_effect import BaseEffect
+from effects.base_effect import BaseEffect  # Absolute import
 
 class EffectNormal(BaseEffect):
     name = "Normal Clock"
