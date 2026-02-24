@@ -130,15 +130,6 @@ class WordClock:
         self.current_effect_id = "normal"  # Default
         
         # Discover and create all effects
-        effects_info = discover_effects()
-        for effect_id, info in effects_info.items():
-            try:
-                effect_class = info['class']
-                self.effects[effect_id] = effect_class(self)
-                logging.info(f"Loaded effect: {effect_id}")
-            except Exception as e:
-                logging.error(f"Failed to load effect {effect_id}: {e}")
-
         #extra logging
         effects_info = discover_effects()
         logging.info(f"Discovered effects: {list(effects_info.keys())}")
