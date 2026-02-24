@@ -2,9 +2,9 @@ import random
 import time
 from effects.base_effect import BaseEffect
 
-class EffectMatrix2(BaseEffect):
-    name = "Matrix 2"
-    description = "Green rain with white time display"
+class EffectMatrix(BaseEffect):
+    name = "Matrix"
+    description = "you have to see it to believe it"
     
     def __init__(self, word_clock):
         super().__init__(word_clock)
