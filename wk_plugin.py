@@ -117,6 +117,8 @@ class WordClock:
         self.settings_version = 0
         self.last_settings_version = 0
         self.color_version = 0
+        self.last_force_clear = time.time()
+        self.force_clear_interval = 30  # Force clear every 30 seconds
         
         if self.grid=="16":
           self.led_count = 256
@@ -752,10 +754,10 @@ def set_temporary_brightness():
 def run_clock():
     try:
         last_time = time.time()
-        last_minute_check = time.time()
         last_settings_check = word_clock.settings_version
         last_color_version = word_clock.color_version
-        last_force_refresh = time.time()
+        last_force_clear = time.time()
+        minute_counter = 0
         
         while True:
             current_time = time.time()
@@ -765,27 +767,30 @@ def run_clock():
                 word_clock.update_brightness()
                 last_time = current_time
             
-            # Check if settings changed
+            # Check if settings changed (language, purist)
             if (word_clock.settings_version != last_settings_check or
                 word_clock.color_version != last_color_version):
                 last_settings_check = word_clock.settings_version
                 last_color_version = word_clock.color_version
                 
-                # Force complete refresh
-                word_clock.force_complete_refresh()
+                # Clear and let effect redraw with new settings
+                word_clock.cls()
+                if word_clock.current_effect:
+                    if hasattr(word_clock.current_effect, 'reset_timing'):
+                        word_clock.current_effect.reset_timing()
             
-            # Force a complete refresh every minute to prevent accumulation
-            if current_time - last_force_refresh >= 60:  # Every minute
-                word_clock.force_complete_refresh()
-                last_force_refresh = current_time
+            # FORCE a complete clear every 30 seconds to prevent accumulation
+            if current_time - last_force_clear >= 30:
+                word_clock.cls()
+                last_force_clear = current_time
+                # If we're in normal mode, force a time update
+                if word_clock.current_effect_id == "normal":
+                    if hasattr(word_clock.current_effect, 'reset_timing'):
+                        word_clock.current_effect.reset_timing()
             
             # Update current effect
             if word_clock.current_effect:
                 word_clock.current_effect.update()
-            else:
-                # Fallback to normal clock update
-                word_clock.cls()
-                word_clock.update_clock()
             
             time.sleep(0.01)  # Small sleep to prevent CPU overload
             
@@ -796,7 +801,7 @@ def run_clock():
             word_clock.current_effect.stop()
         word_clock.cls()
         word_clock.strip.show()
-
+        
 if __name__ == "__main__":
     # Start the Flask web server in a separate thread
     from threading import Thread
