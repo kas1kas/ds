@@ -526,7 +526,7 @@ def run_clock():
 if __name__ == "__main__":
     # Start the Flask web server in a separate thread
     from threading import Thread
-    flask_thread = Thread(target=lambda: app.run(host="0.0.0.0", port=80, debug=False, threaded=True))
+    flask_thread = Thread(target=lambda: app.run(host="0.0.0.0", port=80))
     flask_thread.daemon = True
     flask_thread.start()
 
