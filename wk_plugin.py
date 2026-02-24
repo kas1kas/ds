@@ -412,6 +412,7 @@ class WordClock:
             r = random.randint(0, 255)
             g = random.randint(0, 255)
             b = random.randint(0, 255)
+        print(f"[DEBUG] random_color returning ({r},{g},{b})")    
         return (r, g, b) 
       
     def cls(self):
