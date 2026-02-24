@@ -141,9 +141,9 @@ class WordClock:
 
         #extra logging
         effects_info = discover_effects()
-            logging.info(f"Discovered effects: {list(effects_info.keys())}")
+        logging.info(f"Discovered effects: {list(effects_info.keys())}")
 
-            for effect_id, info in effects_info.items():
+        for effect_id, info in effects_info.items():
             try:
                 effect_class = info['class']
                 self.effects[effect_id] = effect_class(self)
