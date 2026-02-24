@@ -1,4 +1,4 @@
-__version__ = "7.12"
+__version__ = "7.13"
 # Woordklok - Simple plugin version
 # 
 import argparse
@@ -787,16 +787,7 @@ def run_clock():
     try:
         while True:
             current_time = time.time()
-            
-            # Log every 10 seconds
-            if current_time - last_log_time > 10:
-                current_effect_id = word_clock.current_effect_id
-                current_effect = word_clock.effects.get(current_effect_id)
-                effect_name = current_effect.name if current_effect else "None"
-                logging.info(f"RUNNING: effect={current_effect_id} ({effect_name}), frames={frame_count}")
-                last_log_time = current_time
-                frame_count = 0
-            
+                       
             # Update brightness
             if current_time - last_brightness_update >= word_clock.light_interval:
                 word_clock.update_brightness()
