@@ -7,19 +7,15 @@ class EffectNormal(BaseEffect):
     def __init__(self, word_clock):
         super().__init__(word_clock)
         self.last_minute = -1
-        self.first_draw = True
-        print("[NORMAL] Initialized")
+        self.first_draw = True  # Simple flag
     
     def draw(self):
-        print(f"[NORMAL] draw() called, first_draw={self.first_draw}")
+        """Clear and show time"""
         current_minute = time.localtime().tm_min
-        print(f"[NORMAL] current_minute={current_minute}, last_minute={self.last_minute}")
         
+        # Draw on first frame OR when minute changes
         if self.first_draw or current_minute != self.last_minute:
-            print(f"[NORMAL] Drawing! first_draw={self.first_draw}")
             self.first_draw = False
             self.last_minute = current_minute
             self.word_clock.cls()
             self.word_clock.update_clock()
-        else:
-            print("[NORMAL] No change, skipping")
