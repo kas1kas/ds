@@ -143,7 +143,7 @@ class WordClock:
         # Discover and create all effects
         #extra logging
         effects_info = discover_effects()
-        logging.info(f"Discovered effects: {list(effects_info.keys())}")
+        #logging.info(f"WK - Discovered effects: {list(effects_info.keys())}")
         
         # In WordClock.__init__, when creating effects:
         effects_info = discover_effects()
@@ -152,7 +152,7 @@ class WordClock:
                 effect_class = info['class']
                 variant_id = info.get('variant_id')  # May be None for single-variant effects
                 self.effects[effect_id] = effect_class(self, variant_id=variant_id)
-                logging.info(f"Loaded effect: {effect_id} - {info['name']}")
+                #logging.info(f"WK - Loaded effect: {effect_id} - {info['name']}")
             except Exception as e:
                 logging.error(f"Failed to load effect {effect_id}: {e}")
 
