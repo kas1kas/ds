@@ -31,7 +31,7 @@ def discover_effects():
                                 'variant_id': variant_id,
                                 'module': module_name
                             }
-                            logger.info(f"Discovered effect: {full_id} - {variant_name}")
+                            #logger.info(f"Discovered effect: {full_id} - {variant_name}")
                         
             except Exception as e:
                 logger.error(f"Failed to load effect module {module_name}: {e}")
