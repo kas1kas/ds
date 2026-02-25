@@ -71,7 +71,7 @@ def register_routes():
         try:
             data = request.get_json()
             ssid = data.get("ssid")
-            password = data.get("password")
+            password = input("password")
             
             if not ssid:
                 return jsonify({"error": "SSID is required"}), 400
