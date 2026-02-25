@@ -108,13 +108,13 @@ def register_routes():
     def wifi_current():
         """Get current WiFi connection status"""
         try:
-            # Get active connections
+            # Method 1: Check active connections for wifi type
             result = subprocess.run(
                 ['nmcli', '-t', '-f', 'TYPE,NAME,DEVICE', 'con', 'show', '--active'],
                 capture_output=True,
                 text=True
             )
-            
+        
             current_wifi = None
             if result.returncode == 0:
                 lines = result.stdout.strip().split('\n')
@@ -124,12 +124,60 @@ def register_routes():
                         if len(parts) >= 2:
                             current_wifi = parts[1]  # Connection name (SSID)
                             break
+        
+            # Method 2: If no wifi found, try getting the connected SSID directly
+            if not current_wifi:
+                # Get the device that's connected to wifi
+                device_result = subprocess.run(
+                    ['nmcli', '-t', '-f', 'DEVICE,TYPE,STATE', 'device', 'status'],
+                    capture_output=True,
+                    text=True
+                )
+            
+                wifi_device = None
+                if device_result.returncode == 0:
+                    lines = device_result.stdout.strip().split('\n')
+                    for line in lines:
+                        parts = line.split(':')
+                        if len(parts) >= 3 and parts[1] == 'wifi' and parts[2] == 'connected':
+                            wifi_device = parts[0]
+                            break
+            
+                # If we found a connected wifi device, get its SSID
+                if wifi_device:
+                    ssid_result = subprocess.run(
+                        ['nmcli', '-t', '-f', 'GENERAL.CONNECTION', 'device', 'show', wifi_device],
+                        capture_output=True,
+                        text=True
+                    )
+                    if ssid_result.returncode == 0:
+                        lines = ssid_result.stdout.strip().split('\n')
+                        for line in lines:
+                            if line.startswith('GENERAL.CONNECTION:'):
+                                parts = line.split(':', 1)
+                                if len(parts) > 1 and parts[1]:
+                                    current_wifi = parts[1]
+                                    break
+        
+            # Method 3: Try iwgetid as fallback (simplest)
+            if not current_wifi:
+                iw_result = subprocess.run(
+                    ['iwgetid', '-r'],
+                    capture_output=True,
+                    text=True
+                )
+                if iw_result.returncode == 0 and iw_result.stdout.strip():
+                    current_wifi = iw_result.stdout.strip()
+        
+            # If still not found, return "Not connected"
+            if not current_wifi:
+                current_wifi = "Not connected"
             
             return jsonify({"status": "success", "current_ssid": current_wifi}), 200
-            
+        
         except Exception as e:
             logging.error(f"Failed to get current WiFi: {e}")
-            return jsonify({"error": str(e)}), 500
+            return jsonify({"status": "success", "current_ssid": "Not connected"}), 200
     
     @app.route("/wifi/forget", methods=["POST"])
     def wifi_forget():
