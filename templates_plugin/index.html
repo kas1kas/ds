@@ -46,6 +46,28 @@
             border-bottom: 1px solid blue;
             justify-content: center;
         }
+        .action-btn {
+            width: 50%;
+            padding: 4px 4px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 0;
+            color: #fff;
+            font-size: 16px; /* ensures text fits */
+        }
+        .btn-green {
+            background-color: #28a745;
+        }
+        .btn-green:hover {
+            background-color: #218838;
+        }
+        .btn-blue {
+            background-color: #007bff;
+        }
+        .btn-blue:hover {
+            background-color: #0056b3;
+        }        
         button {
             padding: 4px 4px;
             background-color: #007bff;
@@ -162,10 +184,10 @@
             
             <div class="line"></div>
             {% if woordklok_calibrate %}
-            <a href="/wifi" style="text-decoration: none;">
-                <button style="background-color: #28a745;">SetWiFi</button>
-            </a>
-            <button id="enterCalibration">Brightness</button>
+                <a href="/wifi" style="text-decoration: none; display: inline-block; width: 100%;">
+                    <button class="action-btn btn-green">SetWiFi</button>
+                </a>
+                <button id="enterCalibration" class="action-btn btn-blue">Brightness</button>
             {% endif %}
         </div>
         <div class="line"></div>
