@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!--version: 7.02 -->
+<!--version: 7.03 -->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -46,6 +46,7 @@
             border-bottom: 1px solid blue;
             justify-content: center;
         }
+        /* Unified button styles */
         .action-btn {
             width: 50%;
             padding: 4px 4px;
@@ -54,7 +55,7 @@
             cursor: pointer;
             margin: 10px 0;
             color: #fff;
-            font-size: 16px; /* ensures text fits */
+            font-size: 16px;
         }
         .btn-green {
             background-color: #28a745;
@@ -66,19 +67,6 @@
             background-color: #007bff;
         }
         .btn-blue:hover {
-            background-color: #0056b3;
-        }        
-        button {
-            padding: 4px 4px;
-            background-color: #007bff;
-            color: #fff;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            margin: 10px 0;
-            width: 50%;
-        }
-        button:hover {
             background-color: #0056b3;
         }
         .settings {
@@ -109,7 +97,7 @@
             font-family: monospace;
             font-weight: bold;
         }
-        /* Modal Styles */
+        /* Modal Styles (if needed) */
         .modal {
             display: none;
             position: fixed;
@@ -138,15 +126,6 @@
         }
         .close:hover {
             color: black;
-        }
-        /* Effect settings container */
-        #effect_settings {
-            margin-top: 10px;
-            padding: 10px;
-            background-color: #f9f9f9;
-            border-radius: 5px;
-            width: 100%;
-            max-width: 300px;
         }
     </style>
 </head>
@@ -184,10 +163,10 @@
             
             <div class="line"></div>
             {% if woordklok_calibrate %}
-                <a href="/wifi" style="text-decoration: none; display: inline-block; width: 100%;">
-                    <button class="action-btn btn-green">SetWiFi</button>
-                </a>
-                <button id="enterCalibration" class="action-btn btn-blue">Brightness</button>
+            <a href="/wifi" style="text-decoration: none; display: inline-block; width: 100%;">
+                <button class="action-btn btn-green">SetWiFi</button>
+            </a>
+            <button id="enterCalibration" class="action-btn btn-blue">Brightness</button>
             {% endif %}
         </div>
         <div class="line"></div>
@@ -197,11 +176,8 @@
         </div>
         <h6>GraWoosh {{woordklok_version}}</h6>
     </div>
-    
-    <!-- Dynamic effect settings container -->
-    <div id="effect_settings">
-        <!-- Settings will be loaded here -->
-    </div>
+
+    <!-- Effect settings container removed -->
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/spectrum/1.8.1/spectrum.min.js"></script>
@@ -229,9 +205,6 @@
                 }
             });
             
-            // Load effect settings on page load
-            loadEffectSettings();
-            
             // Function to update clock type
             window.updateClockType = function() {
                 const select = document.getElementById('clock_type');
@@ -245,20 +218,11 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.status === 'success') {
-                        loadEffectSettings();
+                        console.log('Effect changed to', effectId);
                     }
                 })
                 .catch(error => console.error('Error:', error));
-            }
-
-            function loadEffectSettings() {
-                fetch('/get_effect_settings')
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById('effect_settings').innerHTML = data.settings_html || '';
-                })
-                .catch(error => console.error('Error loading effect settings:', error));
-            }
+            };
 
             // Function to set color via AJAX
             function setColor(color) {
@@ -327,7 +291,6 @@
                })
                .catch(error => console.error('Error:', error));
            }
-
         });
     </script>
 </body>
