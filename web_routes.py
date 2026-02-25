@@ -335,70 +335,94 @@ def register_routes():
             logging.error(f"Failed to fetch brightness: {e}")
             return jsonify({"brightness": "Error reading sensor"}), 200
     
-    # ================== MATRIX EFFECT ROUTES ==================
-    
-    @app.route('/matrix/set_speed', methods=['POST'])
-    def set_matrix_speed():
-            """Set matrix rain speed"""
-            try:
-                data = request.get_json()
-                speed = data.get('speed')
-                
-                current_effect = word_clock.effects.get(word_clock.current_effect_id)
-                if current_effect and hasattr(current_effect, 'set_speed'):
-                    current_effect.set_speed(speed)
-                    logging.info(f"Matrix speed set to {speed}")
-                    return jsonify({"status": "success"}), 200
-                else:
-                    return jsonify({"error": "Not matrix effect"}), 400
-                    
-            except Exception as e:
-                logging.error(f"Failed to set matrix speed: {e}")
-                return jsonify({"error": str(e)}), 500
-
-    @app.route('/matrix/set_trail', methods=['POST'])
-    def set_matrix_trail():
-            """Set matrix trail length"""
-            try:
-                data = request.get_json()
-                length = data.get('length')
-                
-                current_effect = word_clock.effects.get(word_clock.current_effect_id)
-                if current_effect and hasattr(current_effect, 'set_trail'):
-                    current_effect.set_trail(length)
-                    logging.info(f"Matrix trail set to {length}")
-                    return jsonify({"status": "success"}), 200
-                else:
-                    return jsonify({"error": "Not matrix effect"}), 400
-                    
-            except Exception as e:
-                logging.error(f"Failed to set matrix trail: {e}")
-                return jsonify({"error": str(e)}), 500
-
     
     # ================== RAINBOW EFFECT ROUTES ==================
-    
     @app.route('/rainbow/set_effect', methods=['POST'])
     def set_rainbow_sub_effect():
         """Set the rainbow pattern sub-effect"""
+        print(f"[DEBUG] Rainbow route called!")  # Debug print
         try:
             data = request.get_json()
+            print(f"[DEBUG] Received data: {data}")  # Debug print
             sub_effect = data.get('sub_effect')
             
             current_effect = word_clock.effects.get(word_clock.current_effect_id)
+            print(f"[DEBUG] Current effect: {word_clock.current_effect_id}")  # Debug print
+            print(f"[DEBUG] Effect object: {current_effect}")  # Debug print
+            
             if current_effect and hasattr(current_effect, 'set_sub_effect'):
+                print(f"[DEBUG] Has set_sub_effect method")  # Debug print
                 if current_effect.set_sub_effect(sub_effect):
+                    print(f"[DEBUG] Successfully set to {sub_effect}")  # Debug print
                     logging.info(f"Rainbow pattern set to {sub_effect}")
                     return jsonify({"status": "success"}), 200
                 else:
+                    print(f"[DEBUG] Invalid sub-effect")  # Debug print
                     return jsonify({"error": "Invalid sub-effect"}), 400
             else:
+                print(f"[DEBUG] No set_sub_effect method")  # Debug print
                 return jsonify({"error": "Current effect does not support sub-effects"}), 400
                 
         except Exception as e:
+            print(f"[DEBUG] Exception: {e}")  # Debug print
             logging.error(f"Failed to set rainbow sub-effect: {e}")
             return jsonify({"error": str(e)}), 500
-
+    
+    # ================== MATRIX EFFECT ROUTES ==================
+    @app.route('/matrix/set_speed', methods=['POST'])
+    def set_matrix_speed():
+        """Set matrix rain speed"""
+        print(f"[DEBUG] Matrix speed route called!")  # Debug print
+        try:
+            data = request.get_json()
+            print(f"[DEBUG] Received data: {data}")  # Debug print
+            speed = data.get('speed')
+            
+            current_effect = word_clock.effects.get(word_clock.current_effect_id)
+            print(f"[DEBUG] Current effect: {word_clock.current_effect_id}")  # Debug print
+            
+            if current_effect and hasattr(current_effect, 'set_speed'):
+                print(f"[DEBUG] Has set_speed method")  # Debug print
+                current_effect.set_speed(speed)
+                print(f"[DEBUG] Speed set to {speed}")  # Debug print
+                logging.info(f"Matrix speed set to {speed}")
+                return jsonify({"status": "success"}), 200
+            else:
+                print(f"[DEBUG] No set_speed method")  # Debug print
+                return jsonify({"error": "Not matrix effect"}), 400
+                
+        except Exception as e:
+            print(f"[DEBUG] Exception: {e}")  # Debug print
+            logging.error(f"Failed to set matrix speed: {e}")
+            return jsonify({"error": str(e)}), 500
+    
+    @app.route('/matrix/set_trail', methods=['POST'])
+    def set_matrix_trail():
+        """Set matrix trail length"""
+        print(f"[DEBUG] Matrix trail route called!")  # Debug print
+        try:
+            data = request.get_json()
+            print(f"[DEBUG] Received data: {data}")  # Debug print
+            length = data.get('length')
+            
+            current_effect = word_clock.effects.get(word_clock.current_effect_id)
+            print(f"[DEBUG] Current effect: {word_clock.current_effect_id}")  # Debug print
+            
+            if current_effect and hasattr(current_effect, 'set_trail'):
+                print(f"[DEBUG] Has set_trail method")  # Debug print
+                current_effect.set_trail(length)
+                print(f"[DEBUG] Trail set to {length}")  # Debug print
+                logging.info(f"Matrix trail set to {length}")
+                return jsonify({"status": "success"}), 200
+            else:
+                print(f"[DEBUG] No set_trail method")  # Debug print
+                return jsonify({"error": "Not matrix effect"}), 400
+                
+        except Exception as e:
+            print(f"[DEBUG] Exception: {e}")  # Debug print
+            logging.error(f"Failed to set matrix trail: {e}")
+            return jsonify({"error": str(e)}), 500
+    
     
     # ================== MODE ROUTES ==================
     
