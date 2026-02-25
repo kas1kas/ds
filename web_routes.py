@@ -4,7 +4,6 @@ import time
 import os
 import json
 import subprocess
-import re
 from flask import request, jsonify, render_template
 
 # These will be set by init_routes
@@ -36,7 +35,6 @@ def register_routes():
     def wifi_scan():
         """Scan for available WiFi networks"""
         try:
-            # Run nmcli to scan for networks
             result = subprocess.run(
                 ['nmcli', '-t', '-f', 'SSID,SIGNAL,SECURITY', 'dev', 'wifi', 'list'],
                 capture_output=True,
@@ -50,13 +48,12 @@ def register_routes():
                 for line in lines:
                     if line and ':' in line:
                         parts = line.split(':')
-                        if len(parts) >= 3 and parts[0]:  # SSID not empty
+                        if len(parts) >= 3 and parts[0]:
                             networks.append({
                                 'ssid': parts[0],
                                 'signal': parts[1],
                                 'security': parts[2] if parts[2] else 'None'
                             })
-            
             return jsonify({"status": "success", "networks": networks}), 200
             
         except subprocess.TimeoutExpired:
@@ -76,27 +73,17 @@ def register_routes():
             if not ssid:
                 return jsonify({"error": "SSID is required"}), 400
             
-            # Build command based on whether password is provided
+            cmd = ['nmcli', 'dev', 'wifi', 'connect', ssid]
             if password:
-                cmd = ['nmcli', 'dev', 'wifi', 'connect', ssid, 'password', password]
-            else:
-                # Open network - try without password
-                cmd = ['nmcli', 'dev', 'wifi', 'connect', ssid]
+                cmd += ['password', password]
             
-            # Run connection command
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=30
-            )
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
             
             if result.returncode == 0:
                 logging.info(f"Successfully connected to {ssid}")
                 return jsonify({"status": "success", "message": f"Connected to {ssid}"}), 200
             else:
-                error_msg = result.stderr or "Connection failed"
-                return jsonify({"error": error_msg}), 400
+                return jsonify({"error": result.stderr or "Connection failed"}), 400
                 
         except subprocess.TimeoutExpired:
             return jsonify({"error": "Connection timed out"}), 500
@@ -108,73 +95,27 @@ def register_routes():
     def wifi_current():
         """Get current WiFi connection status"""
         try:
-            # Method 1: Check active connections for wifi type
+            # Try nmcli active connections
             result = subprocess.run(
                 ['nmcli', '-t', '-f', 'TYPE,NAME,DEVICE', 'con', 'show', '--active'],
-                capture_output=True,
-                text=True
+                capture_output=True, text=True
             )
-        
             current_wifi = None
             if result.returncode == 0:
-                lines = result.stdout.strip().split('\n')
-                for line in lines:
+                for line in result.stdout.strip().split('\n'):
                     if line.startswith('wifi:'):
                         parts = line.split(':')
                         if len(parts) >= 2:
-                            current_wifi = parts[1]  # Connection name (SSID)
-                            break
-        
-            # Method 2: If no wifi found, try getting the connected SSID directly
-            if not current_wifi:
-                # Get the device that's connected to wifi
-                device_result = subprocess.run(
-                    ['nmcli', '-t', '-f', 'DEVICE,TYPE,STATE', 'device', 'status'],
-                    capture_output=True,
-                    text=True
-                )
-            
-                wifi_device = None
-                if device_result.returncode == 0:
-                    lines = device_result.stdout.strip().split('\n')
-                    for line in lines:
-                        parts = line.split(':')
-                        if len(parts) >= 3 and parts[1] == 'wifi' and parts[2] == 'connected':
-                            wifi_device = parts[0]
+                            current_wifi = parts[1]
                             break
             
-                # If we found a connected wifi device, get its SSID
-                if wifi_device:
-                    ssid_result = subprocess.run(
-                        ['nmcli', '-t', '-f', 'GENERAL.CONNECTION', 'device', 'show', wifi_device],
-                        capture_output=True,
-                        text=True
-                    )
-                    if ssid_result.returncode == 0:
-                        lines = ssid_result.stdout.strip().split('\n')
-                        for line in lines:
-                            if line.startswith('GENERAL.CONNECTION:'):
-                                parts = line.split(':', 1)
-                                if len(parts) > 1 and parts[1]:
-                                    current_wifi = parts[1]
-                                    break
-        
-            # Method 3: Try iwgetid as fallback (simplest)
             if not current_wifi:
-                iw_result = subprocess.run(
-                    ['iwgetid', '-r'],
-                    capture_output=True,
-                    text=True
-                )
-                if iw_result.returncode == 0 and iw_result.stdout.strip():
-                    current_wifi = iw_result.stdout.strip()
-        
-            # If still not found, return "Not connected"
-            if not current_wifi:
-                current_wifi = "Not connected"
+                # Fallback to iwgetid
+                iw = subprocess.run(['iwgetid', '-r'], capture_output=True, text=True)
+                if iw.returncode == 0 and iw.stdout.strip():
+                    current_wifi = iw.stdout.strip()
             
-            return jsonify({"status": "success", "current_ssid": current_wifi}), 200
-        
+            return jsonify({"status": "success", "current_ssid": current_wifi or "Not connected"}), 200
         except Exception as e:
             logging.error(f"Failed to get current WiFi: {e}")
             return jsonify({"status": "success", "current_ssid": "Not connected"}), 200
@@ -185,22 +126,17 @@ def register_routes():
         try:
             data = request.get_json()
             ssid = data.get("ssid")
-            
             if not ssid:
                 return jsonify({"error": "SSID is required"}), 400
             
-            # Try to delete the connection
             del_result = subprocess.run(
                 ['nmcli', 'con', 'delete', ssid],
-                capture_output=True,
-                text=True
+                capture_output=True, text=True
             )
-            
             if del_result.returncode == 0:
                 return jsonify({"status": "success", "message": f"Forgot network {ssid}"}), 200
             else:
                 return jsonify({"error": del_result.stderr}), 400
-                
         except Exception as e:
             logging.error(f"Failed to forget network: {e}")
             return jsonify({"error": str(e)}), 500
@@ -218,7 +154,6 @@ def register_routes():
         woordklok_version = word_clock.version
         woordklok_calibrate = word_clock.calibrate
         
-        # Create list of available effects for dropdown
         available_effects = []
         for effect_id, effect in word_clock.effects.items():
             available_effects.append({
@@ -227,7 +162,6 @@ def register_routes():
             })
         
         logging.info(f"Rendering index: language={initial_language}, purist={initial_purist}")
-        
         return render_template(
             "index.html",
             initial_color=initial_color,
@@ -248,27 +182,12 @@ def register_routes():
         try:
             data = request.get_json()
             effect_id = data.get("effect_id")
-            
             if word_clock.set_effect(effect_id):
                 return jsonify({"status": "success"}), 200
             else:
                 return jsonify({"error": "Effect not found"}), 404
-                
         except Exception as e:
             logging.error(f"Failed to set effect: {e}")
-            return jsonify({"error": str(e)}), 500
-    
-    @app.route("/get_effect_settings", methods=["GET"])
-    def get_effect_settings():
-        """Get HTML for current effect's settings"""
-        try:
-            current_effect = word_clock.effects.get(word_clock.current_effect_id)
-            if current_effect and hasattr(current_effect, 'get_settings_template'):
-                settings_html = current_effect.get_settings_template()
-                return jsonify({"settings_html": settings_html}), 200
-            return jsonify({"settings_html": ""}), 200
-        except Exception as e:
-            logging.error(f"Failed to get effect settings: {e}")
             return jsonify({"error": str(e)}), 500
     
     # ================== COLOR ROUTES ==================
@@ -283,7 +202,6 @@ def register_routes():
     
             word_clock.letter_active_color = (red, green, blue)
             word_clock.dot_active_color = (red, green, blue)
-            
             return "Color updated successfully!", 200
         except Exception as e:
             logging.error(f"Failed to set color: {e}")
@@ -295,14 +213,11 @@ def register_routes():
     def update_settings():
         try:
             data = request.get_json()
-            
             if 'language' in data:
                 word_clock.update_language(data['language'])
-            
             if 'purist' in data:
                 word_clock.purist = data['purist'] == "true"
                 logging.info(f"Purist mode set to: {word_clock.purist}")
-            
             return jsonify({"status": "success"}), 200
         except Exception as e:
             logging.error(f"Failed to update settings: {e}")
@@ -335,95 +250,6 @@ def register_routes():
             logging.error(f"Failed to fetch brightness: {e}")
             return jsonify({"brightness": "Error reading sensor"}), 200
     
-    
-    # ================== RAINBOW EFFECT ROUTES ==================
-    @app.route('/rainbow/set_effect', methods=['POST'])
-    def set_rainbow_sub_effect():
-        """Set the rainbow pattern sub-effect"""
-        print(f"[DEBUG] Rainbow route called!")  # Debug print
-        try:
-            data = request.get_json()
-            print(f"[DEBUG] Received data: {data}")  # Debug print
-            sub_effect = data.get('sub_effect')
-            
-            current_effect = word_clock.effects.get(word_clock.current_effect_id)
-            print(f"[DEBUG] Current effect: {word_clock.current_effect_id}")  # Debug print
-            print(f"[DEBUG] Effect object: {current_effect}")  # Debug print
-            
-            if current_effect and hasattr(current_effect, 'set_sub_effect'):
-                print(f"[DEBUG] Has set_sub_effect method")  # Debug print
-                if current_effect.set_sub_effect(sub_effect):
-                    print(f"[DEBUG] Successfully set to {sub_effect}")  # Debug print
-                    logging.info(f"Rainbow pattern set to {sub_effect}")
-                    return jsonify({"status": "success"}), 200
-                else:
-                    print(f"[DEBUG] Invalid sub-effect")  # Debug print
-                    return jsonify({"error": "Invalid sub-effect"}), 400
-            else:
-                print(f"[DEBUG] No set_sub_effect method")  # Debug print
-                return jsonify({"error": "Current effect does not support sub-effects"}), 400
-                
-        except Exception as e:
-            print(f"[DEBUG] Exception: {e}")  # Debug print
-            logging.error(f"Failed to set rainbow sub-effect: {e}")
-            return jsonify({"error": str(e)}), 500
-    
-    # ================== MATRIX EFFECT ROUTES ==================
-    @app.route('/matrix/set_speed', methods=['POST'])
-    def set_matrix_speed():
-        """Set matrix rain speed"""
-        print(f"[DEBUG] Matrix speed route called!")  # Debug print
-        try:
-            data = request.get_json()
-            print(f"[DEBUG] Received data: {data}")  # Debug print
-            speed = data.get('speed')
-            
-            current_effect = word_clock.effects.get(word_clock.current_effect_id)
-            print(f"[DEBUG] Current effect: {word_clock.current_effect_id}")  # Debug print
-            
-            if current_effect and hasattr(current_effect, 'set_speed'):
-                print(f"[DEBUG] Has set_speed method")  # Debug print
-                current_effect.set_speed(speed)
-                print(f"[DEBUG] Speed set to {speed}")  # Debug print
-                logging.info(f"Matrix speed set to {speed}")
-                return jsonify({"status": "success"}), 200
-            else:
-                print(f"[DEBUG] No set_speed method")  # Debug print
-                return jsonify({"error": "Not matrix effect"}), 400
-                
-        except Exception as e:
-            print(f"[DEBUG] Exception: {e}")  # Debug print
-            logging.error(f"Failed to set matrix speed: {e}")
-            return jsonify({"error": str(e)}), 500
-    
-    @app.route('/matrix/set_trail', methods=['POST'])
-    def set_matrix_trail():
-        """Set matrix trail length"""
-        print(f"[DEBUG] Matrix trail route called!")  # Debug print
-        try:
-            data = request.get_json()
-            print(f"[DEBUG] Received data: {data}")  # Debug print
-            length = data.get('length')
-            
-            current_effect = word_clock.effects.get(word_clock.current_effect_id)
-            print(f"[DEBUG] Current effect: {word_clock.current_effect_id}")  # Debug print
-            
-            if current_effect and hasattr(current_effect, 'set_trail'):
-                print(f"[DEBUG] Has set_trail method")  # Debug print
-                current_effect.set_trail(length)
-                print(f"[DEBUG] Trail set to {length}")  # Debug print
-                logging.info(f"Matrix trail set to {length}")
-                return jsonify({"status": "success"}), 200
-            else:
-                print(f"[DEBUG] No set_trail method")  # Debug print
-                return jsonify({"error": "Not matrix effect"}), 400
-                
-        except Exception as e:
-            print(f"[DEBUG] Exception: {e}")  # Debug print
-            logging.error(f"Failed to set matrix trail: {e}")
-            return jsonify({"error": str(e)}), 500
-    
-    
     # ================== MODE ROUTES ==================
     
     @app.route("/set_mode", methods=["POST"])
@@ -443,36 +269,27 @@ def register_routes():
     
     @app.route("/calibration.html")
     def calibration_page():
-        """Serve the calibration interface"""
         return render_template("calibration.html")
     
     @app.route("/get_calibration_data", methods=["GET"])
     def get_calibration_data():
-        return jsonify({
-            "lut_in": word_clock.lut_in,
-            "lut_out": word_clock.lut_out
-        })
+        return jsonify({"lut_in": word_clock.lut_in, "lut_out": word_clock.lut_out})
     
     @app.route("/calibration/get_current_brightness", methods=["GET"])
     def get_current_brightness():
-        """Get the current brightness value"""
         try:
-            return jsonify({
-                "brightness": word_clock.strip.getBrightness()
-            }), 200
+            return jsonify({"brightness": word_clock.strip.getBrightness()}), 200
         except Exception as e:
             logging.error(f"Failed to get current brightness: {e}")
             return jsonify({"error": str(e)}), 500
     
     @app.route("/calibration/current_light", methods=["GET"])
     def get_current_light():
-        """Get current light level"""
         try:
             if word_clock.light_sensor_type == "BH1750":
                 lux = word_clock.light_sensor.measure_high_res()
             else:
-                light_data = word_clock.light_sensor.get_current()
-                lux = abs(light_data['lux'])
+                lux = abs(word_clock.light_sensor.get_current()['lux'])
             return jsonify({"lux": lux}), 200
         except Exception as e:
             logging.error(f"Failed to read light level: {e}")
@@ -480,14 +297,11 @@ def register_routes():
     
     @app.route("/calibration/set_temporary_brightness", methods=["POST"])
     def set_temporary_brightness():
-        """Set temporary brightness during calibration"""
         try:
             data = request.get_json()
             brightness = int(data.get("brightness"))
-            
             if not 0 <= brightness <= 255:
                 return jsonify({"error": "Brightness must be 0-255"}), 400
-                
             word_clock.strip.setBrightness(brightness)
             word_clock.strip.show()
             return jsonify({"status": "success"}), 200
@@ -497,13 +311,11 @@ def register_routes():
     
     @app.route("/calibration/save", methods=["POST"])
     def save_calibration():
-        """Save calibration to config"""
         try:
             data = request.get_json()
             word_clock.lut_in = data.get("lut_in", [])
             word_clock.lut_out = data.get("lut_out", [])
             
-            # Save to config file
             config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
             with open(config_path, 'r+') as f:
                 config = json.load(f)
@@ -512,7 +324,6 @@ def register_routes():
                 f.seek(0)
                 json.dump(config, f, indent=4)
                 f.truncate()
-            
             return jsonify({"status": "success"}), 200
         except Exception as e:
             logging.error(f"Failed to save calibration: {e}")
@@ -520,7 +331,6 @@ def register_routes():
     
     @app.route("/calibration/cancel", methods=["POST"])
     def cancel_calibration():
-        """Cancel calibration and restore original settings"""
         try:
             if hasattr(word_clock, 'original_brightness'):
                 word_clock.strip.setBrightness(word_clock.original_brightness)
