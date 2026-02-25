@@ -338,32 +338,43 @@ def register_routes():
     # ================== MATRIX EFFECT ROUTES ==================
     
     @app.route('/matrix/set_speed', methods=['POST'])
-    def set_matrix_speed():
-        try:
-            data = request.get_json()
-            speed = data.get('speed')
-            current_effect = word_clock.effects.get(word_clock.current_effect_id)
-            if current_effect and hasattr(current_effect, 'set_speed'):
-                current_effect.set_speed(speed)
-                return jsonify({"status": "success"}), 200
-            return jsonify({"error": "Not matrix effect"}), 400
-        except Exception as e:
-            logging.error(f"Failed to set matrix speed: {e}")
-            return jsonify({"error": str(e)}), 500
-    
+        def set_matrix_speed():
+            """Set matrix rain speed"""
+            try:
+                data = request.get_json()
+                speed = data.get('speed')
+                
+                current_effect = word_clock.effects.get(word_clock.current_effect_id)
+                if current_effect and hasattr(current_effect, 'set_speed'):
+                    current_effect.set_speed(speed)
+                    logging.info(f"Matrix speed set to {speed}")
+                    return jsonify({"status": "success"}), 200
+                else:
+                    return jsonify({"error": "Not matrix effect"}), 400
+                    
+            except Exception as e:
+                logging.error(f"Failed to set matrix speed: {e}")
+                return jsonify({"error": str(e)}), 500
+
     @app.route('/matrix/set_trail', methods=['POST'])
-    def set_matrix_trail():
-        try:
-            data = request.get_json()
-            length = data.get('length')
-            current_effect = word_clock.effects.get(word_clock.current_effect_id)
-            if current_effect and hasattr(current_effect, 'set_trail'):
-                current_effect.set_trail(length)
-                return jsonify({"status": "success"}), 200
-            return jsonify({"error": "Not matrix effect"}), 400
-        except Exception as e:
-            logging.error(f"Failed to set matrix trail: {e}")
-            return jsonify({"error": str(e)}), 500
+        def set_matrix_trail():
+            """Set matrix trail length"""
+            try:
+                data = request.get_json()
+                length = data.get('length')
+                
+                current_effect = word_clock.effects.get(word_clock.current_effect_id)
+                if current_effect and hasattr(current_effect, 'set_trail'):
+                    current_effect.set_trail(length)
+                    logging.info(f"Matrix trail set to {length}")
+                    return jsonify({"status": "success"}), 200
+                else:
+                    return jsonify({"error": "Not matrix effect"}), 400
+                    
+            except Exception as e:
+                logging.error(f"Failed to set matrix trail: {e}")
+                return jsonify({"error": str(e)}), 500
+
     
     # ================== RAINBOW EFFECT ROUTES ==================
     
@@ -377,6 +388,7 @@ def register_routes():
             current_effect = word_clock.effects.get(word_clock.current_effect_id)
             if current_effect and hasattr(current_effect, 'set_sub_effect'):
                 if current_effect.set_sub_effect(sub_effect):
+                    logging.info(f"Rainbow pattern set to {sub_effect}")
                     return jsonify({"status": "success"}), 200
                 else:
                     return jsonify({"error": "Invalid sub-effect"}), 400
@@ -386,6 +398,7 @@ def register_routes():
         except Exception as e:
             logging.error(f"Failed to set rainbow sub-effect: {e}")
             return jsonify({"error": str(e)}), 500
+
     
     # ================== MODE ROUTES ==================
     
