@@ -3,7 +3,149 @@ import bisect
 import time
 import os
 import json
+import subprocess
+import re
 from flask import request, jsonify, render_template
+
+# ================== WIFI MANAGEMENT ROUTES ==================
+
+@app.route("/wifi")
+def wifi_page():
+    """Serve the WiFi management page"""
+    return render_template("wifi.html")
+
+@app.route("/wifi/scan", methods=["GET"])
+def wifi_scan():
+    """Scan for available WiFi networks"""
+    try:
+        # Run nmcli to scan for networks
+        result = subprocess.run(
+            ['nmcli', '-t', '-f', 'SSID,SIGNAL,SECURITY', 'dev', 'wifi', 'list'],
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+        
+        networks = []
+        if result.returncode == 0:
+            lines = result.stdout.strip().split('\n')
+            for line in lines:
+                if line and ':' in line:
+                    parts = line.split(':')
+                    if len(parts) >= 3 and parts[0]:  # SSID not empty
+                        networks.append({
+                            'ssid': parts[0],
+                            'signal': parts[1],
+                            'security': parts[2] if parts[2] else 'None'
+                        })
+        
+        return jsonify({"status": "success", "networks": networks}), 200
+        
+    except subprocess.TimeoutExpired:
+        return jsonify({"error": "Scan timed out"}), 500
+    except Exception as e:
+        logging.error(f"WiFi scan failed: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/wifi/connect", methods=["POST"])
+def wifi_connect():
+    """Connect to a WiFi network"""
+    try:
+        data = request.get_json()
+        ssid = data.get("ssid")
+        password = data.get("password")
+        
+        if not ssid:
+            return jsonify({"error": "SSID is required"}), 400
+        
+        # Build command based on whether password is provided
+        if password:
+            cmd = ['nmcli', 'dev', 'wifi', 'connect', ssid, 'password', password]
+        else:
+            # Open network - try without password
+            cmd = ['nmcli', 'dev', 'wifi', 'connect', ssid]
+        
+        # Run connection command
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        
+        if result.returncode == 0:
+            logging.info(f"Successfully connected to {ssid}")
+            return jsonify({"status": "success", "message": f"Connected to {ssid}"}), 200
+        else:
+            error_msg = result.stderr or "Connection failed"
+            return jsonify({"error": error_msg}), 400
+            
+    except subprocess.TimeoutExpired:
+        return jsonify({"error": "Connection timed out"}), 500
+    except Exception as e:
+        logging.error(f"WiFi connection failed: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/wifi/current", methods=["GET"])
+def wifi_current():
+    """Get current WiFi connection status"""
+    try:
+        # Get active connections
+        result = subprocess.run(
+            ['nmcli', '-t', '-f', 'TYPE,NAME,DEVICE', 'con', 'show', '--active'],
+            capture_output=True,
+            text=True
+        )
+        
+        current_wifi = None
+        if result.returncode == 0:
+            lines = result.stdout.strip().split('\n')
+            for line in lines:
+                if line.startswith('wifi:'):
+                    parts = line.split(':')
+                    if len(parts) >= 2:
+                        current_wifi = parts[1]  # Connection name (SSID)
+                        break
+        
+        return jsonify({"status": "success", "current_ssid": current_wifi}), 200
+        
+    except Exception as e:
+        logging.error(f"Failed to get current WiFi: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/wifi/forget", methods=["POST"])
+def wifi_forget():
+    """Forget a saved WiFi network"""
+    try:
+        data = request.get_json()
+        ssid = data.get("ssid")
+        
+        if not ssid:
+            return jsonify({"error": "SSID is required"}), 400
+        
+        # Find connection by name
+        result = subprocess.run(
+            ['nmcli', 'con', 'show'],
+            capture_output=True,
+            text=True
+        )
+        
+        # Try to delete the connection
+        del_result = subprocess.run(
+            ['nmcli', 'con', 'delete', ssid],
+            capture_output=True,
+            text=True
+        )
+        
+        if del_result.returncode == 0:
+            return jsonify({"status": "success", "message": f"Forgot network {ssid}"}), 200
+        else:
+            return jsonify({"error": del_result.stderr}), 400
+            
+    except Exception as e:
+        logging.error(f"Failed to forget network: {e}")
+        return jsonify({"error": str(e)}), 500
+
 
 # These will be set by init_routes
 word_clock = None
