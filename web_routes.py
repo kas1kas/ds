@@ -338,7 +338,7 @@ def register_routes():
     # ================== MATRIX EFFECT ROUTES ==================
     
     @app.route('/matrix/set_speed', methods=['POST'])
-        def set_matrix_speed():
+    def set_matrix_speed():
             """Set matrix rain speed"""
             try:
                 data = request.get_json()
@@ -357,7 +357,7 @@ def register_routes():
                 return jsonify({"error": str(e)}), 500
 
     @app.route('/matrix/set_trail', methods=['POST'])
-        def set_matrix_trail():
+    def set_matrix_trail():
             """Set matrix trail length"""
             try:
                 data = request.get_json()
