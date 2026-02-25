@@ -195,8 +195,21 @@
             </div>
             <div class="form-group" id="passwordGroup">
                 <label for="password">Password:</label>
-                <input type="password" id="password" placeholder="Enter password">
-            </div>
+                <div style="display: flex; align-items: center;">
+                    <input type="password" id="password" placeholder="Enter password" style="flex-grow: 1;">
+                    <input type="checkbox" id="showPassword" onclick="togglePassword()" style="margin-left: 10px;">
+                    <label for="showPassword" style="margin-left: 2px;">Show</label>
+                </div>
+            </div>            <script>
+            function togglePassword() {
+                const passwordField = document.getElementById('password');
+                if (passwordField.type === 'password') {
+                    passwordField.type = 'text';
+                } else {
+                    passwordField.type = 'password';
+                }
+            }
+            </script>            
             <div class="button-group">
                 <button onclick="connectToNetwork()">Connect</button>
                 <button class="cancel" onclick="cancelConnect()">Cancel</button>
