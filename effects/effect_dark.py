@@ -4,7 +4,7 @@ from effects.base_effect import BaseEffect
 class EffectDark(BaseEffect):
     name = "Dark Mode"
     
-    def __init__(self, word_clock):
+    def __init__(self, word_clock, variant_id=None):
         super().__init__(word_clock)
         self.last_update = 0
         self.update_interval = getattr(word_clock, 'light_interval', 1)
