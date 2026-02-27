@@ -172,7 +172,7 @@ def register_routes():
             woordklok_name=woordklok_name,
             woordklok_version=woordklok_version,
             woordklok_calibrate=woordklok_calibrate,
-            available_effects=available_effects
+            available_effects=available_effects,
             has_light_sensor=has_light_sensor
         )
     
