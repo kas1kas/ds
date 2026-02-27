@@ -260,6 +260,7 @@
            });
 
            // Brightness updates
+            {% if has_light_sensor %}
             function updateBrightness() {
                 $.get("/get_brightness", function(data) {
                     if (data.brightness) {
@@ -271,6 +272,7 @@
             }
             setInterval(updateBrightness, 3000);
             updateBrightness();
+            {% endif %}
 
             // Update settings
             window.updateSettings = function() {
