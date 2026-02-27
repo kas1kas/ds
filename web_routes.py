@@ -153,7 +153,8 @@ def register_routes():
         woordklok_name = word_clock.woordklok
         woordklok_version = word_clock.version
         woordklok_calibrate = word_clock.calibrate
-        
+        has_light_sensor = word_clock.light_sensor_type != "none"
+
         available_effects = []
         for effect_id, effect in word_clock.effects.items():
             available_effects.append({
@@ -172,6 +173,7 @@ def register_routes():
             woordklok_version=woordklok_version,
             woordklok_calibrate=woordklok_calibrate,
             available_effects=available_effects
+            has_light_sensor=has_light_sensor
         )
     
     # ================== EFFECT ROUTES ==================
