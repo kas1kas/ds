@@ -2,10 +2,12 @@
 (with raspberry pi imager)
 - on a **Zero 2 W**: install Debian Bullseye **Rasberry Pi OS (Legacy, Lite 32 (bit)**
 - on a **3B+**: you can also install Debian Bookworm **Rasberry Pi OS Lite 32 (bit)**
-- enable ssh
+- set user pi and yourpassword
 - set hostname
 - set wifi
+- enable ssh
 ## 2 start and configure
+connect monitor, keyboard and mouse or use ssh to connect
 ```
 sudo raspi-config
 ```
@@ -92,6 +94,7 @@ edit the file ~/.wordclock/config_loc.json. Do not add the comments between (). 
     "LUT_OUT": [1, 5, 40, 100, 160]          (translated version for LED brightness)
 }
 ```
+
 
 
 
