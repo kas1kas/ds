@@ -1,27 +1,19 @@
 # Woordklok ds
 ## Workclock software
-Software to light up your matrix wordclock
+Software to drive your matrix wordclock
 
 ## Hardware
 - Raspberry Pi **3B+** or Raspberri Pi **Zero2W**
 - LED string WS281B or WS218B 16x16 LED panel
-- lightsensor: BH1750 or TSL 2591
+- lightsensor: optional but strongly reccomended: BH1750 or TSL 2591
 - wordclock frame
 - wordclock letterplate one per language
 
 ## Software
 - Python3 + html
-- created with assistance of Deepseek
 - Remote control via the integrated webapp.
-- Configuration with a json file for all settings and light sensor calibration.
-
-## Configuration
-edit the config.json file before first use
-- WOORDKLOK              name or number; also used to maintain multiple lookup tables
-- PURIST                 show IT IS or not
-- LANGUAGE               needs matching letterplate
-- GRID                   11: the original (46x46cm); 16 the mini (20x20cm)
-- LETTER_ACTIVE_COLOR    initial color, can be changed via web app
+- Configuration with a json file for persoanl settings and light sensor calibration.
+- See the INSTALL.md for the software install and configuration.
 
 ## Build 
 ### 1 original
