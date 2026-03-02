@@ -310,23 +310,23 @@ class WordClock:
             return led_index
 
     def update_brightness(self):
-    try:
-        lux = self._lux  # instant - just reads cached value
-
-        idx = max(0, min(bisect.bisect_left(self.lut_in, lux) - 1, len(self.lut_in) - 2))
-        x0, x1 = self.lut_in[idx], self.lut_in[idx + 1]
-        y0, y1 = self.lut_out[idx], self.lut_out[idx + 1]
-        brightness = y0 if x1 == x0 else y0 + (y1 - y0) * (lux - x0) / (x1 - x0)
-
-        if self.last_brightness is not None:
-            brightness = (self.smoothing_alpha * self.last_brightness +
-                         (1 - self.smoothing_alpha) * brightness)
-
-        self.last_brightness = brightness
-        self.strip.setBrightness(int(brightness))
-
-    except Exception as e:
-        logging.error(f"Failed to update brightness: {e}")
+        try:
+            lux = self._lux  # instant - just reads cached value
+    
+            idx = max(0, min(bisect.bisect_left(self.lut_in, lux) - 1, len(self.lut_in) - 2))
+            x0, x1 = self.lut_in[idx], self.lut_in[idx + 1]
+            y0, y1 = self.lut_out[idx], self.lut_out[idx + 1]
+            brightness = y0 if x1 == x0 else y0 + (y1 - y0) * (lux - x0) / (x1 - x0)
+    
+            if self.last_brightness is not None:
+                brightness = (self.smoothing_alpha * self.last_brightness +
+                             (1 - self.smoothing_alpha) * brightness)
+    
+            self.last_brightness = brightness
+            self.strip.setBrightness(int(brightness))
+    
+        except Exception as e:
+            logging.error(f"Failed to update brightness: {e}")
 
     def update_brightness_org(self):
         if not self.auto_brightness_enabled or self.light_sensor_type == "none":
