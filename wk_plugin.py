@@ -1,12 +1,13 @@
-__version__ = "7.13"
+__version__ = "7.21"
 # Woordklok - Simple plugin version
-# 
+# sensor as thread
 import argparse
 import json
 import logging
 import time
 import datetime
 import os
+import threading
 import random
 import bisect
 import math
@@ -109,9 +110,13 @@ class WordClock:
         self.lut_in =  config.get("LUT_IN")
         self.lut_out=  config.get("LUT_OUT") 
         self.current_mode = "normal"  # 'normal' or 'calibration'
-        self.auto_brightness_enabled = True
+#        self.auto_brightness_enabled = True
         self.light_sensor_type = "none"                   # default before autodetect
-        
+
+        self._lux = 0.0
+        self._sensor_thread = threading.Thread(target=self._sensor_loop, daemon=True)
+        self._sensor_thread.start()
+
         if self.grid=="16":
           self.led_count = 256
           self.columns = 16
@@ -182,6 +187,15 @@ class WordClock:
             logging.error(f"Failed to initialize LED strip: {e}")
             exit(1)
 
+    def _sensor_loop(self):
+    """Runs in background - updates lux every 200ms"""
+    while True:
+        try:
+            self._lux = self.light_sensor.measure_high_res()
+        except Exception as e:
+            logging.error(f"Sensor read failed: {e}")
+        time.sleep(0.05)
+   
     def initialize_lightsensor(self):        
         BH1750_ADDRESS = 0x23  # Can also be 0x5C for some BH1750 variants
         TSL2591_ADDRESS = 0x29
@@ -246,18 +260,18 @@ class WordClock:
             return True
         return False
 
-    def set_mode(self, mode):
-        """Set the current operation mode"""
-        self.current_mode = mode
-        if mode == "calibration":
-            # Store original brightness when entering calibration
-            self.original_brightness = self.strip.getBrightness()
-            # Disable auto-brightness updates
-            self.auto_brightness_enabled = False
-        else:
-            # Restore auto-brightness in normal mode
-            self.auto_brightness_enabled = True
-            self.update_brightness()
+#    def set_mode(self, mode):
+#        """Set the current operation mode"""
+#        self.current_mode = mode
+#        if mode == "calibration":
+#            # Store original brightness when entering calibration
+#            self.original_brightness = self.strip.getBrightness()
+#            # Disable auto-brightness updates
+#            self.auto_brightness_enabled = False
+#        else:
+#            # Restore auto-brightness in normal mode
+#            self.auto_brightness_enabled = True
+#            self.update_brightness()
         
     def next_minuteled(self):
         # Turn off previous LED
@@ -294,8 +308,27 @@ class WordClock:
             else:                                          # Odd columns: bottom to top
                 led_index = 2 + (col * self.rows) + (self.rows - 1 - row)
             return led_index
-    
+
     def update_brightness(self):
+    try:
+        lux = self._lux  # instant - just reads cached value
+
+        idx = max(0, min(bisect.bisect_left(self.lut_in, lux) - 1, len(self.lut_in) - 2))
+        x0, x1 = self.lut_in[idx], self.lut_in[idx + 1]
+        y0, y1 = self.lut_out[idx], self.lut_out[idx + 1]
+        brightness = y0 if x1 == x0 else y0 + (y1 - y0) * (lux - x0) / (x1 - x0)
+
+        if self.last_brightness is not None:
+            brightness = (self.smoothing_alpha * self.last_brightness +
+                         (1 - self.smoothing_alpha) * brightness)
+
+        self.last_brightness = brightness
+        self.strip.setBrightness(int(brightness))
+
+    except Exception as e:
+        logging.error(f"Failed to update brightness: {e}")
+
+    def update_brightness_org(self):
         if not self.auto_brightness_enabled or self.light_sensor_type == "none":
             return
 
