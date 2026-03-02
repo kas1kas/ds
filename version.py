@@ -89,8 +89,8 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
     
     # Define file paths
-    python_files = ['wk.py'] 
-    html_files = ['templates/index.html', 'templates/calibration.html']
+    python_files = ['wk*.py'] 
+    html_files = ['templates_plugin/index.html', 'templates_plugin/calibration.html', 'templates/index.html', 'templates/calibration.html']
     json_files = ['config_gen.json', 'config_loc.json']
     
     # Check versions
@@ -100,5 +100,6 @@ if __name__ == "__main__":
     for file_path, version in inconsistencies:
         print(f"  {file_path}: {version}")
         
+
 
 
