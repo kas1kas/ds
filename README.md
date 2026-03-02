@@ -40,7 +40,4 @@ Software to drive your matrix wordclock
 - 3D printed light containment grid.
 
 ## Diagrams
-more in /support
-
-
-![image 1](https://github.com/kas1kas/ds/blob/main/support/electrical1.jpg)
+in /support
