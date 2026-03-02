@@ -116,8 +116,6 @@ class WordClock:
 
         self._lux = 0.0
         self.smoothing_alpha = 0.3
-        self._sensor_thread = threading.Thread(target=self._sensor_loop, daemon=True)
-        self._sensor_thread.start()
 
         if self.grid=="16":
           self.led_count = 256
@@ -142,7 +140,10 @@ class WordClock:
         # Initialize LED strip
         self.initialize_led()
         self.initialize_lightsensor()
-        
+ 
+        self._sensor_thread = threading.Thread(target=self._sensor_loop, daemon=True)
+        self._sensor_thread.start()
+       
         # Load effects - simple dictionary of effect instances
         self.effects = {}
         self.current_effect_id = "normal"  # Default
@@ -203,16 +204,15 @@ class WordClock:
         TSL2591_ADDRESS = 0x29
         
         bus = smbus2.SMBus(1)  # 1 indicates /dev/i2c-1
-        
         try:
             try:
                 # BH1750 power on command
                 bus.write_byte(BH1750_ADDRESS, 0x01)
                 time.sleep(0.1)
-                # Try to read (continuous high res mode)
-                bus.write_byte(BH1750_ADDRESS, 0x10)
+                # Try to read (one time high res mode)
+                bus.write_byte(BH1750_ADDRESS, 0x20)
                 time.sleep(0.1)
-                data = bus.read_i2c_block_data(BH1750_ADDRESS, 0x10, 2)
+                data = bus.read_i2c_block_data(BH1750_ADDRESS, 0x20, 2)
                 self.light_sensor = BH1750()
                 self.light_sensor_type = "BH1750"
                 logging.info("BH1750 light sensor detected and initialized.")
