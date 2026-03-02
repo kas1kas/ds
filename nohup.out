@@ -1,0 +1,24 @@
+2026-03-02 17:24:09,091 - INFO - Loaded system config from /home/pi/ds/config_gen.json
+2026-03-02 17:24:09,092 - INFO - Loaded user config from /home/pi/.wordclock/config_loc.json
+2026-03-02 17:24:09,093 - INFO - User settings overriding system defaults for: {'VERSION'}
+2026-03-02 17:24:09,094 - INFO - Woordklok: 6
+2026-03-02 17:24:09,094 - INFO - version  : 7.21
+2026-03-02 17:24:09,094 - INFO - Design   : Woosh
+2026-03-02 17:24:09,095 - INFO - Assist   : DS
+2026-03-02 17:24:09,095 - INFO - Made by  : GraWoosh Labs
+2026-03-02 17:24:09,096 - INFO - Random   : blue
+2026-03-02 17:24:09,096 - INFO - Language : NL
+2026-03-02 17:24:09,096 - INFO - Grid     : 11
+2026-03-02 17:24:09,097 - INFO - Lut In   : [0, 1, 5, 20, 80]
+2026-03-02 17:24:09,097 - INFO - Lut Out  : [1, 5, 40, 100, 160]
+2026-03-02 17:24:09,099 - INFO - LED strip initialized.
+2026-03-02 17:24:09,302 - INFO - BH1750 light sensor detected and initialized.
+2026-03-02 17:24:09,317 - INFO - Effect   : matrix
+2026-03-02 17:24:09,385 - INFO - Web routes initialized
+ * Serving Flask app 'wk_plugin'
+ * Debug mode: off
+2026-03-02 17:24:09,403 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:80
+ * Running on http://192.168.178.91:80
+2026-03-02 17:24:09,403 - INFO - [33mPress CTRL+C to quit[0m

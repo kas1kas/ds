@@ -141,8 +141,10 @@ class WordClock:
         self.initialize_led()
         self.initialize_lightsensor()
  
-        self._sensor_thread = threading.Thread(target=self._sensor_loop, daemon=True)
-        self._sensor_thread.start()
+        if self.light_sensor != "none":
+           self._sensor_thread = threading.Thread(target=self._sensor_loop, daemon=True)
+           self._sensor_thread.start()
+           logging.info(f"Lightsensor background thread started")
        
         # Load effects - simple dictionary of effect instances
         self.effects = {}
@@ -533,19 +535,14 @@ web_routes.init_routes(word_clock, app)
 # In run_clock function, add frame counter:
 
 def run_clock():
-    last_brightness_update = time.time()
-    last_frame_time = time.time()
     frame_delay = 0.01
     
     try:
         while True:
-            current_time = time.time()
-                       
-            # Update brightness
-            if current_time - last_brightness_update >= word_clock.light_interval:
-                word_clock.update_brightness()
-                last_brightness_update = current_time
             
+            # Update brightness
+            word_clock.update_brightness()           
+
             # Get current effect and draw
             current_effect = word_clock.effects.get(word_clock.current_effect_id)
             if current_effect:

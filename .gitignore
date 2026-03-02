@@ -3,3 +3,6 @@
 
 # Ignore all compiled Python files
 *.py[cod]
+
+#ignore more
+nohup.out
