@@ -105,7 +105,7 @@ class WordClock:
         self.dot_order = ["MLT", "MLB", "MRB", "MRT"]     # Fixed cycling order
         self.current_dot_index = 0                        # Initialize cycling position
         self.dot_dark_color = config["DOT_DARK_COLOR"]       
-        self.clock_type = config["CLOCK_TYPE"]            # For backward compatibility
+        self.default_effect = config["DEFAULT_EFFECT"]
         self.rand_color = config["RAND_COLOR"]
         self.lut_in =  config.get("LUT_IN")
         self.lut_out=  config.get("LUT_OUT") 
@@ -146,7 +146,7 @@ class WordClock:
        
         # Load effects - simple dictionary of effect instances
         self.effects = {}
-        self.current_effect_id = "normal"  # Default
+        self.current_effect_id = self.default_effect  # Default
         
         # Discover and create all effects
         #extra logging
