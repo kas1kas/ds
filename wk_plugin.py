@@ -111,6 +111,7 @@ class WordClock:
         self.lut_out=  config.get("LUT_OUT") 
         self.current_mode = "normal"  # 'normal' or 'calibration'
 #        self.auto_brightness_enabled = True
+        self.light_sensor = "none"
         self.light_sensor_type = "none"                   # default before autodetect
 
         self._lux = 0.0
