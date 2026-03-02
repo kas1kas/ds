@@ -1,11 +1,11 @@
 {
-    "VERSION": "6.2",
+    "VERSION": "7.21",
     "PURIST": true,
     "CALIBRATE": false, 
     "WOORDKLOK": "name",
     "LANGUAGE": "NL",
     "GRID" : "11",
-    "CLOCK_TYPE": "regular",
+    "DEFAULT_EFFECT": "matrix",
     "RAND_COLOR": "blue",
     "LIGHT_INTERVAL": 1,
     "DEF_BRIGHTNESS" : 4,
