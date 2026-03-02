@@ -318,7 +318,7 @@ class WordClock:
             y0, y1 = self.lut_out[idx], self.lut_out[idx + 1]
             brightness = y0 if x1 == x0 else y0 + (y1 - y0) * (lux - x0) / (x1 - x0)
     
-            if self.last_brightness is not None:
+            if hasattr(self, 'last_brightness'):
                 brightness = (self.smoothing_alpha * self.last_brightness +
                              (1 - self.smoothing_alpha) * brightness)
     
