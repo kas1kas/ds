@@ -114,6 +114,7 @@ class WordClock:
         self.light_sensor_type = "none"                   # default before autodetect
 
         self._lux = 0.0
+        self.smoothing_alpha = 0.3
         self._sensor_thread = threading.Thread(target=self._sensor_loop, daemon=True)
         self._sensor_thread.start()
 
