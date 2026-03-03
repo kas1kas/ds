@@ -1,6 +1,6 @@
-__version__ = "7.21"
+__version__ = "7.31"
 # Woordklok - Simple plugin version
-# sensor as thread
+# weather as thread
 import argparse
 import json
 import logging
@@ -16,6 +16,7 @@ from python_tsl2591 import tsl2591
 import smbus2
 from smbus2 import SMBus
 from flask import Flask, request, render_template, jsonify, send_file
+from buienradar.buienradar import get_data, parse_data
 
 # Import effect system
 from effects import discover_effects
@@ -146,11 +147,24 @@ class WordClock:
         self.initialize_led()
         self.initialize_lightsensor()
  
+        # Start light sensor thread
         if self.light_sensor != "none":
            self._sensor_thread = threading.Thread(target=self._sensor_loop, daemon=True)
            self._sensor_thread.start()
            logging.info(f"Lightsensor background thread started")
-       
+
+        #Start weather tread
+        self.weather_enabled = config.get("WEATHER_ENABLED", False)
+        if self.weather_enabled:
+            self.weather_lat = config.get("WEATHER_LAT", 51.5078)
+            self.weather_lon = config.get("WEATHER_LON", 5.3978)
+            self.weather_update_interval = config.get("WEATHER_UPDATE_INTERVAL", 900)
+            self._weather_thread = threading.Thread(target=self._weather_loop, daemon=True)
+            self._weather_thread.start()
+            logging.info("Weather background thread started")
+        else:
+            logging.info("Weather updates disabled")
+    
         # Load effects - simple dictionary of effect instances
         self.effects = {}
         self.current_effect_id = self.default_effect  # Default
@@ -197,6 +211,29 @@ class WordClock:
             logging.error(f"Failed to initialize LED strip: {e}")
             exit(1)
 
+    def _weather_loop(self):
+        """Runs in background – fetches weather data every 15 minutes."""
+        while True:
+            try:
+                # Fetch and parse data from Buienradar
+                result = get_data(latitude=self.weather_lat, longitude=self.weather_lon)
+                data = parse_data(result['content'], result['raincontent'], self.weather_lat, self.weather_lon)
+                current = data['data']
+    
+                # Update instance variables (these are read by EffectWeather)
+                self.temperature = current.get('temperature', self.temperature)
+                self.wind_speed = current.get('windspeed', self.wind_speed)
+                self.wind_direction = current.get('windazimuth', self.wind_direction)
+                self.precipitation = current.get('precipitation', self.precipitation)
+    
+                logging.debug(f"Weather updated: T={self.temperature}°C, "
+                              f"wind={self.wind_speed}m/s {self.wind_direction}°")
+            except Exception as e:
+                logging.error(f"Weather update failed: {e}")
+    
+            # Wait for the next update
+            time.sleep(self.weather_update_interval)
+        
     def _sensor_loop(self):
         """Runs in background - updates lux every 200ms"""
         while True:
