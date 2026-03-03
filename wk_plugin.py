@@ -550,15 +550,6 @@ def run_clock():
 
             # Get current effect
             current_effect = word_clock.effects.get(word_clock.current_effect_id)
-
-            # If it's the weather effect, push fresh weather data into it
-            if current_effect and hasattr(current_effect, 'update_weather'):
-                current_effect.update_weather(
-                    word_clock.temperature,
-                    word_clock.precipitation,
-                    word_clock.wind_speed,
-                    word_clock.wind_direction
-                )
                 
             # Draw the effect    
             if current_effect:
