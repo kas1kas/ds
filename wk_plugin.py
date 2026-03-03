@@ -117,6 +117,11 @@ class WordClock:
         self._lux = 0.0
         self.smoothing_alpha = 0.3
 
+        self.temperature = 24
+        self.precipitation = 2
+        self.wind_speed = 5
+        self.wind_direction = 270
+        
         if self.grid=="16":
           self.led_count = 256
           self.columns = 16
