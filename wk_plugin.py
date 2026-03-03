@@ -183,7 +183,15 @@ class WordClock:
             # Find first available effect
             self.current_effect_id = next(iter(self.effects.keys()), "normal")
         logging.info(f"Effect   : {self.current_effect_id}") 
-           
+        
+    if isinstance(self.current_effect, EffectWeather):
+        self.current_effect.update_weather(
+            self.temperature,
+            self.precipitation,
+            self.wind_speed,
+            self.wind_direction
+        )       
+
     def initialize_led(self):
         try:
             self.strip = PixelStrip(
