@@ -542,21 +542,13 @@ web_routes.init_routes(word_clock, app)
 def run_clock():
     frame_delay = 0.01
     
-    if isinstance(self.current_effect, EffectWeather):
-        self.current_effect.update_weather(
-            self.temperature,
-            self.precipitation,
-            self.wind_speed,
-            self.wind_direction
-        )       
-
     try:
         while True:
             
             # Update brightness
             word_clock.update_brightness()           
 
-            # Get current effect and draw
+            # Get current effect
             current_effect = word_clock.effects.get(word_clock.current_effect_id)
 
             # If it's the weather effect, push fresh weather data into it
