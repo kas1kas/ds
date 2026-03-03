@@ -50,8 +50,8 @@ class EffectWeather(BaseEffect):
 
         # Band parameters – adjusted for better visibility
         self.wavelength = 8.0           # larger → fewer bands on screen (now ~1–2)
-        self.amplitude = 0.9            # much darker (up to 10% brightness)
-        self.band_sharpness = 4.0       # exponent >1 makes band narrower
+        self.amplitude = 0.7            # much darker (up to 10% brightness)
+        self.band_sharpness = 3.0       # exponent >1 makes band narrower
         self.speed_scale = 0.5          # maps m/s to offset units per second
 
         # Pre‑compute gamma correction lookup table
