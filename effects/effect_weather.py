@@ -6,7 +6,7 @@ class EffectWeather(BaseEffect):
     """
     Weather effect for word clock.
     Background color based on temperature (windy.com style).
-    Moving dark band based on wind speed and direction.
+    Moving dark band (narrow and pronounced) based on wind speed and direction.
     Time displayed in white on top.
     """
     name = "Weather"
@@ -30,7 +30,7 @@ class EffectWeather(BaseEffect):
 
     # Wind direction to movement vector (dx, dy)
     DIRECTION_VECTORS = {
-        'N':  (0, 1),
+        'N':  (0, 1),    # band moves south
         'NE': (-0.707, 0.707),
         'E':  (-1, 0),
         'SE': (-0.707, -0.707),
@@ -44,14 +44,15 @@ class EffectWeather(BaseEffect):
 
     def __init__(self, word_clock, variant_id=None):
         super().__init__(word_clock, variant_id)
-        # Animation state (no weather storage needed)
+        # Animation state
         self.offset = 0.0
         self.last_time = time.time()
 
-        # Band parameters
-        self.wavelength = 4.0
-        self.amplitude = 0.3
-        self.speed_scale = 0.5
+        # Band parameters – adjusted for better visibility
+        self.wavelength = 8.0           # larger → fewer bands on screen (now ~1–2)
+        self.amplitude = 0.9            # much darker (up to 10% brightness)
+        self.band_sharpness = 4.0       # exponent >1 makes band narrower
+        self.speed_scale = 0.5          # maps m/s to offset units per second
 
         # Pre‑compute gamma correction lookup table
         self.gamma_table = [int(pow(i/255.0, self.GAMMA) * 255 + 0.5) for i in range(256)]
@@ -120,9 +121,15 @@ class EffectWeather(BaseEffect):
         # Compute darkness for each cell and set color
         for x in range(self.word_clock.columns):
             for y in range(self.word_clock.rows):
+                # Project cell onto movement direction
                 proj = x * dx + y * dy
+                # Phase of the wave at this cell
                 phase = (proj - self.offset) / self.wavelength
-                darkness = self.amplitude * (0.5 + 0.5 * math.sin(2 * math.pi * phase))
+                # Sine wave value in [-1, 1]
+                sin_val = math.sin(2 * math.pi * phase)
+                # Convert to [0,1] and apply sharpening (higher exponent = narrower band)
+                darkness_factor = (0.5 + 0.5 * sin_val) ** self.band_sharpness
+                darkness = self.amplitude * darkness_factor
                 factor = 1.0 - darkness
 
                 r = int(base_color[0] * factor)
