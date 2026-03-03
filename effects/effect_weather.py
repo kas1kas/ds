@@ -50,11 +50,11 @@ class EffectWeather(BaseEffect):
 
     def __init__(self, word_clock, variant_id=None):
         super().__init__(word_clock, variant_id)
-        # Weather parameters (can be updated from main program)
-        #self.temperature = 24.0
-        #self.precipitation = 0.0
-        #self.wind_speed = 5.0
-        #self.wind_direction = 270.0
+        # Define local Weather parameters (must be updated by main program)
+        self.temperature = 0.0
+        self.precipitation = 0.0
+        self.wind_speed = 0.0
+        self.wind_direction = 0.0
 
         # Animation state
         self.offset = 0.0          # moving phase for wind band
