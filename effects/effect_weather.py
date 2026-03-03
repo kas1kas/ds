@@ -61,8 +61,8 @@ class EffectWeather(BaseEffect):
         self.last_time = time.time()
 
         # Band parameters
-        self.wavelength = 4.0       # distance between band peaks (in grid cells)
-        self.amplitude = 0.3        # max darkness (0-1), so brightness factor 0.7-1.0
+        self.wavelength = 7.0       # 3   distance between band peaks (in grid cells) 
+        self.amplitude = 0.5        # 0.3 max darkness (0-1), so brightness factor 0.7-1.0
         self.speed_scale = 0.5      # maps m/s to offset units per second
 
         # Pre‑compute gamma correction lookup table for speed
