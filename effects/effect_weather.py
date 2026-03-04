@@ -30,16 +30,15 @@ class EffectWeather(BaseEffect):
 
     # Wind direction to movement vector (dx, dy)
     DIRECTION_VECTORS = {
-        'N':  (0, 1),    # band moves south
-        'NE': (-0.707, 0.707),
-        'E':  (-1, 0),
-        'SE': (-0.707, -0.707),
-        'S':  (0, -1),
-        'SW': (0.707, -0.707),
-        'W':  (1, 0),
-        'NW': (0.707, 0.707)
+        'N':  (0, 1),                 # north wind → blows south (down) → (0, 1)
+        'NE': (0.707, 0.707),         # northeast wind → blows southwest (left+down) → (+x, +y)
+        'E':  (1, 0),                 # east wind → blows west (left) → (+x, 0)
+        'SE': (0.707, -0.707),        # southeast wind → blows northwest (left+up) → (+x, -y)
+        'S':  (0, -1),                # south wind → blows north (up) → (0, -y)
+        'SW': (-0.707, -0.707),       # southwest wind → blows northeast (right+up) → (-x, -y)
+        'W':  (-1, 0),                # west wind → blows east (right) → (-x, 0)
+        'NW': (-0.707, 0.707)         # northwest wind → blows southeast (right+down) → (-x, +y)
     }
-
     GAMMA = 2.2
 
     def __init__(self, word_clock, variant_id=None):
