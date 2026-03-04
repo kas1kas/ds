@@ -242,8 +242,9 @@ class WordClock:
         self.wind_direction = current.get('windazimuth', self.wind_direction)
         self.precipitation = current.get('precipitation', self.precipitation)
     
-        logging.debug(f"Weather updated: T={self.temperature}°C, "
-                      f"wind={self.wind_speed}m/s {self.wind_direction}°")
+        logging.info(f"Weather updated: T={self.temperature}°C, "
+                      f"wind={self.wind_speed}m/s {self.wind_direction}°"
+                      f"precipitation={self.precipitation}mm")
         
     def _sensor_loop(self):
         """Runs in background - updates lux every 200ms"""
