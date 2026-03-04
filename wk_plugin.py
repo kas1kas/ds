@@ -212,27 +212,38 @@ class WordClock:
             exit(1)
 
     def _weather_loop(self):
-        """Runs in background – fetches weather data every 15 minutes."""
+        """Background thread: fetch weather immediately, then every interval."""
+        # First fetch right away
+        try:
+            self._fetch_weather()
+            logging.info("Initial weather data fetched")
+        except Exception as e:
+            logging.error(f"Initial weather fetch failed: {e}")
+    
+        # Then loop forever, sleeping between updates
         while True:
+            time.sleep(self.weather_update_interval)
             try:
-                # Fetch and parse data from Buienradar
-                result = get_data(latitude=self.weather_lat, longitude=self.weather_lon)
-                data = parse_data(result['content'], result['raincontent'], self.weather_lat, self.weather_lon)
-                current = data['data']
-    
-                # Update instance variables (these are read by EffectWeather)
-                self.temperature = current.get('temperature', self.temperature)
-                self.wind_speed = current.get('windspeed', self.wind_speed)
-                self.wind_direction = current.get('windazimuth', self.wind_direction)
-                self.precipitation = current.get('precipitation', self.precipitation)
-    
-                logging.debug(f"Weather updated: T={self.temperature}°C, "
-                              f"wind={self.wind_speed}m/s {self.wind_direction}°")
+                self._fetch_weather()
             except Exception as e:
                 logging.error(f"Weather update failed: {e}")
     
-            # Wait for the next update
-            time.sleep(self.weather_update_interval)
+    def _fetch_weather(self):
+        """Helper to actually retrieve and store weather data."""
+    
+        result = get_data(latitude=self.weather_lat, longitude=self.weather_lon)
+        data = parse_data(result['content'], result['raincontent'],
+                          self.weather_lat, self.weather_lon)
+        current = data['data']
+    
+        # Update the instance variables (keep old values as fallback)
+        self.temperature = current.get('temperature', self.temperature)
+        self.wind_speed = current.get('windspeed', self.wind_speed)
+        self.wind_direction = current.get('windazimuth', self.wind_direction)
+        self.precipitation = current.get('precipitation', self.precipitation)
+    
+        logging.debug(f"Weather updated: T={self.temperature}°C, "
+                      f"wind={self.wind_speed}m/s {self.wind_direction}°")
         
     def _sensor_loop(self):
         """Runs in background - updates lux every 200ms"""
