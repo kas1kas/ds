@@ -1,13 +1,15 @@
 import time
 import math
+import random
 from effects.base_effect import BaseEffect
 
 class EffectWeather(BaseEffect):
     """
     Weather effect for word clock.
-    Background color based on temperature (windy.com style).
-    Moving dark band (narrow and pronounced) based on wind speed and direction.
-    Time displayed in white on top.
+    - Background color based on temperature (windy.com style).
+    - Moving dark band (narrow and pronounced) based on wind speed/direction.
+    - Grey raindrops falling, density controlled by precipitation.
+    - Time displayed in white on top.
     """
     name = "Weather"
 
@@ -29,31 +31,41 @@ class EffectWeather(BaseEffect):
     ]
 
     # Wind direction to movement vector (dx, dy)
+    # Adjusted for x increasing right-to-left (your display)
     DIRECTION_VECTORS = {
-        'N':  (0, 1),                 # north wind → blows south (down) → (0, 1)
-        'NE': (0.707, 0.707),         # northeast wind → blows southwest (left+down) → (+x, +y)
-        'E':  (1, 0),                 # east wind → blows west (left) → (+x, 0)
-        'SE': (0.707, -0.707),        # southeast wind → blows northwest (left+up) → (+x, -y)
-        'S':  (0, -1),                # south wind → blows north (up) → (0, -y)
-        'SW': (-0.707, -0.707),       # southwest wind → blows northeast (right+up) → (-x, -y)
-        'W':  (-1, 0),                # west wind → blows east (right) → (-x, 0)
-        'NW': (-0.707, 0.707)         # northwest wind → blows southeast (right+down) → (-x, +y)
+        'N':  (0, 1),                # north wind → blows south (down)
+        'NE': (0.707, 0.707),        # northeast → blows southwest (left+down)
+        'E':  (1, 0),                # east wind → blows west (left)
+        'SE': (0.707, -0.707),       # southeast → blows northwest (left+up)
+        'S':  (0, -1),               # south wind → blows north (up)
+        'SW': (-0.707, -0.707),      # southwest → blows northeast (right+up)
+        'W':  (-1, 0),               # west wind → blows east (right)
+        'NW': (-0.707, 0.707)        # northwest → blows southeast (right+down)
     }
+
     GAMMA = 2.2
 
     def __init__(self, word_clock, variant_id=None):
         super().__init__(word_clock, variant_id)
-        # Animation state
+
+        # Wind animation state
         self.offset = 0.0
         self.last_time = time.time()
 
-        # Band parameters – adjusted for better visibility
-        self.wavelength = 8.0           # larger → fewer bands on screen (now ~1–2)
-        self.amplitude = 0.7            # much darker (up to 10% brightness)
-        self.band_sharpness = 3.0       # exponent >1 makes band narrower
+        # Wind band parameters – adjusted for visibility
+        self.wavelength = 8.0           # larger → fewer bands on screen
+        self.amplitude = 0.7            # darkness factor (0.7 = 30% brightness min)
+        self.band_sharpness = 3.0       # lower = smoother, wider band
         self.speed_scale = 0.5          # maps m/s to offset units per second
 
-        # Pre‑compute gamma correction lookup table
+        # Precipitation parameters
+        self.precip_scale = 0.15        # spawn probability per column per second per mm/h
+        self.drop_speed_range = (1.5, 3.5)  # rows per second
+        self.drop_color = (120, 120, 120)   # grey
+        self.max_drops = 200             # prevent overflow
+        self.drops = []                  # list of active drops: {'col': c, 'row': r, 'speed': s}
+
+        # Gamma correction lookup table
         self.gamma_table = [int(pow(i/255.0, self.GAMMA) * 255 + 0.5) for i in range(256)]
 
     def _gamma_correct(self, r, g, b):
@@ -100,33 +112,30 @@ class EffectWeather(BaseEffect):
 
     def draw(self):
         now = time.time()
-        dt = now - self.last_time
+        dt = min(now - self.last_time, 0.1)  # cap large gaps
         self.last_time = now
 
-        # Read live weather data directly from word_clock
+        # Read live weather data from word_clock
         temp = self.word_clock.temperature
         speed = self.word_clock.wind_speed
         direction = self.word_clock.wind_direction
+        precip = self.word_clock.precipitation
 
-        # Base background color from temperature
+        # 1. Background color from temperature
         base_color = self._temperature_to_rgb(temp)
 
-        # Wind movement update
+        # 2. Wind movement update
         self.offset += speed * self.speed_scale * dt
 
-        # Get movement vector from wind direction
+        # 3. Get movement vector from wind direction
         dx, dy = self._wind_direction_to_vector(direction)
 
-        # Compute darkness for each cell and set color
+        # 4. Set all pixels to temperature + wind band
         for x in range(self.word_clock.columns):
             for y in range(self.word_clock.rows):
-                # Project cell onto movement direction
                 proj = x * dx + y * dy
-                # Phase of the wave at this cell
                 phase = (proj - self.offset) / self.wavelength
-                # Sine wave value in [-1, 1]
                 sin_val = math.sin(2 * math.pi * phase)
-                # Convert to [0,1] and apply sharpening (higher exponent = narrower band)
                 darkness_factor = (0.5 + 0.5 * sin_val) ** self.band_sharpness
                 darkness = self.amplitude * darkness_factor
                 factor = 1.0 - darkness
@@ -138,12 +147,44 @@ class EffectWeather(BaseEffect):
                 g = max(0, min(255, g))
                 b = max(0, min(255, b))
 
-                # Apply gamma correction for WS2812B
+                # Gamma correction
                 r, g, b = self._gamma_correct(r, g, b)
-
                 self.word_clock.setcolor_x_y(x, y, (r, g, b))
 
-        # Draw time in white on top
+        # 5. Precipitation: spawn and draw grey drops
+        if precip > 0:
+            # Spawn new drops (probability per column per second)
+            spawn_prob = precip * self.precip_scale * dt
+            # Clamp to avoid huge bursts
+            if spawn_prob > 0.5:
+                spawn_prob = 0.5
+
+            for col in range(self.word_clock.columns):
+                if random.random() < spawn_prob:
+                    self.drops.append({
+                        'col': col,
+                        'row': 0.0,
+                        'speed': random.uniform(*self.drop_speed_range)
+                    })
+
+            # Update and draw existing drops
+            new_drops = []
+            for drop in self.drops:
+                drop['row'] += drop['speed'] * dt
+                if drop['row'] < self.word_clock.rows:
+                    new_drops.append(drop)
+                    row_int = int(drop['row'])
+                    # Draw drop (grey)
+                    self.word_clock.setcolor_x_y(drop['col'], row_int, self.drop_color)
+                # else drop falls off screen → not kept
+
+            self.drops = new_drops
+
+            # Limit total drops to avoid memory issues
+            if len(self.drops) > self.max_drops:
+                self.drops = self.drops[-self.max_drops:]
+
+        # 6. Draw time in white on top (this also calls strip.show())
         original_color = self.word_clock.letter_active_color
         original_dot = self.word_clock.dot_active_color
         self.word_clock.letter_active_color = (255, 255, 255)
