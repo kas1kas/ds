@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<!--version: 7.13 -->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WiFi Settings - Woordklok</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+        }
+        h2 {
+            margin-top: 0;
+            color: #333;
+            text-align: center;
+        }
+        .current-wifi {
+            background-color: #e8f5e8;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border-left: 4px solid #4CAF50;
+        }
+        .scan-btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+        .scan-btn:hover {
+            background-color: #0056b3;
+        }
+        .scan-btn:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .network-list {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+        .network-item {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .network-item:hover {
+            background-color: #f5f5f5;
+        }
+        .network-item.selected {
+            background-color: #e3f2fd;
+        }
+        .network-info {
+            flex-grow: 1;
+        }
+        .network-name {
+            font-weight: bold;
+        }
+        .network-security {
+            font-size: 12px;
+            color: #666;
+        }
+        .signal-strength {
+            width: 50px;
+            text-align: right;
+            color: #666;
+        }
+        .signal-bars {
+            color: #4CAF50;
+            font-size: 18px;
+        }
+        .connect-form {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 48%;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button.cancel {
+            background-color: #f44336;
+            float: right;
+        }
+        button.cancel:hover {
+            background-color: #da190b;
+        }
+        .button-group {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+        }
+        .status-message {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            display: none;
+        }
+        .status-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .back-link {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+            color: #007bff;
+            text-decoration: none;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>WiFi Settings</h2>
+        
+        <div class="current-wifi" id="currentWifi">
+            <strong>Current:</strong> <span id="currentSsid">Loading...</span>
+        </div>
+        
+        <button class="scan-btn" id="scanBtn" onclick="scanNetworks()">Scan for Networks</button>
+        
+        <div id="statusMessage" class="status-message"></div>
+        
+        <div class="network-list" id="networkList">
+            <div class="loading">Click Scan to see available networks</div>
+        </div>
+        
+        <div class="connect-form" id="connectForm" style="display: none;">
+            <h3>Connect to Network</h3>
+            <div class="form-group">
+                <label for="ssid">Network Name (SSID):</label>
+                <input type="text" id="ssid" readonly>
+            </div>
+            <div class="form-group" id="passwordGroup">
+                <label for="password">Password:</label>
+                <div style="display: flex; align-items: center;">
+                    <input type="password" id="password" placeholder="Enter password" style="flex-grow: 1;">
+                    <input type="checkbox" id="showPassword" onclick="togglePassword()" style="margin-left: 10px;">
+                    <label for="showPassword" style="margin-left: 2px;">Show</label>
+                </div>
+            </div>            <script>
+            function togglePassword() {
+                const passwordField = document.getElementById('password');
+                if (passwordField.type === 'password') {
+                    passwordField.type = 'text';
+                } else {
+                    passwordField.type = 'password';
+                }
+            }
+            </script>            
+            <div class="button-group">
+                <button onclick="connectToNetwork()">Connect</button>
+                <button class="cancel" onclick="cancelConnect()">Cancel</button>
+            </div>
+        </div>
+        
+        <a href="/" class="back-link">← Back to Control Panel</a>
+    </div>
+    
+    <script>
+        // Load current connection on page load
+        window.onload = function() {
+            getCurrentWifi();
+        };
+        
+        function showStatus(message, isError = false) {
+            const statusDiv = document.getElementById('statusMessage');
+            statusDiv.textContent = message;
+            statusDiv.className = 'status-message ' + (isError ? 'status-error' : 'status-success');
+            statusDiv.style.display = 'block';
+            
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 5000);
+        }
+        
+        function getCurrentWifi() {
+            fetch('/wifi/current')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        const ssid = data.current_ssid || 'Not connected';
+                        document.getElementById('currentSsid').textContent = ssid;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error getting current WiFi:', error);
+                    document.getElementById('currentSsid').textContent = 'Error loading';
+                });
+        }
+        
+        function scanNetworks() {
+            const scanBtn = document.getElementById('scanBtn');
+            const networkList = document.getElementById('networkList');
+            
+            scanBtn.disabled = true;
+            scanBtn.textContent = 'Scanning...';
+            networkList.innerHTML = '<div class="loading">Scanning for networks...</div>';
+            
+            fetch('/wifi/scan')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        displayNetworks(data.networks);
+                    } else {
+                        networkList.innerHTML = `<div class="loading">Error: ${data.error}</div>`;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error scanning networks:', error);
+                    networkList.innerHTML = '<div class="loading">Error scanning networks</div>';
+                })
+                .finally(() => {
+                    scanBtn.disabled = false;
+                    scanBtn.textContent = 'Scan for Networks';
+                });
+        }
+        
+        function displayNetworks(networks) {
+            const networkList = document.getElementById('networkList');
+            
+            if (networks.length === 0) {
+                networkList.innerHTML = '<div class="loading">No networks found</div>';
+                return;
+            }
+            
+            // Sort by signal strength (highest first)
+            networks.sort((a, b) => parseInt(b.signal) - parseInt(a.signal));
+            
+            let html = '';
+            networks.forEach(network => {
+                const signalBars = getSignalBars(parseInt(network.signal));
+                const security = network.security === 'None' ? 'Open' : network.security;
+                
+                html += `
+                    <div class="network-item" onclick="selectNetwork('${network.ssid.replace(/'/g, "\\'")}', '${network.security === 'None'}')">
+                        <div class="network-info">
+                            <div class="network-name">${network.ssid}</div>
+                            <div class="network-security">${security}</div>
+                        </div>
+                        <div class="signal-strength">
+                            <span class="signal-bars">${signalBars}</span>
+                            ${network.signal}%
+                        </div>
+                    </div>
+                `;
+            });
+            
+            networkList.innerHTML = html;
+        }
+        
+        function getSignalBars(signal) {
+            if (signal >= 80) return '▂▄▆█';
+            if (signal >= 60) return '▂▄▆';
+            if (signal >= 40) return '▂▄';
+            if (signal >= 20) return '▂';
+            return '▁';
+        }
+        
+        function selectNetwork(ssid, isOpen) {
+            document.getElementById('ssid').value = ssid;
+            
+            // Show/hide password field based on security
+            const passwordGroup = document.getElementById('passwordGroup');
+            if (isOpen === 'true') {
+                passwordGroup.style.display = 'none';
+            } else {
+                passwordGroup.style.display = 'block';
+            }
+            
+            document.getElementById('connectForm').style.display = 'block';
+            document.getElementById('password').value = '';
+            
+            // Scroll to form
+            document.getElementById('connectForm').scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        function connectToNetwork() {
+            const ssid = document.getElementById('ssid').value;
+            const password = document.getElementById('password').value;
+            const isPasswordVisible = document.getElementById('passwordGroup').style.display !== 'none';
+            
+            if (!ssid) return;
+            
+            const connectBtn = document.querySelector('#connectForm button');
+            connectBtn.disabled = true;
+            connectBtn.textContent = 'Connecting...';
+            
+            const data = { ssid: ssid };
+            if (isPasswordVisible && password) {
+                data.password = password;
+            }
+            
+            fetch('/wifi/connect', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    showStatus(data.message, false);
+                    cancelConnect();
+                    getCurrentWifi();
+                } else {
+                    showStatus('Error: ' + data.error, true);
+                }
+            })
+            .catch(error => {
+                console.error('Error connecting:', error);
+                showStatus('Connection failed', true);
+            })
+            .finally(() => {
+                connectBtn.disabled = false;
+                connectBtn.textContent = 'Connect';
+            });
+        }
+        
+        function cancelConnect() {
+            document.getElementById('connectForm').style.display = 'none';
+            document.getElementById('ssid').value = '';
+            document.getElementById('password').value = '';
+        }
+    </script>
+</body>
+</html>
