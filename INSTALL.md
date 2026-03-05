@@ -21,11 +21,11 @@ sudo apt install git python3-pip
 ```
 - with bullseye, debian 11:
 ```
-sudo pip3 install flask-restx rpi-ws281x python-tsl2591
+sudo pip3 install flask-restx rpi-ws281x python-tsl2591 buienradar
 ```
 - with bookworm, debian 12
 ```
-sudo pip3 install flask-restx rpi-ws281x python-tsl2591 --break-system-packages
+sudo pip3 install flask-restx rpi-ws281x python-tsl2591 buienradar --break-system-packages
 ```
 ## 4 install wordclock software
 ```
@@ -94,6 +94,7 @@ edit the file ~/.wordclock/config_loc.json. Do not add the comments between (). 
     "LUT_OUT": [1, 5, 40, 100, 160]          (translated version for LED brightness)
 }
 ```
+
 
 
 
