@@ -229,10 +229,10 @@ rm -rf "$BACKUP_DIR"
 # Step 11: Set up crontab and aliases
 
 log "Setting up new crontab"
-echo "@reboot sudo python3 /home/pi/ds/wk.py" | crontab -
+echo "@reboot sudo /home/pi/wk_env/bin/python /home/pi/ds/wk.py > /home/pi/ds/cron_log.txt 2>&1" | crontab -
 
 # Verify crontab was set up
-#if crontab -l | grep -q "@reboot sudo python3 /home/pi/ds/wk.py"; then
+#if crontab -l | grep -q "@reboot sudo /home/pi/wk_env/bin/python /home/pi/ds/wk.py > /home/pi/ds/cron_log.txt 2>&1"; then
 #    log "✅ Crontab entry successfully installed."
 #else
 #    log "❌ Failed to install crontab entry."
