@@ -31,11 +31,9 @@ sudo pip3 install flask-restx rpi-ws281x python-tsl2591 buienradar --break-syste
 ```
 curl -L https://raw.githubusercontent.com/kas1kas/ds/main/install.sh | bash
 ```
-## 5 install WiFi-connect
+## 5 install Comitup
 ```
-git clone https://github.com/kas1kas/wifi-connect.git
-cd wifi-connect/scripts
-sudo ./rpi_headless_wifi_install.sh
+https://github.com/davesteele/comitup
 ```
 ## 6 config and test
 - See chapter below: **personalisation**
@@ -98,6 +96,7 @@ edit the file ~/.wordclock/config_loc.json. Do not add the comments between (). 
     "LUT_OUT": [1, 5, 40, 100, 160]
 }
 ```
+
 
 
 
