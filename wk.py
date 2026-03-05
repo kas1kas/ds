@@ -1,5 +1,5 @@
 __version__ = "7.31"
-# Woordklok - Simple plugin version
+# Woordklok - Plugin version
 # weather as thread
 import argparse
 import json
