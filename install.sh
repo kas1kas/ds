@@ -128,6 +128,8 @@ WordClock User Configuration
 ============================
 
 This directory contains your PERSONAL WordClock configuration.
+The clock might not start when you do not correctly configure.
+Check ~/ds/INSTALL.md
 
 FILES:
 ------
@@ -138,15 +140,10 @@ IMPORTANT:
 ----------
 - System settings (config_gen.json) are in: /home/pi/ds/config_gen.json
 - That file updates automatically when you run 'git pull'
-- Your personal settings here will be preserved.
 
 TO EDIT YOUR SETTINGS:
 ---------------------
 nano ~/.wordclock/config_loc.json
-
-TO COMPARE WITH LATEST TEMPLATE:
-------------------------------
-diff ~/.wordclock/config_loc.json ~/ds/config_loc.json
 
 EOF
     log "  ✅ Created README in user config directory" "$GREEN"
