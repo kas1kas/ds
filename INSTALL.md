@@ -53,21 +53,21 @@ When moving the wordclock to another location, you can connect to the new wifi n
 
 ## 1 Set IP address on new network
 
-- make sure your phone is connected to your local WiFi network
+- use your phone to set the Wifi on the wordclock:
 - click/select Wi-Fi (icon) on your phone
-- look for the wordclock wifi: **RPI-woordklok**
-- select it (ignore messages about Internet may not be available)
+- look for the wordclock wifi: **comitup-xxx**
 - connect
-- your phone is now connected to the WiFi of the wordclock
-- start a web browser on your phone (chrome, edge, ...)
-- type **192.168.42.1:8080**
-### a page opens and shows your WiFi network
-if not, click on the down arrow and your network
-- type your password
-- click connect
+- Select Sign in to comitup-xxx
+- Choose WiFi Connection
+- enter your password
+- click on the CONNECT button
 - the wordklock clock is now connected to your WiFi
-- you phone also re-connects to your WiFi
+- you phone automatically re-connects to your WiFi
 - the correct time will appear on the wordclock after a while
+- in case the above does not show the WiFi configurator:
+- start a web browser on your phone (chrome, edge, ...)
+- type **10.41.0.1**
+- proceed as mentioned above
 
 ## Personalisation
 edit the file ~/.wordclock/config_loc.json. Do not add the comments between (). These are only here to explain.
@@ -96,6 +96,7 @@ edit the file ~/.wordclock/config_loc.json. Do not add the comments between (). 
     "LUT_OUT": [1, 5, 40, 100, 160]
 }
 ```
+
 
 
 
