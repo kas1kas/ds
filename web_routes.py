@@ -19,7 +19,6 @@ def init_routes(clock, flask_app):
     
     # Register all routes
     register_routes()
-    
     logging.info("Web routes initialized")
 
 def register_routes():
@@ -55,7 +54,6 @@ def register_routes():
             initial_purist=initial_purist,
             woordklok_name=woordklok_name,
             woordklok_version=woordklok_version,
-            woordklok_calibrate=woordklok_calibrate,
             available_effects=available_effects,
             has_light_sensor=has_light_sensor
         )
@@ -138,90 +136,6 @@ def register_routes():
     
     # ================== MODE ROUTES ==================
     
-    @app.route("/set_mode", methods=["POST"])
-    def set_mode():
-        try:
-            data = request.get_json()
-            mode = data.get("mode")
-            if mode in ["normal", "calibration"]:
-                word_clock.set_mode(mode)
-                return jsonify({"status": "success"}), 200
-            return jsonify({"error": "Invalid mode"}), 400
-        except Exception as e:
-            logging.error(f"Mode switch failed: {e}")
-            return jsonify({"error": str(e)}), 500
     
     # ================== CALIBRATION ROUTES ==================
     
-    @app.route("/calibration.html")
-    def calibration_page():
-        return render_template("calibration.html")
-    
-    @app.route("/get_calibration_data", methods=["GET"])
-    def get_calibration_data():
-        return jsonify({"lut_in": word_clock.lut_in, "lut_out": word_clock.lut_out})
-    
-    @app.route("/calibration/get_current_brightness", methods=["GET"])
-    def get_current_brightness():
-        try:
-            return jsonify({"brightness": word_clock.strip.getBrightness()}), 200
-        except Exception as e:
-            logging.error(f"Failed to get current brightness: {e}")
-            return jsonify({"error": str(e)}), 500
-    
-    @app.route("/calibration/current_light", methods=["GET"])
-    def get_current_light():
-        try:
-            if word_clock.light_sensor_type == "BH1750":
-                lux = word_clock.light_sensor.measure_high_res()
-            else:
-                lux = abs(word_clock.light_sensor.get_current()['lux'])
-            return jsonify({"lux": lux}), 200
-        except Exception as e:
-            logging.error(f"Failed to read light level: {e}")
-            return jsonify({"error": str(e)}), 500
-    
-    @app.route("/calibration/set_temporary_brightness", methods=["POST"])
-    def set_temporary_brightness():
-        try:
-            data = request.get_json()
-            brightness = int(data.get("brightness"))
-            if not 0 <= brightness <= 255:
-                return jsonify({"error": "Brightness must be 0-255"}), 400
-            word_clock.strip.setBrightness(brightness)
-            word_clock.strip.show()
-            return jsonify({"status": "success"}), 200
-        except Exception as e:
-            logging.error(f"Failed to set temporary brightness: {e}")
-            return jsonify({"error": str(e)}), 500
-    
-    @app.route("/calibration/save", methods=["POST"])
-    def save_calibration():
-        try:
-            data = request.get_json()
-            word_clock.lut_in = data.get("lut_in", [])
-            word_clock.lut_out = data.get("lut_out", [])
-            
-            config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
-            with open(config_path, 'r+') as f:
-                config = json.load(f)
-                config['LUT_IN'] = word_clock.lut_in
-                config['LUT_OUT'] = word_clock.lut_out
-                f.seek(0)
-                json.dump(config, f, indent=4)
-                f.truncate()
-            return jsonify({"status": "success"}), 200
-        except Exception as e:
-            logging.error(f"Failed to save calibration: {e}")
-            return jsonify({"error": str(e)}), 500
-    
-    @app.route("/calibration/cancel", methods=["POST"])
-    def cancel_calibration():
-        try:
-            if hasattr(word_clock, 'original_brightness'):
-                word_clock.strip.setBrightness(word_clock.original_brightness)
-                word_clock.strip.show()
-            return jsonify({"status": "success"}), 200
-        except Exception as e:
-            logging.error(f"Failed to cancel calibration: {e}")
-            return jsonify({"error": str(e)}), 500
