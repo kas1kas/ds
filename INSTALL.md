@@ -28,7 +28,7 @@ swk
 ## 5 install Comitup
 ```
 https://github.com/davesteele/comitup
-
+```
 ## 6 Web interface
 - connect via phone or computer with your web browser
 - use the local IP-address (check your router) or use hostname (see step 1)
@@ -84,6 +84,7 @@ edit the file ~/.wordclock/config_loc.json. Do not add the comments between (). 
     "LUT_OUT": [1, 5, 40, 100, 160]
 }
 ```
+
 
 
 
