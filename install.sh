@@ -39,12 +39,11 @@ fi
 touch "$LOG_FILE"
 log "=== WordClock Installation/Update Started ===" "$GREEN"
 
-# Step 1: Check for git
-log "Checking for git..."
-if ! command -v git &> /dev/null; then
-    log "Git not found. Installing git..." "$YELLOW"
-    sudo apt-get update && sudo apt-get install -y git || error_exit "Failed to install git"
-fi
+# Step 1: Install git and  python3-dev
+log "Installing git..." "$YELLOW"
+sudo apt update && sudo apt-get install -y git || error_exit "Failed to install git"
+log "Installing Pyton3-dev..." "$YELLOW"
+sudo apt install -y pyton3-dev || error_exit "Failed to install git"
 
 # Step 2: Clone or update repository
 if [ -d "$INSTALL_DIR/.git" ]; then
@@ -149,18 +148,6 @@ EOF
     log "  ✅ Created README in user config directory" "$GREEN"
 fi
 
-# Step 6: Check for Python dependencies
-log "Checking Python dependencies..."
-if command -v pip3 &> /dev/null; then
-    if [ -f "$INSTALL_DIR/requirements.txt" ]; then
-        log "Installing Python packages from requirements.txt..." "$YELLOW"
-        pip3 install --user -r "$INSTALL_DIR/requirements.txt" || log "⚠️  Warning: Some packages may not have installed" "$YELLOW"
-    fi
-else
-    log "pip3 not found. Installing python3-pip..." "$YELLOW"
-    sudo apt-get install -y python3-pip || log "⚠️  Warning: Could not install pip3" "$YELLOW"
-fi
-
 # Step 7: Set up proper permissions
 log "Setting file permissions..."
 chmod +x "$INSTALL_DIR/wk.py" 2>/dev/null || log "⚠️  wk.py not found" "$YELLOW"
@@ -174,53 +161,13 @@ log "Recording installation version..."
     echo "GIT_BRANCH=$(cd $INSTALL_DIR && git rev-parse --abbrev-ref HEAD)"
 } > "$INSTALL_DIR/.version"
 
-# Step 9: Test configuration
-log "Testing configuration..."
-if [ -f "$INSTALL_DIR/wk.py" ]; then
-    log "Running config test..." "$YELLOW"
-    cd "$INSTALL_DIR"
-    python3 -c "
-import json
-import os
-import sys
-
-try:
-    # Load system config from repository (this updates with git)
-    system_config_path = '$INSTALL_DIR/config_gen.json'
-    if not os.path.exists(system_config_path):
-        print(f'❌ System config not found: {system_config_path}')
-        sys.exit(1)
-    
-    with open(system_config_path) as f:
-        system_config = json.load(f)
-    print('✅ System config loaded from repository')
-    
-    # Load user config from hidden folder (preserved)
-    user_config_path = '$USER_CONFIG_DIR/config_loc.json'
-    if os.path.exists(user_config_path):
-        with open(user_config_path) as f:
-            user_config = json.load(f)
-        print('✅ User config loaded from ~/.wordclock/')
-    else:
-        user_config = {}
-        print('⚠️  No user config found - using defaults only')
-    
-    # Test merge
-    merged = {**system_config, **user_config}
-    
-    if 'VERSION' in merged:
-        print(f'✅ Configuration valid (version: {merged[\"VERSION\"]})')
-    else:
-        print('⚠️  Warning: VERSION key not found in config')
-        
-except json.JSONDecodeError as e:
-    print(f'❌ Invalid JSON: {e}')
-    sys.exit(1)
-except Exception as e:
-    print(f'❌ Config error: {e}')
-    sys.exit(1)
-" 2>&1 | tee -a "$LOG_FILE"
-fi
+# Step 9: Create virtual environment for workdclock Python
+log "Creating wk_env..."
+log "Installing python3-pip..." "$YELLOW"
+python3 -m venv wk_env
+source wk_env/bin/activate
+pip install flask-restx rpi-ws281x python-tsl2591 buienradar --index-url https://pypi.org/simple/
+deactivate
 
 # Step 10: Cleanup old backups
 log "Cleaning up old backups..."
