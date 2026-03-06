@@ -261,14 +261,14 @@ class WordClock:
             logging.error(f"Weather update failed: {e}")
             # Keep previous values – no changes
         
-        def _sensor_loop(self):
-            """Runs in background - updates lux every 200ms"""
-            while True:
-                try:
-                    self._lux = self.light_sensor.measure_high_res()
-                except Exception as e:
-                    logging.error(f"Sensor read failed: {e}")
-                time.sleep(0.05)
+    def _sensor_loop(self):
+        """Runs in background - updates lux every 200ms"""
+        while True:
+            try:
+                self._lux = self.light_sensor.measure_high_res()
+            except Exception as e:
+                logging.error(f"Sensor read failed: {e}")
+            time.sleep(0.05)
    
     def initialize_lightsensor(self):        
         BH1750_ADDRESS = 0x23  # Can also be 0x5C for some BH1750 variants
