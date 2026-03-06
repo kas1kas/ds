@@ -15,23 +15,23 @@ sudo raspi-config
 ## 3 install packages
 ```
 cd ~
-sudo apt update
+sudo apt update -y
 sudo apt install git python3-dev -y
-```
-- with debian 12 bookworm or debian 13 trixie
-```
-python3 -m venv wk_env
-source wk_env/bin/activate
-pip install flask-restx rpi-ws281x python-tsl2591 buienradar --index-url https://pypi.org/simple/
 ```
 ## 4 install wordclock software
 ```
 cd ~
-git clone "https://raw.githubusercontent.com/kas1kas/ds/main"
+git clone "https://github.com/kas1kas/ds/"
 mkdir -p /home/pi/.wordclock
 chmod 755 /home/pi/.wordclock
 cp /home/pi/ds/config_loc.json /home/pi/.wordclock/config_loc.json
 cp /home/pi/ds/alias.txt ~/.bash_aliases && source ~/.bash_aliases
+```
+## 5 install python v_env for wordclock
+```
+python3 -m venv wk_env
+source wk_env/bin/activate
+pip install flask-restx rpi-ws281x python-tsl2591 buienradar --index-url https://pypi.org/simple/
 ```
 ## 6 config
 - See chapter below: **personalisation**
