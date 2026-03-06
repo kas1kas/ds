@@ -26,6 +26,8 @@ mkdir -p /home/pi/.wordclock
 chmod 755 /home/pi/.wordclock
 cp /home/pi/ds/config_loc.json /home/pi/.wordclock/config_loc.json
 cp /home/pi/ds/alias.txt ~/.bash_aliases && source ~/.bash_aliases
+log "Setting up new crontab"
+echo "@reboot sudo /home/pi/wk_env/bin/python /home/pi/ds/wk.py > /home/pi/cron_log.txt 2>&1" | crontab -
 ```
 ## 5 install python v_env for wordclock
 ```
