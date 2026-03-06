@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!--version: 7.14 -->
+<!--version: 7.31 -->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -162,10 +162,6 @@
             </select>
             
             <div class="line"></div>
-            <!-- Brightness button – only if a light sensor is present -->
-            {% if has_light_sensor %}
-            <button id="enterCalibration" class="action-btn btn-blue">Brightness</button>
-            {% endif %}           
         </div>
         <div class="line"></div>
         <div class="brightness-display">
@@ -241,21 +237,6 @@
                     }
                 });
             }
-
-            $("#enterCalibration").click(function() {
-               $.ajax({
-                   url: "/set_mode",
-                   type: "POST",
-                   contentType: "application/json",
-                   data: JSON.stringify({ mode: "calibration" }),
-                   success: function() {
-                       window.location.href = "/calibration.html";
-                   },
-                   error: function(xhr) {
-                       alert("Error entering calibration mode: " + xhr.responseText);
-                   }
-               });
-           });
 
            // Brightness updates
             {% if has_light_sensor %}
