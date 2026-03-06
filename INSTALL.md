@@ -1,50 +1,39 @@
 ## 1 install Raspberry Pi OS
 (with raspberry pi imager)
 - on a **Zero 2 W**: install Debian Bullseye **Rasberry Pi OS (Legacy, Lite 32 (bit)**
-- on a **3B+**: you can also install Debian Bookworm **Rasberry Pi OS Lite 32 (bit)**
+- on a **3B+**: install Debian Trixie **Rasberry Pi OS Lite 32 (bit)**
 - set user pi and yourpassword
 - set hostname
 - set wifi
 - enable ssh
 ## 2 start and configure
-connect monitor, keyboard and mouse or use ssh to connect
+use ssh to connect
 ```
 sudo raspi-config
 ```
 - interface options - enable I2C
+- change default hostname
 - reboot
-## 3 install packages
+## 3 install software
 ```
 cd ~
-sudo apt update
-sudo apt install git python3-dev -y
+curl -L https://raw.githubusercontent.com/kas1kas/ds/main/install_wk.sh | bash
 ```
-- with debian 12 bookworm or debian 13 trixie
-```
-python3 -m venv wk_env
-source wk_env/bin/activate
-pip install flask-restx rpi-ws281x python-tsl2591 buienradar --index-url https://pypi.org/simple/
-```
-## 4 install wordclock software
-```
-cd ~
-curl -L https://raw.githubusercontent.com/kas1kas/ds/main/install.sh | bash
-```
-## 5 install Comitup
-```
-https://github.com/davesteele/comitup
-```
-## 6 config and test
+## 4 config and test
 - See chapter below: **personalisation**
 ```
 nano ~/.wordclock/config_loc.json
 swk
 ```
-## 7 Web interface
+## 5 install Comitup
+```
+https://github.com/davesteele/comitup
+
+## 6 Web interface
 - connect via phone or computer with your web browser
 - use the local IP-address (check your router) or use hostname (see step 1)
 - try various options in the UI
-## 8 reboot
+## 7 Automatic start at reboot
 The clock should start automatically within a minute
 
 ## Moving the Wordclock
@@ -95,6 +84,7 @@ edit the file ~/.wordclock/config_loc.json. Do not add the comments between (). 
     "LUT_OUT": [1, 5, 40, 100, 160]
 }
 ```
+
 
 
 
