@@ -104,14 +104,25 @@ else
 fi
 
 log "Setting up crontab..."
+CRONTAB_INSTALLED=false
 if [ -f "$PROJECT/crontab.txt" ]; then
-    crontab "$PROJECT/crontab.txt"
-    check "Failed to install crontab from $PROJECT/crontab.txt"
-    log "Crontab installed from $PROJECT/crontab.txt"
-else
-    log_error "crontab.txt not found in $PROJECT — installing fallback crontab entry"
+    # Strip Windows line endings just in case
+    sed -i 's/\r//' "$PROJECT/crontab.txt"
+    if crontab "$PROJECT/crontab.txt" >> "$LOGFILE" 2>&1; then
+        log "Crontab installed from $PROJECT/crontab.txt"
+        CRONTAB_INSTALLED=true
+    else
+        log_error "Failed to install crontab from $PROJECT/crontab.txt — trying fallback"
+    fi
+fi
+if [ "$CRONTAB_INSTALLED" = false ]; then
+    log "Installing fallback crontab entry..."
     echo "@reboot sudo $VENV/bin/python $PROJECT/wk.py > /home/pi/cron_log.txt 2>&1" | crontab -
-    check "Failed to install fallback crontab"
+    if [ $? -eq 0 ]; then
+        log "Fallback crontab installed successfully."
+    else
+        log_error "Failed to install fallback crontab — please set it up manually."
+    fi
 fi
 
 log "STEP 2 complete."
