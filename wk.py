@@ -88,7 +88,6 @@ class WordClock:
     def __init__(self, config):
         self.version = __version__
         self.purist = config["PURIST"]
-        self.calibrate = config["CALIBRATE"]
         self.woordklok = config["WOORDKLOK"]
         self.grid = config["GRID"]
         self.light_interval = config["LIGHT_INTERVAL"]
@@ -110,8 +109,6 @@ class WordClock:
         self.rand_color = config["RAND_COLOR"]
         self.lut_in =  config.get("LUT_IN")
         self.lut_out=  config.get("LUT_OUT") 
-        self.current_mode = "normal"  # 'normal' or 'calibration'
-#        self.auto_brightness_enabled = True
         self.light_sensor = "none"
         self.light_sensor_type = "none"                   # default before autodetect
 
@@ -305,7 +302,6 @@ class WordClock:
             
             self.light_sensor = "none"
             self.light_sensor_type = "none"
-            self.calibrate = False
             logging.warning("No light sensor detected")
             logging.info(f"Default brightness: {self.def_brightness}")
             return "No light sensor detected"
@@ -332,19 +328,6 @@ class WordClock:
             logging.info(f"Switched to effect: {effect_id}")
             return True
         return False
-
-#    def set_mode(self, mode):
-#        """Set the current operation mode"""
-#        self.current_mode = mode
-#        if mode == "calibration":
-#            # Store original brightness when entering calibration
-#            self.original_brightness = self.strip.getBrightness()
-#            # Disable auto-brightness updates
-#            self.auto_brightness_enabled = False
-#        else:
-#            # Restore auto-brightness in normal mode
-#            self.auto_brightness_enabled = True
-#            self.update_brightness()
         
     def next_minuteled(self):
         # Turn off previous LED
@@ -402,7 +385,7 @@ class WordClock:
             logging.error(f"Failed to update brightness: {e}")
 
     def update_brightness_org(self):
-        if not self.auto_brightness_enabled or self.light_sensor_type == "none":
+        if self.light_sensor_type == "none":
             return
 
         try:
