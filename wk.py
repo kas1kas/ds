@@ -212,48 +212,63 @@ class WordClock:
             exit(1)
 
     def _weather_loop(self):
-        """Background thread: fetch weather immediately, then every interval."""
-        # First fetch right away
-        try:
-            self._fetch_weather()
-            logging.info("Initial weather data fetched")
-        except Exception as e:
-            logging.error(f"Initial weather fetch failed: {e}")
-    
-        # Then loop forever, sleeping between updates
-        while True:
-            time.sleep(self.weather_update_interval)
+        """Background thread: fetch immediately with retries, then every interval."""
+        # Try initial fetch up to 3 times with short pauses
+        for attempt in range(3):
             try:
                 self._fetch_weather()
+                logging.info("Initial weather data fetched")
+                break
             except Exception as e:
-                logging.error(f"Weather update failed: {e}")
+                logging.warning(f"Initial weather fetch attempt {attempt+1} failed: {e}")
+                time.sleep(5)  # wait 5 seconds before retry
+        else:
+            logging.error("All initial weather fetch attempts failed – will retry later")
+    
+        # Now loop forever with the normal interval
+        while True:
+            time.sleep(self.weather_update_interval)
+            self._fetch_weather()
     
     def _fetch_weather(self):
-        """Helper to actually retrieve and store weather data."""
+        """Retrieve weather data and update instance variables.
+           Gracefully handles failures – keeps previous values on error."""
+        try:
+            from buienradar.buienradar import get_data, parse_data
     
-        result = get_data(latitude=self.weather_lat, longitude=self.weather_lon)
-        data = parse_data(result['content'], result['raincontent'],
-                          self.weather_lat, self.weather_lon)
-        current = data['data']
+            result = get_data(latitude=self.weather_lat, longitude=self.weather_lon)
+            if result is None or 'content' not in result:
+                logging.warning("Weather fetch returned no data")
+                return
     
-        # Update the instance variables (keep old values as fallback)
-        self.temperature = current.get('temperature', self.temperature)
-        self.wind_speed = current.get('windspeed', self.wind_speed)
-        self.wind_direction = current.get('windazimuth', self.wind_direction)
-        self.precipitation = current.get('precipitation', self.precipitation)
+            data = parse_data(result['content'], result.get('raincontent'),
+                              self.weather_lat, self.weather_lon)
+            if data is None or 'data' not in data:
+                logging.warning("Weather parse returned no data")
+                return
     
-        logging.info(f"Weather updated: T={self.temperature}°C, "
-                      f"wind={self.wind_speed}m/s {self.wind_direction}°"
-                      f"precipitation={self.precipitation}mm")
+            current = data['data']
+    
+            # Update values, falling back to existing ones if a key is missing
+            self.temperature = current.get('temperature', self.temperature)
+            self.wind_speed = current.get('windspeed', self.wind_speed)
+            self.wind_direction = current.get('windazimuth', self.wind_direction)
+            self.precipitation = current.get('precipitation', self.precipitation)
+    
+            logging.debug(f"Weather updated: T={self.temperature}°C, "
+                          f"wind={self.wind_speed}m/s {self.wind_direction}°")
+        except Exception as e:
+            logging.error(f"Weather update failed: {e}")
+            # Keep previous values – no changes
         
-    def _sensor_loop(self):
-        """Runs in background - updates lux every 200ms"""
-        while True:
-            try:
-                self._lux = self.light_sensor.measure_high_res()
-            except Exception as e:
-                logging.error(f"Sensor read failed: {e}")
-            time.sleep(0.05)
+        def _sensor_loop(self):
+            """Runs in background - updates lux every 200ms"""
+            while True:
+                try:
+                    self._lux = self.light_sensor.measure_high_res()
+                except Exception as e:
+                    logging.error(f"Sensor read failed: {e}")
+                time.sleep(0.05)
    
     def initialize_lightsensor(self):        
         BH1750_ADDRESS = 0x23  # Can also be 0x5C for some BH1750 variants
