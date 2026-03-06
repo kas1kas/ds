@@ -1,7 +1,6 @@
 {
     "VERSION": "7.31",
     "PURIST": true,
-    "CALIBRATE": false, 
     "WOORDKLOK": "name",
     "LANGUAGE": "NL",
     "GRID" : "11",
@@ -12,12 +11,12 @@
     "WEATHER_LON": 5.3978,
     "WEATHER_UPDATE_INTERVAL": 300,
     "LIGHT_INTERVAL": 1,
-    "DEF_BRIGHTNESS" : 4,
+    "DEF_BRIGHTNESS" : 10,
     "BACKGROUND_COLOR": [0, 0, 0],
     "LETTER_ACTIVE_COLOR": [255, 255, 255],
     "DOT_ACTIVE_COLOR": [255, 255, 255],
     "DOT_INACTIVE_COLOR": [0,0,0],
     "DOT_DARK_COLOR": [100,0,0],
-    "LUT_IN":  [0, 1,  5,  20,  80],
-    "LUT_OUT": [1, 5, 40, 100, 160]
+    "LUT_IN":  [0, 1,  5,  20,  80, 100],
+    "LUT_OUT": [   1,  5,  40, 100, 160]
 }
