@@ -83,9 +83,12 @@ check "Failed to create $CONFIG_DIR"
 chmod 755 "$CONFIG_DIR"
 
 log "Copying config file..."
-if [ -f "$PROJECT/config_loc.json" ]; then
+if [ -f "$CONFIG_DIR/config_loc.json" ]; then
+    log "Config file already exists at $CONFIG_DIR/config_loc.json — skipping copy to preserve your settings."
+elif [ -f "$PROJECT/config_loc.json" ]; then
     cp "$PROJECT/config_loc.json" "$CONFIG_DIR/config_loc.json"
     check "Failed to copy config_loc.json"
+    log "Config file copied."
 else
     log_error "config_loc.json not found in $PROJECT — skipping copy"
 fi
