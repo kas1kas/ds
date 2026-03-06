@@ -7,12 +7,12 @@ Software to drive your matrix wordclock
 - LED string WS281B or WS218B 16x16 LED panel
 - lightsensor: optional but strongly reccomended: BH1750 or TSL 2591
 - wordclock frame
-- wordclock letterplate one per language
+- wordclock letterplates, one per language
 
 ## Software
 - Python3 + html
 - Remote control via the integrated webapp.
-- Configuration with a json file for persoanl settings and light sensor calibration.
+- Configuration file for personal settings, theme, weather, location and light sensor calibration.
 - See the INSTALL.md for the software install and configuration.
 
 ## Build 
