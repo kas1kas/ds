@@ -262,7 +262,7 @@ class WordClock:
     def _sensor_loop(self):
         while True:
             try:
-                if self.sensor_type == "TSL2591":
+                if self.light_sensor_type == "TSL2591":
                     full, ir = self.light_sensor.get_full_luminosity()
                     self._lux = self.light_sensor.calculate_lux(full, ir)
                 else:  # BH1750
