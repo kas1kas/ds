@@ -53,8 +53,8 @@ log "Running apt update..."
 sudo apt update -y >> "$LOGFILE" 2>&1
 check "apt update failed"
 
-log "Installing git and python3-dev..."
-sudo apt install git python3-dev -y >> "$LOGFILE" 2>&1
+log "Installing git, python3-dev and python3-venv..."
+sudo apt install git python3-dev python3-venv -y >> "$LOGFILE" 2>&1
 check "apt install failed"
 
 log "STEP 1 complete."
@@ -145,6 +145,10 @@ fi
 log "Activating virtual environment..."
 source "$VENV/bin/activate"
 check "Failed to activate virtual environment"
+
+log "Upgrading pip to latest version..."
+pip install --upgrade pip >> "$LOGFILE" 2>&1
+check "pip upgrade failed"
 
 log "Installing Python packages (this may take a while)..."
 pip install flask-restx rpi-ws281x python-tsl2591 buienradar --index-url https://pypi.org/simple/ >> "$LOGFILE" 2>&1
