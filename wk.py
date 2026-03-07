@@ -97,6 +97,7 @@ class WordClock:
         self.led_dma = 10
         self.led_channel = 0
         self.def_brightness = config["DEF_BRIGHTNESS"]
+        self.last_brightness = config["DEF_BRIGHTNESS"]
         self.background_color = config["BACKGROUND_COLOR"]
         self.letter_active_color = config["LETTER_ACTIVE_COLOR"]
         self.dot_active_color = config["DOT_ACTIVE_COLOR"]
@@ -113,7 +114,7 @@ class WordClock:
         self.light_sensor_type = "none"                   # default before autodetect
 
         self._lux = 0.0
-        self.smoothing_alpha = 0.3
+        self.smoothing_alpha = 0.9     # 0.9 → slow, smooth fade, 0.5 → faster response, less smoothing, 0.1 → almost no smoothing (reacts instantly)
 
         self.temperature = 24
         self.precipitation = 2
@@ -367,22 +368,20 @@ class WordClock:
 
     def update_brightness(self):
         try:
-            lux = self._lux  # instant - just reads cached value
+            lux = self._lux
     
             idx = max(0, min(bisect.bisect_left(self.lut_in, lux) - 1, len(self.lut_in) - 2))
             x0, x1 = self.lut_in[idx], self.lut_in[idx + 1]
             y0, y1 = self.lut_out[idx], self.lut_out[idx + 1]
-            brightness = y0 if x1 == x0 else y0 + (y1 - y0) * (lux - x0) / (x1 - x0)
+            target = y0 if x1 == x0 else y0 + (y1 - y0) * (lux - x0) / (x1 - x0)
     
-            if hasattr(self, 'last_brightness'):
-                brightness = (self.smoothing_alpha * self.last_brightness +
-                             (1 - self.smoothing_alpha) * brightness)
+            self.last_brightness = (self.smoothing_alpha * self.last_brightness +
+                                    (1 - self.smoothing_alpha) * target)
     
-            self.last_brightness = brightness
-            self.strip.setBrightness(int(brightness))
+            self.strip.setBrightness(int(self.last_brightness))
     
         except Exception as e:
-            logging.error(f"Failed to update brightness: {e}")
+            logging.error(f"Failed to update brightness: {e}")    
 
     def update_brightness_org(self):
         if self.light_sensor_type == "none":
