@@ -35,7 +35,6 @@ def register_routes():
         initial_purist = word_clock.purist
         woordklok_name = word_clock.woordklok
         woordklok_version = word_clock.version
-        woordklok_calibrate = word_clock.calibrate
         has_light_sensor = word_clock.light_sensor_type != "none"
 
         available_effects = []
