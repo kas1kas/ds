@@ -1,6 +1,6 @@
-__version__ = "7.31"
+__version__ = "7.41"
 # Woordklok - Plugin version
-# weather as thread
+# new LUT and brighness
 import argparse
 import json
 import logging
@@ -108,8 +108,20 @@ class WordClock:
         self.dot_dark_color = config["DOT_DARK_COLOR"]       
         self.default_effect = config["DEFAULT_EFFECT"]
         self.rand_color = config["RAND_COLOR"]
-        self.lut_in =  config.get("LUT_IN")
-        self.lut_out=  config.get("LUT_OUT") 
+        
+        sensor_scale     = config.get("SENSOR_SCALE",  1.0)    # calulate sensor behavior: 
+        lut_min_out      = config.get("LUT_MIN_OUT",   3)      # minimum value to turn on LEDs
+        lut_tv_lux       = config.get("LUT_TV_LUX",    0.5)    # tv watching lux 
+        lut_tv_out       = config.get("LUT_TV_OUT",    12)     # tv watching brightness
+        lut_dim_lux      = config.get("LUT_DIM_LUX",   5)      # evening room lux
+        lut_dim_out      = config.get("LUT_DIM_OUT",   60)     # evening room brightness
+        lut_max_in       = config.get("LUT_MAX_IN",    500)    # max lux from sensor
+        lut_max_out      = config.get("LUT_MAX_OUT",   180)    # max led brightness
+        
+        self.sensor_scale = sensor_scale
+        self.lut_in  = [0,          lut_tv_lux, lut_dim_lux, lut_max_in]
+        self.lut_out = [lut_min_out, lut_tv_out, lut_dim_out, lut_max_out]
+
         self.light_sensor = "none"
         self.light_sensor_type = "none"                   # default before autodetect
 
@@ -371,8 +383,7 @@ class WordClock:
 
     def update_brightness(self):
         try:
-            lux = self._lux
-    
+            lux = self._lux * self.sensor_scale
             idx = max(0, min(bisect.bisect_left(self.lut_in, lux) - 1, len(self.lut_in) - 2))
             x0, x1 = self.lut_in[idx], self.lut_in[idx + 1]
             y0, y1 = self.lut_out[idx], self.lut_out[idx + 1]
