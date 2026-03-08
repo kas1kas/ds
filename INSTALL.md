@@ -80,10 +80,24 @@ edit the file ~/.wordclock/config_loc.json. Do not add the comments between (). 
     "DOT_ACTIVE_COLOR": [255, 255, 255],
     "DOT_INACTIVE_COLOR": [0,0,0],
     "DOT_DARK_COLOR": [100,0,0],
-    "LUT_IN":  [0, 1,  5,  20,  80],
-    "LUT_OUT": [1, 5, 40, 100, 160]
+    "SENSOR_SCALE":   1.0,
+    "LUT_MIN_OUT":    3,
+    "LUT_TV_LUX":     0.5,
+    "LUT_TV_OUT":     12,
+    "LUT_DIM_LUX":    5,
+    "LUT_DIM_OUT":    60,
+    "LUT_MAX_IN":     500,
+    "LUT_MAX_OUT":    180
 }
 ```
+adjustments
+```
+To calibrate: on a bright day, note what the sensor reads,
+then set SENSOR_SCALE = 500 / actual_reading.
+That stretches or compresses the whole curve to fit your LUT without touching any other values.
+Dark wall giving 200 lux max? Set SENSOR_SCALE = 2.5 and the LUT behaves as designed.
+```
+
 
 
 
