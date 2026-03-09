@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!--version: 7.31 -->
+<!--version: 7.41 -->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -238,10 +238,10 @@
                 });
             }
 
-           // Brightness updates
+           // Display Brightness
             {% if has_light_sensor %}
             function updateBrightness() {
-                $.get("/get_brightness", function(data) {
+                $.get("/show_brightness", function(data) {
                     if (data.brightness) {
                         $("#brightnessValue").text(data.brightness);
                     }
