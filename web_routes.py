@@ -1,4 +1,4 @@
-__version__ = "7.31"
+__version__ = "7.41"
 import logging
 import bisect
 import time
@@ -107,8 +107,8 @@ def register_routes():
             return jsonify({"error": str(e)}), 500
     
     # ================== BRIGHTNESS ROUTES ==================
-    @app.route("/get_brightness", methods=["GET"])
-    def get_brightness():
+    @app.route("/show_brightness", methods=["GET"])
+    def show_brightness():
         try:
             lux = round(word_clock._lux, 2)
             brightness = round(word_clock.last_brightness, 1)
