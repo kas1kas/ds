@@ -375,10 +375,16 @@ class WordClock:
         try:
             lux = self._lux * self.sensor_scale
             lux = max(self.lut_in[0], min(lux, self.lut_in[-1]))
+            
+            #find where lux falls in the LUT using bisect, subtract 1 to get the left index of the surrounding segment
             idx = bisect.bisect_right(self.lut_in, lux) - 1
+            
+            #clamp that index so it never goes below 0 or beyond the second-to-last entry (since you always need idx and idx+1 to interpolate)
             idx = max(0, min(idx, len(self.lut_in) - 2))
-            x0, x1 = self.lut_in[idx], self.lut_in[idx + 1]
-            y0, y1 = self.lut_out[idx], self.lut_out[idx + 1]
+            
+            # Linear interpolation
+            x0, x1 = self.lut_in[idx], self.lut_in[idx + 1]    
+            y0, y1 = self.lut_out[idx], self.lut_out[idx + 1]  
             target = y0 if x1 == x0 else y0 + (y1 - y0) * (lux - x0) / (x1 - x0)
     
             self.last_brightness = (self.smoothing_alpha * self.last_brightness +
@@ -388,45 +394,6 @@ class WordClock:
     
         except Exception as e:
             logging.error(f"Failed to update brightness: {e}")    
-
-    def update_brightness_org(self):
-        if self.light_sensor_type == "none":
-            return
-
-        try:
-            if self.light_sensor_type == "BH1750":
-                lux = self.light_sensor.measure_high_res()
-            else:
-                light_data = self.light_sensor.get_current()
-                lux = abs(light_data['lux'])
-        
-            # Smooth interpolation between calibration points
-            if len(self.lut_in) >= 2:
-                # Find the segment where lux falls
-                idx = bisect.bisect_left(self.lut_in, lux) - 1
-                idx = max(0, min(idx, len(self.lut_in) - 2))
-            
-                # Linear interpolation
-                x0, x1 = self.lut_in[idx], self.lut_in[idx+1]
-                y0, y1 = self.lut_out[idx], self.lut_out[idx+1]
-            
-                if x1 != x0:  # Avoid division by zero
-                    brightness = y0 + (y1 - y0) * (lux - x0) / (x1 - x0)
-                else:
-                    brightness = y0
-            else:
-                # Fallback to simple mapping if not enough calibration points
-                brightness = self.lut_out[0] if lux < self.lut_in[0] else self.lut_out[-1]
-        
-            # Apply exponential smoothing
-            if hasattr(self, 'last_brightness'):
-                alpha = 0.3  # Smoothing factor
-                brightness = alpha * self.last_brightness + (1 - alpha) * brightness
-            self.last_brightness = brightness
-            self.strip.setBrightness(int(brightness))
-            
-        except Exception as e:
-            logging.error(f"Failed to update brightness: {e}")
 
     def activate_word(self, word):
         if word in self.language_settings.words:
@@ -532,6 +499,7 @@ class WordClock:
     
     # End Subs ------------------------------------------------------------------------------
 
+
 # Merge configs before creating the instance
 def load_merged_config():
     """
@@ -589,24 +557,15 @@ import web_routes
 web_routes.init_routes(word_clock, app)
 
 # Main function to run the word clock
-# In run_clock function, add frame counter:
-
 def run_clock():
     frame_delay = 0.01
     
     try:
         while True:
-            
-            # Update brightness
             word_clock.update_brightness()           
-
-            # Get current effect
             current_effect = word_clock.effects.get(word_clock.current_effect_id)
-                
-            # Draw the effect    
             if current_effect:
                 current_effect.draw()
-                
             time.sleep(frame_delay)
             
     except KeyboardInterrupt:
