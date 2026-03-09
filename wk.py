@@ -108,15 +108,13 @@ class WordClock:
         self.dot_dark_color = config["DOT_DARK_COLOR"]       
         self.default_effect = config["DEFAULT_EFFECT"]
         self.rand_color = config["RAND_COLOR"]
-        sensor_scale     = config.get("SENSOR_SCALE",  1.0)    # calulate sensor behavior:     
-        self.sensor_scale = sensor_scale
-        lut = config.get("LUT"])
+
+        self.sensor_scale = config["SENSOR_SCALE"]        # calulate sensor behavior:     
+        lut = config["LUT"]
         self.lut_in  = [row[0] for row in lut]
         self.lut_out = [row[1] for row in lut]
-
         self.light_sensor = "none"
         self.light_sensor_type = "none"                   # default before autodetect
-
         self._lux = 0.0
         self.smoothing_alpha = 0.9     # 0.9 → slow, smooth fade, 0.5 → faster response, less smoothing, 0.1 → almost no smoothing (reacts instantly)
 
