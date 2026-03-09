@@ -107,34 +107,12 @@ def register_routes():
             return jsonify({"error": str(e)}), 500
     
     # ================== BRIGHTNESS ROUTES ==================
-    
     @app.route("/get_brightness", methods=["GET"])
     def get_brightness():
-        """Get the current brightness value."""
         try:
-            if word_clock.light_sensor_type == "none":
-                return jsonify({"brightness": f"No sensor: {word_clock.strip.getBrightness()}"}), 200
-                
-            if word_clock.light_sensor_type == "BH1750":
-                lux = round(word_clock.light_sensor.measure_high_res(), 2)
-            else:
-                light_data = word_clock.light_sensor.get_current()
-                lux = round(abs(light_data['lux']), 2)
-            
-            if word_clock.lut_in and word_clock.lut_out:
-                index = min(bisect.bisect_right(word_clock.lut_in, lux), len(word_clock.lut_out) - 1)
-                brt = word_clock.lut_out[index]
-                brightness_display = f"{lux}: {brt}"
-            else:
-                brightness_display = f"{lux}: {word_clock.strip.getBrightness()}"
-                
-            return jsonify({"brightness": brightness_display}), 200
+            lux = round(word_clock._lux, 2)
+            brightness = round(word_clock.last_brightness, 1)
+            return jsonify({"brightness": f"{lux} lux: {brightness}"}), 200
         except Exception as e:
             logging.error(f"Failed to fetch brightness: {e}")
-            return jsonify({"brightness": "Error reading sensor"}), 200
-    
-    # ================== MODE ROUTES ==================
-    
-    
-    # ================== CALIBRATION ROUTES ==================
-    
+            return jsonify({"brightness": "Error reading sensor"}), 500        
