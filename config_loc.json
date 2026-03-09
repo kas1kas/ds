@@ -18,6 +18,12 @@
     "DOT_INACTIVE_COLOR": [0,0,0],
     "DOT_DARK_COLOR": [100,0,0],
     "SENSOR_SCALE":   1.0,
+    "LUT": [
+        [0,     3],
+        [1,    12],
+        [5,    20],
+        [100, 180]
+    ]
     "LUT_MIN_OUT":    3,
     "LUT_TV_LUX":     0.5,
     "LUT_TV_OUT":     12,
