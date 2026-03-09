@@ -5,4 +5,7 @@
 *.py[cod]
 
 #ignore more
+
 nohup.out
+test.py
+wkt.py
