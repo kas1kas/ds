@@ -24,11 +24,4 @@
         [5,    20],
         [100, 180]
     ]
-    "LUT_MIN_OUT":    3,
-    "LUT_TV_LUX":     0.5,
-    "LUT_TV_OUT":     12,
-    "LUT_DIM_LUX":    5,
-    "LUT_DIM_OUT":    60,
-    "LUT_MAX_IN":     500,
-    "LUT_MAX_OUT":    180
 }
