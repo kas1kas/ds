@@ -110,7 +110,7 @@ class WordClock:
         self.rand_color = config["RAND_COLOR"]
         sensor_scale     = config.get("SENSOR_SCALE",  1.0)    # calulate sensor behavior:     
         self.sensor_scale = sensor_scale
-        lut = config.get("LUT"]
+        lut = config.get("LUT"])
         self.lut_in  = [row[0] for row in lut]
         self.lut_out = [row[1] for row in lut]
 
