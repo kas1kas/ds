@@ -1,10 +1,10 @@
 ## 1 install Raspberry Pi OS
 (with raspberry pi imager)
-- on a **Zero 2 W**: install Debian Bullseye **Rasberry Pi OS (Legacy, Lite 32 (bit)**
-- on a **3B+**: install Debian Trixie **Rasberry Pi OS Lite 32 (bit)**
+- the clock runs perfectly on a **Zero 2 W** a **3B+**
+- install Debian Trixie **Rasberry Pi OS Lite 32 (bit)**
 - set user pi and yourpassword
 - set hostname
-- set wifi
+- aliset wifi
 - enable ssh
 ## 2 start and configure
 use ssh to connect
@@ -99,6 +99,7 @@ then set SENSOR_SCALE = 500 / actual_reading.
 That stretches or compresses the whole curve to fit your LUT without touching any other values.
 Dark wall giving 200 lux max? Set SENSOR_SCALE = 2.5 and the LUT behaves as designed.
 ```
+
 
 
 
