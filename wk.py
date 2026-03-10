@@ -512,9 +512,16 @@ class WordClock:
       
     def cls(self):
         """Clear all LEDs to background color"""
-        for i in range(self.led_count):
-            self.set_led_color(i, self.background_color)
-    
+        if hasattr(self, 'effect_full_panel') and not self.effect_full_panel:
+            # In power saving mode, only clear the clock area
+            for x in range(self.clock_columns):
+                for y in range(self.clock_rows):
+                    self.setcolor_x_y(x, y, self.background_color)
+        else:
+            # Clear all LEDs
+            for i in range(self.led_count):
+                self.set_led_color(i, self.background_color)
+            
     def setcolor_x_y(self, x, y, color):
         """Set LED color by grid coordinates (0,0 = top-left of 16x16 panel)"""
         if x < 0 or x >= 16 or y < 0 or y >= 16:
