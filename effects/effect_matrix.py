@@ -19,15 +19,19 @@ class EffectMatrix(BaseEffect):
     def _create_drops(self):
         """Initialize raindrops"""
         self.drops = []
-        num_drops = self.word_clock.columns  # one per column
+        # Get the number of columns based on effect_full_panel setting
+        max_cols, _ = self.get_dimensions()
+        num_drops = max_cols  # one per column using the full width
         for _ in range(num_drops):
             self._create_drop()
     
     def _create_drop(self):
         """Create a single raindrop"""
-        col = random.randint(0, self.word_clock.columns - 1)
-        row = -random.randint(5, 15)  # start above grid
-        speed = random.uniform(1.0, 3.0)  # fixed speed range
+        max_cols, max_rows = self.get_dimensions()
+        col = random.randint(0, max_cols - 1)
+        # Start above the grid (negative row)
+        row = -random.randint(5, 15)
+        speed = random.uniform(1.0, 3.0)
         drop = {
             'col': col,
             'row': row,
@@ -76,4 +80,3 @@ class EffectMatrix(BaseEffect):
         self.word_clock.update_clock()
         self.word_clock.letter_active_color = original_color
         self.word_clock.dot_active_color = original_dot
-        
