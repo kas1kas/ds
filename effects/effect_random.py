@@ -9,6 +9,9 @@ class EffectRandom(BaseEffect):
         super().__init__(word_clock, variant_id)
         self.last_update = 0
         self.update_interval = 0.02  # 50 fps – smooth twinkling
+        
+        # Store the tint for later use
+        self.tint = word_clock.rand_color
     
     def draw(self):
         current_time = time.time()
@@ -16,8 +19,21 @@ class EffectRandom(BaseEffect):
             return
         self.last_update = current_time
         
-        # Set one random LED with the configured color tint
-        self.word_clock.set_random_led(self.word_clock.rand_color)
+        # Get dimensions based on config
+        max_cols, max_rows = self.get_dimensions()
         
-        # Overlay the time (this also calls strip.show())
+        # Clear screen based on config
+        self.clear_screen()
+        
+        # Set multiple random LEDs for a better effect (optional)
+        # You can adjust the number based on desired density
+        num_leds = (max_cols * max_rows) // 20  # About 5% of LEDs
+        
+        for _ in range(num_leds):
+            x = random.randint(0, max_cols - 1)
+            y = random.randint(0, max_rows - 1)
+            color = self.word_clock.random_color(self.tint)
+            self.word_clock.setcolor_x_y(x, y, color)
+        
+        # Overlay the time
         self.word_clock.update_clock()
