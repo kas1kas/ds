@@ -3,7 +3,7 @@ import time
 from effects.base_effect import BaseEffect
 
 class EffectMatrix(BaseEffect):
-    name = "Matrix Rain"
+    name = "the Matrix"
     description = "You have to see it to believe it"
     
     def __init__(self, word_clock, variant_id=None):
