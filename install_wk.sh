@@ -98,6 +98,10 @@ if [ -f "$PROJECT/alias.txt" ]; then
     cp "$PROJECT/alias.txt" ~/.bash_aliases
     check "Failed to copy alias.txt"
     source ~/.bash_aliases
+    # Also add to .bashrc if not already there
+    if ! grep -q "source ~/.bash_aliases" ~/.bashrc; then
+        echo -e "\n# Load custom aliases\nif [ -f ~/.bash_aliases ]; then\n    . ~/.bash_aliases\nfi" >> ~/.bashrc
+    fi
     log "Aliases loaded."
 else
     log_error "alias.txt not found in $PROJECT — skipping"
