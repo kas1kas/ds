@@ -63,7 +63,8 @@ class EffectMatrix(BaseEffect):
                 if 0 <= y_pos < max_rows:
                     brightness_factor = max(0, 1.0 - (i / self.trail_length))
                     brightness = int(255 * drop['brightness'] * brightness_factor)
-                    self.word_clock.setcolor_x_y(drop['col'], y_pos, (0, brightness, 0))
+                    logical_x, logical_y = self.map_coordinates(drop['col'], y_pos)
+                    self.word_clock.setcolor_x_y(logical_x, logical_y, (0, brightness, 0))
             
             # Reset drop if it falls off screen
             if drop['row'] - self.trail_length > max_rows:
