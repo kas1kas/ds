@@ -18,10 +18,7 @@ class EffectRandom(BaseEffect):
         if current_time - self.last_update < self.update_interval:
             return
         self.last_update = current_time
-        
-        # Clear screen based on config
-        self.clear_screen()
-        
+                
         # Get dimensions based on config
         max_cols, max_rows = self.get_dimensions()
         
