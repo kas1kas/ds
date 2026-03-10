@@ -548,9 +548,9 @@ def load_merged_config():
         merged_config = {**config_gen, **config_loc}
         
         # Log what was merged
-        overridden_keys = set(config_loc.keys()) & set(config_gen.keys())
-        if overridden_keys:
-            logging.info(f"User settings overriding system defaults for: {overridden_keys}")
+#        overridden_keys = set(config_loc.keys()) & set(config_gen.keys())
+#        if overridden_keys:
+#            logging.info(f"User settings overriding system defaults for: {overridden_keys}")
         
         return merged_config
         
