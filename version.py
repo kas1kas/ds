@@ -1,4 +1,4 @@
-__version__ = "7.31"
+__version__ = "7.41"
 import json
 import re
 import os
@@ -89,9 +89,9 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
     
     # Define file paths
-    python_files = ['wk.py', 'wk6.py', 'version.py'] 
-    html_files = ['templates_plugin/index.html', 'templates_plugin/calibration.html', 'templates/index.html', 'templates/calibration.html']
-    json_files = ['config_gen.json', 'config_loc.json', '../.workclock/config_loc.json']
+    python_files = ['wk.py', 'version.py'] 
+    html_files = ['templates_plugin/index.html', 'templates_plugin/calibration.html']
+    json_files = ['config_gen.json', 'config_loc.json', '/home/pi/.workclock/config_loc.json']
     
     # Check versions
     inconsistencies = checker.check_versions(python_files, html_files, json_files)
@@ -100,6 +100,7 @@ if __name__ == "__main__":
     for file_path, version in inconsistencies:
         print(f"  {file_path}: {version}")
         
+
 
 
 
