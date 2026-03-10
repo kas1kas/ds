@@ -19,21 +19,17 @@ class EffectRandom(BaseEffect):
             return
         self.last_update = current_time
         
-        # Get dimensions based on config
-        max_cols, max_rows = self.get_dimensions()
-        
         # Clear screen based on config
         self.clear_screen()
         
-        # Set multiple random LEDs for a better effect (optional)
-        # You can adjust the number based on desired density
-        num_leds = (max_cols * max_rows) // 20  # About 5% of LEDs
+        # Get dimensions based on config
+        max_cols, max_rows = self.get_dimensions()
         
-        for _ in range(num_leds):
-            x = random.randint(0, max_cols - 1)
-            y = random.randint(0, max_rows - 1)
-            color = self.word_clock.random_color(self.tint)
-            self.word_clock.setcolor_x_y(x, y, color)
+        # Set one random LED
+        x = random.randint(0, max_cols - 1)
+        y = random.randint(0, max_rows - 1)
+        color = self.word_clock.random_color(self.tint)
+        self.word_clock.setcolor_x_y(x, y, color)
         
         # Overlay the time
         self.word_clock.update_clock()
