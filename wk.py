@@ -136,7 +136,7 @@ class WordClock:
         logging.info(f"Woordklok: {self.woordklok}")
         logging.info(f"version  : {self.version}")
         logging.info(f"Design   : Woosh") 
-        logging.info(f"Assist   : DS") 
+        logging.info(f"Assist   : DeepSeek&Claude") 
         logging.info(f"Made by  : GraWoosh Labs") 
         logging.info(f"Random   : {self.rand_color}") 
         logging.info(f"Language : {self.language_settings.language}")
