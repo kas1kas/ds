@@ -4,6 +4,7 @@
     "WOORDKLOK": "name",
     "LANGUAGE": "NL",
     "GRID" : "11",
+    "EFFECT_FULL_PANEL" : false,  
     "DEFAULT_EFFECT": "matrix",
     "RAND_COLOR": "blue",
     "WEATHER_ENABLED": true,
