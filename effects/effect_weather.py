@@ -61,7 +61,7 @@ class EffectWeather(BaseEffect):
         # Precipitation parameters
         self.precip_scale = 0.15        # spawn probability per column per second per mm/h
         self.drop_speed_range = (1.5, 3.5)  # rows per second
-        self.drop_color = (120, 120, 120)   # grey
+        self.drop_color = (60, 60, 60)   # grey
         self.max_drops = 200             # prevent overflow
         self.drops = []                  # list of active drops: {'col': c, 'row': r, 'speed': s}
 
