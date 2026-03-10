@@ -112,7 +112,7 @@ def register_routes():
         try:
             lux = round(word_clock._lux, 2)
             brightness = round(word_clock.last_brightness, 1)
-            return jsonify({"brightness": f"{lux} lux: {brightness}"}), 200
+            return jsonify({"brightness": f"{lux}:  {brightness}"}), 200
         except Exception as e:
             logging.error(f"Failed to fetch brightness: {e}")
             return jsonify({"brightness": "Error reading sensor"}), 500        
