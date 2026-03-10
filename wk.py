@@ -90,7 +90,7 @@ class WordClock:
         self.purist = config["PURIST"]
         self.woordklok = config["WOORDKLOK"]
         self.grid = config["GRID"]
-        self.effect_full_panel = config.get("EFFECT_FULL_PANEL", False)  # Default NO full panel
+        self.effect_full_panel = config["EFFECT_FULL_PANEL"]
         self.light_interval = config["LIGHT_INTERVAL"]
         self.language_settings = LanguageSettings(config, config["LANGUAGE"], self.grid)
         self.led_pin = 18
