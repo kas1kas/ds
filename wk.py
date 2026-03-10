@@ -494,40 +494,36 @@ class WordClock:
         """Clear all LEDs to background color"""
         for i in range(self.led_count):
             self.set_led_color(i, self.background_color)
-
+    
     def setcolor_x_y(self, x, y, color):
-        """Set LED color by grid coordinates (0,0 = top-left)"""
-        if x < 0 or x >= self.columns or y < 0 or y >= self.rows:
+        """Set LED color by grid coordinates (0,0 = top-left of 16x16 panel)"""
+        if x < 0 or x >= 16 or y < 0 or y >= 16:
             return
             
         if self.grid == "16":
-            # From your test:
-            # y=0 appears at physical row 9 (near bottom)
-            # y=7 appears at physical row 2 (near top)
-            # This means physical row = 9 - y for the range we saw
-            # But for full 0-15 range, it should be: physical_y = 15 - y
+            # From your layout table:
+            # Physical columns go from 15 (rightmost) to 0 (leftmost)
+            physical_col = 15 - x
             
-            # For all columns, we need to flip Y
-            physical_y = 15 - y
+            # Look up the LED index from your table
+            # Your table shows for each physical column and row, the LED index
             
-            if x % 2 == 0:  # Even columns
-                # Your even column mapping from map_grid_to_led: (col * 16) + (14 - row)
-                # But with physical_y already flipped, we can use direct mapping
-                led_index = (x * 16) + physical_y
-            else:  # Odd columns
-                # Your odd column mapping: (col * 16) + row + 1
-                led_index = (x * 16) + physical_y + 1
+            if physical_col % 2 == 0:  # Even physical columns (15,13,11,...): bottom to top
+                # In these columns, y=0 (top) maps to highest LED number
+                # y=15 (bottom) maps to lowest LED number
+                led_index = (physical_col * 16) + (15 - y)
+            else:  # Odd physical columns (14,12,10,...): top to bottom
+                # In these columns, y=0 (top) maps to lowest LED number
+                # y=15 (bottom) maps to highest LED number
+                led_index = (physical_col * 16) + y
                 
         else:  # For 11x10 grid
             if x % 2 == 0:  # Even columns: top to bottom
                 led_index = 2 + (x * 10) + y
             else:  # Odd columns: bottom to top
-                # For 11x10, flip y for odd columns
-                physical_y = 9 - y
-                led_index = 2 + (x * 10) + physical_y
+                led_index = 2 + (x * 10) + (9 - y)
                 
-        self.set_led_color(led_index, color)
-    
+        self.set_led_color(led_index, color)   
 
 #    def setcolor_x_y(self, x, y, color):
 #        """Set LED color by grid coordinates"""
