@@ -35,47 +35,45 @@ class EffectMatrix(BaseEffect):
             'brightness': random.uniform(0.5, 1.0)
         }
         self.drops.append(drop)
-    
+
     def draw(self):
-        current_time = time.time()
+    current_time = time.time()
+    
+    if current_time - self.last_update < self.update_interval:
+        return
+    
+    self.last_update = current_time
+    
+    # Get dimensions based on config
+    max_cols, max_rows = self.get_dimensions()
+    
+    # Clear screen based on config
+    self.clear_screen()
+    
+    # Update and draw drops using appropriate dimensions
+    for drop in self.drops:
+        drop['row'] += drop['speed'] * 0.5
         
-        # Control animation speed
-        if current_time - self.last_update < self.update_interval:
-            return
+        for i in range(self.trail_length):
+            y_pos = int(drop['row'] - i)
+            if 0 <= y_pos < max_rows:
+                brightness_factor = max(0, 1.0 - (i / self.trail_length))
+                brightness = int(255 * drop['brightness'] * brightness_factor)
+                self.word_clock.setcolor_x_y(drop['col'], y_pos, (0, brightness, 0))
         
-        self.last_update = current_time
-        
-        # Clear the grid (word area)
-        for x in range(self.word_clock.columns):
-            for y in range(self.word_clock.rows):
-                self.word_clock.setcolor_x_y(x, y, (0, 0, 0))
-        
-        # Update and draw drops
-        for drop in self.drops:
-            # Move drop down
-            drop['row'] += drop['speed'] * 0.5  # smooth movement
-            
-            # Draw trail
-            for i in range(self.trail_length):
-                y_pos = int(drop['row'] - i)
-                if 0 <= y_pos < self.word_clock.rows:
-                    # Fade out with distance from head
-                    brightness_factor = max(0, 1.0 - (i / self.trail_length))
-                    brightness = int(255 * drop['brightness'] * brightness_factor)
-                    self.word_clock.setcolor_x_y(drop['col'], y_pos, (0, brightness, 0))
-            
-            # Reset drop if it falls off screen
-            if drop['row'] - self.trail_length > self.word_clock.rows:
-                drop['row'] = -random.randint(5, 15)
-                drop['col'] = random.randint(0, self.word_clock.columns - 1)
-                drop['speed'] = random.uniform(1.0, 3.0)
-                drop['brightness'] = random.uniform(0.5, 1.0)
-        
-        # Draw time in white (save and restore original color)
-        original_color = self.word_clock.letter_active_color
-        original_dot = self.word_clock.dot_active_color
-        self.word_clock.letter_active_color = (255, 255, 255)
-        self.word_clock.dot_active_color = (255, 255, 255)
-        self.word_clock.update_clock()
-        self.word_clock.letter_active_color = original_color
-        self.word_clock.dot_active_color = original_dot
+        # Reset drop if it falls off screen
+        if drop['row'] - self.trail_length > max_rows:
+            drop['row'] = -random.randint(5, 15)
+            drop['col'] = random.randint(0, max_cols - 1)
+            drop['speed'] = random.uniform(1.0, 3.0)
+            drop['brightness'] = random.uniform(0.5, 1.0)
+    
+    # Draw time (always in clock area)
+    original_color = self.word_clock.letter_active_color
+    original_dot = self.word_clock.dot_active_color
+    self.word_clock.letter_active_color = (255, 255, 255)
+    self.word_clock.dot_active_color = (255, 255, 255)
+    self.word_clock.update_clock()
+    self.word_clock.letter_active_color = original_color
+    self.word_clock.dot_active_color = original_dot
+    
