@@ -23,11 +23,11 @@ class BaseEffect:
     def get_dimensions(self):
         """Get the dimensions to use for effects based on config"""
         if hasattr(self.word_clock, 'effect_full_panel') and self.word_clock.effect_full_panel:
-            # Use full panel dimensions (for effects that fill the screen)
-            return 16, 16
+            # Use full panel dimensions
+            return self.word_clock.panel_columns, self.word_clock.panel_rows
         else:
-            # Use clock area dimensions (for power saving)
-            return self.word_clock.columns, self.word_clock.rows
+            # Use clock area dimensions (power saving)
+            return self.word_clock.clock_columns, self.word_clock.clock_rows
 
     def map_coordinates(self, x, y):
         """Map logical coordinates to physical coordinates based on panel wiring"""
@@ -38,18 +38,18 @@ class BaseEffect:
                 # Even columns: physical Y is inverted
                 max_rows = 16
                 return x, max_rows - 1 - y
-        return x, y
-        
+            return x, y
+
     def clear_screen(self):
         """Clear the screen based on effect_full_panel setting"""
         if hasattr(self.word_clock, 'effect_full_panel') and self.word_clock.effect_full_panel:
             # Clear full panel
-            for x in range(16):
-                for y in range(16):
+            for x in range(self.word_clock.panel_columns):
+                for y in range(self.word_clock.panel_rows):
                     self.word_clock.setcolor_x_y(x, y, (0, 0, 0))
         else:
             # Clear only clock area
-            self.word_clock.cls()  # Original cls method clears only clock area    
+            self.word_clock.cls()  # Original cls method clears only clock area        
             
     def draw(self):
         """Draw one frame. Called every loop iteration."""
