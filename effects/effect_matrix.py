@@ -46,9 +46,16 @@ class EffectMatrix(BaseEffect):
             return
         
         self.last_update = current_time
-        
-        # Get dimensions based on config
-        max_cols, max_rows = self.get_dimensions()
+
+        # Force the dimensions based on config for testing
+        if self.word_clock.effect_full_panel:
+            max_cols, max_rows = 16, 16
+            print("FORCED: Full panel mode")
+        else:
+            max_cols, max_rows = self.word_clock.columns, self.word_clock.rows
+            print(f"FORCED: Clock area mode ({max_cols}x{max_rows})")        
+            # Get dimensions based on config
+            max_cols, max_rows = self.get_dimensions()
         
         # Clear screen based on config
         self.clear_screen()
