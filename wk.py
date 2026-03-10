@@ -511,65 +511,53 @@ class WordClock:
         return (r, g, b) 
       
     def cls(self):
-        """Clear all LEDs to background color"""
+        """Clear LEDs to background color"""
         if hasattr(self, 'effect_full_panel') and not self.effect_full_panel:
-            # In power saving mode, only clear the clock area
-            for x in range(self.clock_columns):
-                for y in range(self.clock_rows):
+            # Power saving mode - only clear clock area
+            for x in range(self.clock_columns):  # 0-10
+                for y in range(self.clock_rows):  # 0-9
                     self.setcolor_x_y(x, y, self.background_color)
         else:
-            # Clear all LEDs
+            # Full panel mode - clear all LEDs
             for i in range(self.led_count):
                 self.set_led_color(i, self.background_color)
             
     def setcolor_x_y(self, x, y, color):
-        """Set LED color by grid coordinates (0,0 = top-left of 16x16 panel)"""
-        if x < 0 or x >= 16 or y < 0 or y >= 16:
-            return
-            
+        """Set LED color by grid coordinates 
+           When effect_full_panel is False, x,y are relative to clock area (0-10, 0-9)
+           When effect_full_panel is True, x,y are relative to full panel (0-15, 0-15)
+        """
         if self.grid == "16":
-            # From your layout table:
-            # Physical columns go from 15 (rightmost) to 0 (leftmost)
-            physical_col = 15 - x
-            
-            # Look up the LED index from your table
-            # Your table shows for each physical column and row, the LED index
-            
-            if physical_col % 2 == 0:  # Even physical columns (15,13,11,...): bottom to top
-                # In these columns, y=0 (top) maps to highest LED number
-                # y=15 (bottom) maps to lowest LED number
-                led_index = (physical_col * 16) + (15 - y)
-            else:  # Odd physical columns (14,12,10,...): top to bottom
-                # In these columns, y=0 (top) maps to lowest LED number
-                # y=15 (bottom) maps to highest LED number
-                led_index = (physical_col * 16) + y
+            if hasattr(self, 'effect_full_panel') and not self.effect_full_panel:
+                # Power saving mode - x,y are clock area coordinates (0-10, 0-9)
+                # Map to full panel coordinates with offset
+                panel_x = x + 2  # Clock area starts at column 2
+                panel_y = y + 3  # Clock area starts at row 3
+            else:
+                # Full panel mode - x,y are already panel coordinates
+                panel_x = x
+                panel_y = y
                 
-        else:  # For 11x10 grid
+            # Validate panel coordinates
+            if panel_x < 0 or panel_x >= 16 or panel_y < 0 or panel_y >= 16:
+                return
+                
+            # Map to physical LED using serpentine pattern
+            if panel_x % 2 == 0:  # Even columns: bottom to top
+                led_index = (panel_x * 16) + (15 - panel_y)
+            else:  # Odd columns: top to bottom
+                led_index = (panel_x * 16) + panel_y
+                
+        else:  # For 11x10 grid (legacy)
+            if x < 0 or x >= self.columns or y < 0 or y >= self.rows:
+                return
             if x % 2 == 0:  # Even columns: top to bottom
                 led_index = 2 + (x * 10) + y
             else:  # Odd columns: bottom to top
                 led_index = 2 + (x * 10) + (9 - y)
                 
-        self.set_led_color(led_index, color)   
+        self.set_led_color(led_index, color)
 
-#    def setcolor_x_y(self, x, y, color):
-#        """Set LED color by grid coordinates"""
-#        if x < 0 or x >= self.columns or y < 0 or y >= self.rows:
-#            return
-            
-#        if self.grid == "16":
-#            adjusted_x = x + 2  # Skip the first two columns
-#            adjusted_y = y + 3  # and first three rows
-#            if adjusted_x % 2 == 0:  # Even columns: top to bottom
-#                led_index = (adjusted_x * 16) + adjusted_y
-#            else:  # Odd columns: bottom to top
-#                led_index = (adjusted_x * 16) + (15 - adjusted_y)
-#        else:  # For 11x10 grid
-#            if x % 2 == 0:  # Even columns: top to bottom
-#                led_index = 2 + (x * 10) + y
-#            else:  # Odd columns: bottom to top
-#                led_index = 2 + (x * 10) + (9 - y)
-#        self.set_led_color(led_index, color)
     
     # End Subs ------------------------------------------------------------------------------
 
