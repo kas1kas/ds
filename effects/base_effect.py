@@ -28,7 +28,18 @@ class BaseEffect:
         else:
             # Use clock area dimensions (for power saving)
             return self.word_clock.columns, self.word_clock.rows
-    
+
+    def map_coordinates(self, x, y):
+        """Map logical coordinates to physical coordinates based on panel wiring"""
+        if (hasattr(self.word_clock, 'grid') and self.word_clock.grid == "16" and 
+            hasattr(self.word_clock, 'effect_full_panel') and self.word_clock.effect_full_panel):
+            # For full 16x16 panel, adjust Y based on column parity
+            if x % 2 == 0:
+                # Even columns: physical Y is inverted
+                max_rows = 16
+                return x, max_rows - 1 - y
+        return x, y
+        
     def clear_screen(self):
         """Clear the screen based on effect_full_panel setting"""
         if hasattr(self.word_clock, 'effect_full_panel') and self.word_clock.effect_full_panel:
