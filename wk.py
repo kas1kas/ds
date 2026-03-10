@@ -458,10 +458,20 @@ class WordClock:
 
     def set_random_led(self, tint):
         """Set a random LED with tint"""
-        self._x_y(random.randint(0, self.columns-1), 
-                         random.randint(0, self.rows-1), 
-                         self.random_color(tint))
-       
+        # Use full panel dimensions if effect_full_panel is True
+        if hasattr(self, 'effect_full_panel') and self.effect_full_panel:
+            max_x = 15  # 0-15 for full panel
+            max_y = 15
+        else:
+            max_x = self.columns - 1  # 0-10 for clock area
+            max_y = self.rows - 1     # 0-9 for clock area
+        
+        self.setcolor_x_y(
+            random.randint(0, max_x),
+            random.randint(0, max_y),
+            self.random_color(tint)
+        )
+           
     def random_color(self, tint):
         """Generate random color based on tint from config"""
         if tint == "blue":
