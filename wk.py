@@ -142,6 +142,7 @@ class WordClock:
         logging.info(f"Random   : {self.rand_color}") 
         logging.info(f"Language : {self.language_settings.language}")
         logging.info(f"Grid     : {self.grid}") 
+        logging.info(f"Fullpanel: {self.effect_full_panel}")
         logging.info(f"Lut In   : {self.lut_in}")
         logging.info(f"Lut Out  : {self.lut_out}")
         
