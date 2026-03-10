@@ -116,7 +116,8 @@ class WordClock:
         self.light_sensor = "none"
         self.light_sensor_type = "none"                   # default before autodetect
         self._lux = 0.0
-        self.smoothing_alpha = 0.93     # 0.9 → slow, smooth fade, 0.5 → faster response, less smoothing, 0.1 → almost no smoothing (reacts instantly)
+        self._stable_lux = 0.0
+        self.smoothing_alpha = 0.90     # 0.9 → slow, smooth fade, 0.5 → faster response, less smoothing, 0.1 → almost no smoothing (reacts instantly)
 
         self.temperature = 24
         self.precipitation = 2
