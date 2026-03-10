@@ -619,7 +619,7 @@ def run_clock():
     
     try:
         while True:
-            word_clock.update_brightness()           
+            if self.light_sensor_type != "none": word_clock.update_brightness()           
             current_effect = word_clock.effects.get(word_clock.current_effect_id)
             if current_effect:
                 current_effect.draw()
