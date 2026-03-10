@@ -50,8 +50,6 @@ class EffectRainbow(BaseEffect):
         self.j = 0
         self.last_frame_time = 0
         self.frame_delay = 0.01
-        self.center_x = (word_clock.columns - 1) / 2
-        self.center_y = (word_clock.rows - 1) / 2
     
     def kwheel(self, pos):
         pos = pos & 255
@@ -70,10 +68,19 @@ class EffectRainbow(BaseEffect):
             return
         
         self.last_frame_time = current_time
-        self.word_clock.cls()
         
-        for x in range(self.word_clock.columns):
-            for y in range(self.word_clock.rows):
+        # Use clear_screen() instead of cls() to respect effect_full_panel setting
+        self.clear_screen()
+        
+        # Get dimensions based on config
+        max_cols, max_rows = self.get_dimensions()
+        
+        # Calculate centers based on current dimensions
+        center_x = (max_cols - 1) / 2
+        center_y = (max_rows - 1) / 2
+        
+        for x in range(max_cols):
+            for y in range(max_rows):
                 if self.pattern == 0:  # Diagonal
                     k = (x * y + self.j) & 255
                 elif self.pattern == 1:  # Horizontal
@@ -81,13 +88,13 @@ class EffectRainbow(BaseEffect):
                 elif self.pattern == 2:  # Vertical
                     k = (y + self.j) & 255
                 elif self.pattern == 3:  # Circular
-                    dx = x - self.center_x
-                    dy = y - self.center_y
+                    dx = x - center_x
+                    dy = y - center_y
                     distance = math.sqrt(dx*dx + dy*dy)
                     k = int(distance * 10 + self.j) & 255
                 elif self.pattern == 4:  # Spiral
-                    dx = x - self.center_x
-                    dy = y - self.center_y
+                    dx = x - center_x
+                    dy = y - center_y
                     angle = math.atan2(dy, dx)
                     distance = math.sqrt(dx*dx + dy*dy)
                     k = int(angle/math.pi * 128 + distance * 5 + self.j) & 255
@@ -103,5 +110,3 @@ class EffectRainbow(BaseEffect):
         
         self.word_clock.update_clock()
         self.j = (self.j + 1) % (256 * 5)
-    
-    # No get_settings_template needed anymore
