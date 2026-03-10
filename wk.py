@@ -458,7 +458,7 @@ class WordClock:
 
     def set_random_led(self, tint):
         """Set a random LED with tint"""
-        self.setcolor_x_y(random.randint(0, self.columns-1), 
+        self._x_y(random.randint(0, self.columns-1), 
                          random.randint(0, self.rows-1), 
                          self.random_color(tint))
        
@@ -496,23 +496,57 @@ class WordClock:
             self.set_led_color(i, self.background_color)
 
     def setcolor_x_y(self, x, y, color):
-        """Set LED color by grid coordinates"""
+        """Set LED color by grid coordinates (0,0 = top-left)"""
         if x < 0 or x >= self.columns or y < 0 or y >= self.rows:
             return
             
         if self.grid == "16":
-            adjusted_x = x + 2  # Skip the first two columns
-            adjusted_y = y + 3  # and first three rows
-            if adjusted_x % 2 == 0:  # Even columns: top to bottom
-                led_index = (adjusted_x * 16) + adjusted_y
-            else:  # Odd columns: bottom to top
-                led_index = (adjusted_x * 16) + (15 - adjusted_y)
+            # From your test:
+            # y=0 appears at physical row 9 (near bottom)
+            # y=7 appears at physical row 2 (near top)
+            # This means physical row = 9 - y for the range we saw
+            # But for full 0-15 range, it should be: physical_y = 15 - y
+            
+            # For all columns, we need to flip Y
+            physical_y = 15 - y
+            
+            if x % 2 == 0:  # Even columns
+                # Your even column mapping from map_grid_to_led: (col * 16) + (14 - row)
+                # But with physical_y already flipped, we can use direct mapping
+                led_index = (x * 16) + physical_y
+            else:  # Odd columns
+                # Your odd column mapping: (col * 16) + row + 1
+                led_index = (x * 16) + physical_y + 1
+                
         else:  # For 11x10 grid
             if x % 2 == 0:  # Even columns: top to bottom
                 led_index = 2 + (x * 10) + y
             else:  # Odd columns: bottom to top
-                led_index = 2 + (x * 10) + (9 - y)
+                # For 11x10, flip y for odd columns
+                physical_y = 9 - y
+                led_index = 2 + (x * 10) + physical_y
+                
         self.set_led_color(led_index, color)
+    
+
+#    def setcolor_x_y(self, x, y, color):
+#        """Set LED color by grid coordinates"""
+#        if x < 0 or x >= self.columns or y < 0 or y >= self.rows:
+#            return
+            
+#        if self.grid == "16":
+#            adjusted_x = x + 2  # Skip the first two columns
+#            adjusted_y = y + 3  # and first three rows
+#            if adjusted_x % 2 == 0:  # Even columns: top to bottom
+#                led_index = (adjusted_x * 16) + adjusted_y
+#            else:  # Odd columns: bottom to top
+#                led_index = (adjusted_x * 16) + (15 - adjusted_y)
+#        else:  # For 11x10 grid
+#            if x % 2 == 0:  # Even columns: top to bottom
+#                led_index = 2 + (x * 10) + y
+#            else:  # Odd columns: bottom to top
+#                led_index = 2 + (x * 10) + (9 - y)
+#        self.set_led_color(led_index, color)
     
     # End Subs ------------------------------------------------------------------------------
 
