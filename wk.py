@@ -145,8 +145,17 @@ class WordClock:
         
         # Initialize LED strip
         self.initialize_led()
+
+        # Initialize light sensor
         self.initialize_lightsensor()
- 
+        if self.light_sensor_type == "TSL2591":
+            self.lux_hysteresis = 0.05
+        elif self.light_sensor_type == "BH1750":
+            self.lux_hysteresis = 1.0
+        else:
+            self.lux_hysteresis = 1.0  # safe default for unknown sensors
+            logging.warning(f"Unknown sensor type '{self.light_sensor_type}', using default hysteresis")
+        
         # Start light sensor thread
         if self.light_sensor != "none":
            self._sensor_thread = threading.Thread(target=self._sensor_loop, daemon=True)
@@ -315,6 +324,36 @@ class WordClock:
         finally:
             bus.close()
 
+    def update_brightness(self):
+        try:
+            lux = self._lux * self.sensor_scale
+
+            # Only update stable_lux if change exceeds hysteresis threshold
+            if abs(lux - self._stable_lux) > self.lux_hysteresis:
+                self._stable_lux = lux
+
+            
+            lux = max(self.lut_in[0], min(self._stable_lux, self.lut_in[-1]))
+            
+            #find where lux falls in the LUT using bisect, subtract 1 to get the left index of the surrounding segment
+            idx = bisect.bisect_right(self.lut_in, lux) - 1
+            
+            #clamp that index so it never goes below 0 or beyond the second-to-last entry (since you always need idx and idx+1 to interpolate)
+            idx = max(0, min(idx, len(self.lut_in) - 2))
+            
+            # Linear interpolation
+            x0, x1 = self.lut_in[idx], self.lut_in[idx + 1]    
+            y0, y1 = self.lut_out[idx], self.lut_out[idx + 1]  
+            target = y0 if x1 == x0 else y0 + (y1 - y0) * (lux - x0) / (x1 - x0)
+    
+            self.last_brightness = (self.smoothing_alpha * self.last_brightness +
+                                    (1 - self.smoothing_alpha) * target)
+    
+            self.strip.setBrightness(int(self.last_brightness))
+    
+        except Exception as e:
+            logging.error(f"Failed to update brightness: {e}")    
+    
     def update_language(self, new_language):
         return self.language_settings.update_language(new_language)
 
@@ -370,30 +409,6 @@ class WordClock:
             else:                                          # Odd columns: bottom to top
                 led_index = 2 + (col * self.rows) + (self.rows - 1 - row)
             return led_index
-
-    def update_brightness(self):
-        try:
-            lux = self._lux * self.sensor_scale
-            lux = max(self.lut_in[0], min(lux, self.lut_in[-1]))
-            
-            #find where lux falls in the LUT using bisect, subtract 1 to get the left index of the surrounding segment
-            idx = bisect.bisect_right(self.lut_in, lux) - 1
-            
-            #clamp that index so it never goes below 0 or beyond the second-to-last entry (since you always need idx and idx+1 to interpolate)
-            idx = max(0, min(idx, len(self.lut_in) - 2))
-            
-            # Linear interpolation
-            x0, x1 = self.lut_in[idx], self.lut_in[idx + 1]    
-            y0, y1 = self.lut_out[idx], self.lut_out[idx + 1]  
-            target = y0 if x1 == x0 else y0 + (y1 - y0) * (lux - x0) / (x1 - x0)
-    
-            self.last_brightness = (self.smoothing_alpha * self.last_brightness +
-                                    (1 - self.smoothing_alpha) * target)
-    
-            self.strip.setBrightness(int(self.last_brightness))
-    
-        except Exception as e:
-            logging.error(f"Failed to update brightness: {e}")    
 
     def activate_word(self, word):
         if word in self.language_settings.words:
