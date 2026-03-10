@@ -20,6 +20,26 @@ class BaseEffect:
         self.logger = logging.getLogger(f"effect.{self.__class__.__name__}")
         self.variant_id = variant_id
     
+    def get_dimensions(self):
+        """Get the dimensions to use for effects based on config"""
+        if hasattr(self.word_clock, 'effect_full_panel') and self.word_clock.effect_full_panel:
+            # Use full panel dimensions (for effects that fill the screen)
+            return 16, 16
+        else:
+            # Use clock area dimensions (for power saving)
+            return self.word_clock.columns, self.word_clock.rows
+    
+    def clear_screen(self):
+        """Clear the screen based on effect_full_panel setting"""
+        if hasattr(self.word_clock, 'effect_full_panel') and self.word_clock.effect_full_panel:
+            # Clear full panel
+            for x in range(16):
+                for y in range(16):
+                    self.word_clock.setcolor_x_y(x, y, (0, 0, 0))
+        else:
+            # Clear only clock area
+            self.word_clock.cls()  # Original cls method clears only clock area    
+            
     def draw(self):
         """Draw one frame. Called every loop iteration."""
         pass
