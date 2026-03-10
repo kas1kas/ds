@@ -121,6 +121,12 @@ class EffectWeather(BaseEffect):
         direction = self.word_clock.wind_direction
         precip = self.word_clock.precipitation
 
+        # Clear screen based on config
+        self.clear_screen()
+
+        # Get dimensions based on config
+        max_cols, max_rows = self.get_dimensions()
+
         # 1. Background color from temperature
         base_color = self._temperature_to_rgb(temp)
 
@@ -131,8 +137,8 @@ class EffectWeather(BaseEffect):
         dx, dy = self._wind_direction_to_vector(direction)
 
         # 4. Set all pixels to temperature + wind band
-        for x in range(self.word_clock.columns):
-            for y in range(self.word_clock.rows):
+        for x in range(max_cols):
+            for y in range(max_rows):
                 proj = x * dx + y * dy
                 phase = (proj - self.offset) / self.wavelength
                 sin_val = math.sin(2 * math.pi * phase)
@@ -159,7 +165,7 @@ class EffectWeather(BaseEffect):
             if spawn_prob > 0.5:
                 spawn_prob = 0.5
 
-            for col in range(self.word_clock.columns):
+            for col in range(max_cols):
                 if random.random() < spawn_prob:
                     self.drops.append({
                         'col': col,
@@ -171,7 +177,7 @@ class EffectWeather(BaseEffect):
             new_drops = []
             for drop in self.drops:
                 drop['row'] += drop['speed'] * dt
-                if drop['row'] < self.word_clock.rows:
+                if drop['row'] < max_rows:
                     new_drops.append(drop)
                     row_int = int(drop['row'])
                     # Draw drop (grey)
