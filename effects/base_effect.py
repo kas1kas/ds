@@ -21,14 +21,18 @@ class BaseEffect:
         self.variant_id = variant_id
     
     def get_dimensions(self):
-        """Get the dimensions to use for effects based on config"""
+        """Get the dimensions to use for effects based on config
+           Returns:
+             - When effect_full_panel True: (16, 16) for full panel
+             - When effect_full_panel False: (11, 10) for clock area
+        """
         if hasattr(self.word_clock, 'effect_full_panel') and self.word_clock.effect_full_panel:
-            # Use full panel dimensions
-            return self.word_clock.panel_columns, self.word_clock.panel_rows
+            # Full panel mode - effects use entire 16x16 panel
+            return 16, 16
         else:
-            # Use clock area dimensions (power saving)
-            return self.word_clock.clock_columns, self.word_clock.clock_rows
-
+            # Power saving mode - effects only use 11x10 clock area
+            return 11, 10
+        
     def map_coordinates(self, x, y):
         """Map logical coordinates to physical coordinates based on panel wiring"""
         if (hasattr(self.word_clock, 'grid') and self.word_clock.grid == "16" and 
