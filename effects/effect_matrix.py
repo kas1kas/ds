@@ -46,7 +46,10 @@ class EffectMatrix(BaseEffect):
             return
         
         self.last_update = current_time
-                       
+
+        # Get dimensions based on config - THIS WAS MISSING
+        max_cols, max_rows = self.get_dimensions()
+
         # Clear screen based on config
         self.clear_screen()
         
