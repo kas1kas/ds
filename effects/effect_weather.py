@@ -15,19 +15,19 @@ class EffectWeather(BaseEffect):
 
     # Temperature stops every 5°C for smooth gradient
     TEMP_STOPS = [
-        (-20, (128, 0, 255)),   # purple
-        (-15, (96, 0, 255)),
-        (-10, (64, 0, 255)),
-        (-5,  (32, 0, 255)),
-        (0,   (0, 0, 255)),     # blue
-        (5,   (0, 255, 0)),     # green
-        (10,  (85, 255, 0)),     # yellow green
-        (15,  (170, 255, 0)),
-        (20,  (255, 255, 0)),   # yellow
-        (25,  (255, 180, 0)),
-        (30,  (255, 100, 0)),   # orange
-        (35,  (255, 50, 0)),
-        (40,  (255, 0, 0))      # red
+        (-20, (128,   0, 255)),   # purple
+        (-15, ( 96,   0, 255)),
+        (-10, ( 64,   0, 255)),
+        ( -5, ( 32,   0, 255)),
+        (  0, (  0,   0, 255)),   # blue
+        (  5, (  0, 255,   0)),   # green
+        ( 10, ( 85, 255,   0)),   # yellow green
+        ( 15, (170, 255,   0)),
+        ( 20, (255, 255,   0)),   # yellow
+        ( 25, (255, 180,   0)),
+        ( 30, (255, 100,   0)),   # orange
+        ( 35, (255,  50,   0)),
+        ( 40, (255,   0,   0))    # red
     ]
 
     # Wind direction to movement vector (dx, dy)
@@ -43,7 +43,7 @@ class EffectWeather(BaseEffect):
         'NW': (-0.707, 0.707)        # northwest → blows southeast (right+down)
     }
 
-    GAMMA = 2.2
+    GAMMA = 1
 
     def __init__(self, word_clock, variant_id=None):
         super().__init__(word_clock, variant_id)
@@ -54,15 +54,15 @@ class EffectWeather(BaseEffect):
 
         # Wind band parameters – adjusted for visibility
         self.wavelength = 8.0           # larger → fewer bands on screen
-        self.amplitude = 0.7            # darkness factor (0.7 = 30% brightness min)
-        self.band_sharpness = 3.0       # lower = smoother, wider band
-        self.speed_scale = 0.5          # maps m/s to offset units per second
+        self.amplitude = 0.85            # darkness factor (0.7 = 30% brightness min)
+        self.band_sharpness = 5.0       # lower = smoother, wider band
+        self.speed_scale = 1          # maps m/s to offset units per second
 
         # Precipitation parameters
         self.precip_scale = 0.15        # spawn probability per column per second per mm/h
         self.drop_speed_range = (1.5, 3.5)  # rows per second
         self.drop_color = (64, 0, 255)   # purple
-        self.max_drops = 200             # prevent overflow
+        self.max_drops = 150             # prevent overflow
         self.drops = []                  # list of active drops: {'col': c, 'row': r, 'speed': s}
 
         # Gamma correction lookup table
