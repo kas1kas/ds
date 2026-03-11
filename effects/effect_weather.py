@@ -8,7 +8,7 @@ class EffectWeather(BaseEffect):
     Weather effect for word clock.
     - Background color based on temperature (windy.com style).
     - Moving dark band (narrow and pronounced) based on wind speed/direction.
-    - Grey raindrops falling, density controlled by precipitation.
+    - Raindrops falling, density controlled by precipitation.
     - Time displayed in white on top.
     """
     name = "Weather"
@@ -20,13 +20,13 @@ class EffectWeather(BaseEffect):
         (-10, (64, 0, 255)),
         (-5,  (32, 0, 255)),
         (0,   (0, 0, 255)),     # blue
-        (5,   (0, 128, 255)),
-        (10,  (0, 255, 0)),     # green
-        (15,  (128, 255, 0)),
+        (5,   (0, 255, 0)),     # green
+        (10,  (85, 255, 0)),     # yellow green
+        (15,  (170, 255, 0)),
         (20,  (255, 255, 0)),   # yellow
-        (25,  (255, 210, 0)),
-        (30,  (255, 165, 0)),   # orange
-        (35,  (255, 83, 0)),
+        (25,  (255, 180, 0)),
+        (30,  (255, 100, 0)),   # orange
+        (35,  (255, 50, 0)),
         (40,  (255, 0, 0))      # red
     ]
 
@@ -61,7 +61,7 @@ class EffectWeather(BaseEffect):
         # Precipitation parameters
         self.precip_scale = 0.15        # spawn probability per column per second per mm/h
         self.drop_speed_range = (1.5, 3.5)  # rows per second
-        self.drop_color = (60, 60, 60)   # grey
+        self.drop_color = (64, 0, 255)   # purple
         self.max_drops = 200             # prevent overflow
         self.drops = []                  # list of active drops: {'col': c, 'row': r, 'speed': s}
 
