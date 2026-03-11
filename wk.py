@@ -1,6 +1,6 @@
-__version__ = "7.41"
+__version__ = "7.42"
 # Woordklok - Plugin version
-# new LUT and brighness
+# 16x16 support
 import argparse
 import json
 import logging
@@ -121,7 +121,7 @@ class WordClock:
         self.smoothing_alpha = 0.90     # 0.9 → slow, smooth fade, 0.5 → faster response, less smoothing, 0.1 → almost no smoothing (reacts instantly)
 
         self.temperature = 24
-        self.precipitation = 2
+        self.precipitation = 5
         self.wind_speed = 5
         self.wind_direction = 270
         
@@ -163,9 +163,9 @@ class WordClock:
         if self.light_sensor_type == "TSL2591":
             self.lux_hysteresis = 0.05
         elif self.light_sensor_type == "BH1750":
-            self.lux_hysteresis = 1.0
+            self.lux_hysteresis = 0.9
         else:
-            self.lux_hysteresis = 1.0  # safe default for unknown sensors
+            self.lux_hysteresis = 0.9  # safe default for unknown sensors
             logging.warning(f"Unknown sensor type '{self.light_sensor_type}', using default hysteresis")
         
         # Start light sensor thread
@@ -190,13 +190,11 @@ class WordClock:
         self.effects = {}
         self.current_effect_id = self.default_effect  # Default
         
-        # Discover and create all effects
-        #extra logging
+        # Discover effects
         effects_info = discover_effects()
         #logging.info(f"WK - Discovered effects: {list(effects_info.keys())}")
         
-        # In WordClock.__init__, when creating effects:
-        effects_info = discover_effects()
+        # Creating effects:
         for effect_id, info in effects_info.items():
             try:
                 effect_class = info['class']
@@ -288,7 +286,7 @@ class WordClock:
                 if self.light_sensor_type == "TSL2591":
                     full, ir = self.light_sensor.get_full_luminosity()
                     self._lux = self.light_sensor.calculate_lux(full, ir)
-                else:  # BH1750
+                elif self.light_sensor_type == "BH1750":
                     self._lux = self.light_sensor.measure_high_res()
             except Exception as e:
                 logging.error(f"Sensor read failed: {e}")
