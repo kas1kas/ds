@@ -1,11 +1,10 @@
 <!DOCTYPE html>
-<!--version: 7.41 -->
+<!--version: 7.43 -->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Woordklok Control</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/spectrum/1.8.1/spectrum.min.css">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -24,16 +23,16 @@
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             text-align: center;
             width: 100%;
-            max-width: 300px;
+            max-width: 400px;
         }
         .container h3 {
            margin-top: 0;
            margin-bottom: 10px; 
-       }
+        }
         .container h6 {
            margin-top: 0;
            margin-bottom: 6px; 
-       }
+        }
         .brightness-display {
             margin-bottom: 10px;
             font-size: 18px;
@@ -46,7 +45,6 @@
             border-bottom: 1px solid blue;
             justify-content: center;
         }
-        /* Unified button styles */
         .action-btn {
             width: 50%;
             padding: 4px 4px;
@@ -57,18 +55,11 @@
             color: #fff;
             font-size: 16px;
         }
-        .btn-green {
-            background-color: #28a745;
-        }
-        .btn-green:hover {
-            background-color: #218838;
-        }
-        .btn-blue {
-            background-color: #007bff;
-        }
-        .btn-blue:hover {
-            background-color: #0056b3;
-        }
+        .btn-green { background-color: #28a745; }
+        .btn-green:hover { background-color: #218838; }
+        .btn-blue { background-color: #007bff; }
+        .btn-blue:hover { background-color: #0056b3; }
+
         .settings {
             margin-top: 10px;
             display: flex;
@@ -82,30 +73,78 @@
             width: 50%;
             border-radius: 5px;
             border: 1px solid #ccc;
-            align-items: center;
-            justify-content: center;
         }
+
+        /* Color picker area */
         .color-picker-container {
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             margin-bottom: 10px;
-            gap: 10px;
+            gap: 8px;
+            width: 100%;
         }
-        .rgb-value {
-            font-size: 14px;
-            font-family: monospace;
+
+        /* RGB number inputs */
+        .rgb-inputs {
+            display: flex;
+            gap: 6px;
+        }
+        .rgb-inputs label {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 13px;
             font-weight: bold;
         }
-        /* Modal Styles (if needed) */
+        .rgb-inputs input {
+            width: 55px;
+            padding: 4px;
+            text-align: center;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        /* Swatch toggle button */
+        #swatchBtn {
+            width: 60px;
+            height: 60px;
+            border-radius: 8px;
+            border: 2px solid #ccc;
+            cursor: pointer;
+            display: block;
+            margin: 0 auto;
+        }
+
+        /* vanilla-picker inline layout - hidden by default */
+        #pickerAnchor {
+            display: none;
+        }
+        #pickerAnchor.open {
+            display: block;
+        }
+        #pickerAnchor .picker_wrapper {
+            position: relative !important;
+            box-shadow: none !important;
+            width: 360px !important;
+        }
+        #pickerAnchor .picker_sl {
+            width: 300px !important;
+            height: 300px !important;
+        }
+        #pickerAnchor .picker_hue {
+            width: 300px !important;
+        }
+
+        /* Modal Styles */
         .modal {
             display: none;
             position: fixed;
             z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 50%;
-            height: 100%;
+            left: 0; top: 0;
+            width: 50%; height: 100%;
             background-color: rgba(0,0,0,0.4);
         }
         .modal-content {
@@ -124,9 +163,7 @@
             font-weight: bold;
             cursor: pointer;
         }
-        .close:hover {
-            color: black;
-        }
+        .close:hover { color: black; }
     </style>
 </head>
 <body>
@@ -134,10 +171,19 @@
         <h3>Woordklok</h3>
         <h3>{{woordklok_name}}</h3>
         <div class="line"></div>
+
         <div class="color-picker-container">
-            <input type="text" id="colorPicker">
-            <span id="rgbValue" class="rgb-value">RGB({{ initial_color[0] }}, {{ initial_color[1] }}, {{ initial_color[2] }})</span>
+            <!-- Swatch button toggles picker -->
+            <button id="swatchBtn" onclick="togglePicker()" title="Pick colour"></button>
+            <div id="pickerAnchor"></div>
+            <!-- RGB inputs stay in sync -->
+            <div class="rgb-inputs">
+                <label>R <input type="number" id="rVal" min="0" max="255" value="{{ initial_color[0] }}"></label>
+                <label>G <input type="number" id="gVal" min="0" max="255" value="{{ initial_color[1] }}"></label>
+                <label>B <input type="number" id="bVal" min="0" max="255" value="{{ initial_color[2] }}"></label>
+            </div>
         </div>
+
         <div class="line"></div>
         <div class="settings">
             <label for="clock_type"><b>Display:</b></label>
@@ -148,130 +194,157 @@
                 </option>
                 {% endfor %}
             </select>
-            
+
             <label for="purist"><b>Purist mode:</b></label>
             <select id="purist" onchange="updateSettings()">
                 <option value="true" {% if initial_purist == True %}selected{% endif %}>True</option>
                 <option value="false" {% if initial_purist == False %}selected{% endif %}>False</option>
             </select>
-            
+
             <label for="language"><b>Language:</b></label>
             <select id="language" onchange="updateSettings()">
                 <option value="NL" {% if initial_language == "NL" %}selected{% endif %}>NL</option>
                 <option value="EN" {% if initial_language == "EN" %}selected{% endif %}>EN</option>
             </select>
         </div>
+
         <div class="line"></div>
         <div class="brightness-display">
-            <h6><span>Lux:Bright = </span>
-            <span id="brightnessValue">0</span></h6>
+            <h6><span>Lux:Bright = </span><span id="brightnessValue">0</span></h6>
         </div>
         <div class="line"></div>
         <h6>GraWoosh {{woordklok_version}}</h6>
     </div>
 
-    <!-- Effect settings container removed -->
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/spectrum/1.8.1/spectrum.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vanilla-picker@2.12.3/dist/vanilla-picker.min.js"></script>
     <script>
-        $(document).ready(function () {
-            // Initialize color picker
-            const initialColor = {
-                r: {{ initial_color[0] }},
-                g: {{ initial_color[1] }},
-                b: {{ initial_color[2] }}
-            };
+        const rVal = document.getElementById('rVal');
+        const gVal = document.getElementById('gVal');
+        const bVal = document.getElementById('bVal');
 
-            $("#colorPicker").spectrum({
-                color: `rgb(${initialColor.r}, ${initialColor.g}, ${initialColor.b})`,
-                preferredFormat: "rgb",
-                showInput: true,
-                showInitial: true,
-                allowEmpty: false,
-                change: function(color) {
-                    const rgbColor = color.toRgb();
-                    $("#rgbValue").text(`RGB(${rgbColor.r}, ${rgbColor.g}, ${rgbColor.b})`);
-                    
-                    // Send color immediately when changed
-                    setColor(rgbColor);
-                }
-            });
-            
-            // Function to update clock type
-            window.updateClockType = function() {
-                const select = document.getElementById('clock_type');
-                const effectId = select.value;
-                
-                fetch('/set_effect', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({effect_id: effectId})
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        console.log('Effect changed to', effectId);
-                    }
-                })
-                .catch(error => console.error('Error:', error));
-            };
+        const initialColor = {
+            r: {{ initial_color[0] }},
+            g: {{ initial_color[1] }},
+            b: {{ initial_color[2] }}
+        };
 
-            // Function to set color via AJAX
-            function setColor(color) {
-                $.ajax({
-                    url: "/set_color",
-                    type: "POST",
-                    data: {
-                        red: color.r,
-                        green: color.g,
-                        blue: color.b
-                    },
-                    success: function() {
-                        console.log("Color updated successfully");
-                    },
-                    error: function(xhr) {
-                        console.error("Error updating color:", xhr.responseText);
-                        alert("Failed to update color");
-                    }
-                });
+        function rgbToHex(r, g, b) {
+            return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
+        }
+
+        // Set initial swatch colour
+        document.getElementById('swatchBtn').style.backgroundColor =
+            `rgb(${initialColor.r},${initialColor.g},${initialColor.b})`;
+
+        // Prevent feedback loop when picker updates inputs
+        let updatingFromPicker = false;
+
+        // Initialise vanilla-picker - popup:false means always visible inline
+        const picker = new Picker({
+            parent: document.getElementById('pickerAnchor'),
+            popup: false,
+            alpha: false,
+            editor: false,
+            color: rgbToHex(initialColor.r, initialColor.g, initialColor.b),
+            onChange: function(color) {
+                const r = Math.round(color.rgba[0]);
+                const g = Math.round(color.rgba[1]);
+                const b = Math.round(color.rgba[2]);
+                updatingFromPicker = true;
+                rVal.value = r;
+                gVal.value = g;
+                bVal.value = b;
+                updatingFromPicker = false;
+                document.getElementById('swatchBtn').style.backgroundColor = `rgb(${r},${g},${b})`;
+                setColor({ r, g, b });
             }
-
-           // Display Brightness
-            {% if has_light_sensor %}
-            function updateBrightness() {
-                $.get("/show_brightness", function(data) {
-                    if (data.brightness) {
-                        $("#brightnessValue").text(data.brightness);
-                    }
-                }).fail(function(xhr) {
-                    console.error("Error getting brightness:", xhr.responseText);
-                });
-            }
-            setInterval(updateBrightness, 1000);
-            updateBrightness();
-            {% endif %}
-
-            // Update settings
-            window.updateSettings = function() {
-               const settings = {
-                   language: document.getElementById("language").value,
-                   purist: document.getElementById("purist").value
-               };
-               
-               // Send all settings at once
-               fetch('/update_settings', {
-                   method: 'POST',
-                   headers: {'Content-Type': 'application/json'},
-                   body: JSON.stringify(settings)
-               })
-               .then(response => {
-                   if (!response.ok) throw new Error('Network response was not ok');
-                   console.log("Settings updated successfully");
-               })
-               .catch(error => console.error('Error:', error));
-           }
         });
+
+        // Sync RGB number inputs back to picker
+        function updateFromInputs() {
+            if (updatingFromPicker) return;
+            const r = Math.min(255, Math.max(0, parseInt(rVal.value) || 0));
+            const g = Math.min(255, Math.max(0, parseInt(gVal.value) || 0));
+            const b = Math.min(255, Math.max(0, parseInt(bVal.value) || 0));
+            picker.setColor(rgbToHex(r, g, b), true);
+            document.getElementById('swatchBtn').style.backgroundColor = `rgb(${r},${g},${b})`;
+            setColor({ r, g, b });
+        }
+
+        rVal.addEventListener('change', updateFromInputs);
+        gVal.addEventListener('change', updateFromInputs);
+        bVal.addEventListener('change', updateFromInputs);
+
+        // --- Toggle picker visibility ---
+        function togglePicker() {
+            const anchor = document.getElementById('pickerAnchor');
+            anchor.classList.toggle('open');
+        }
+
+        // --- Set color via fetch ---
+        function setColor(color) {
+            const formData = new FormData();
+            formData.append('red', color.r);
+            formData.append('green', color.g);
+            formData.append('blue', color.b);
+
+            fetch('/set_color', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) throw new Error('Network response was not ok');
+                console.log("Color updated successfully");
+            })
+            .catch(error => {
+                console.error("Error updating color:", error);
+                alert("Failed to update color");
+            });
+        }
+
+        // --- Update clock type ---
+        function updateClockType() {
+            const select = document.getElementById('clock_type');
+            fetch('/set_effect', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({effect_id: select.value})
+            })
+            .then(response => response.json())
+            .then(data => { if (data.status === 'success') console.log('Effect changed to', select.value); })
+            .catch(error => console.error('Error:', error));
+        }
+
+        // --- Update settings ---
+        function updateSettings() {
+            const settings = {
+                language: document.getElementById("language").value,
+                purist: document.getElementById("purist").value
+            };
+            fetch('/update_settings', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(settings)
+            })
+            .then(response => { if (!response.ok) throw new Error('Network response was not ok'); })
+            .catch(error => console.error('Error:', error));
+        }
+
+        // --- Brightness polling ---
+        {% if has_light_sensor %}
+        function updateBrightness() {
+            fetch('/show_brightness')
+            .then(response => response.json())
+            .then(data => {
+                if (data.brightness) {
+                    document.getElementById('brightnessValue').textContent = data.brightness;
+                }
+            })
+            .catch(error => console.error("Error getting brightness:", error));
+        }
+        setInterval(updateBrightness, 1000);
+        updateBrightness();
+        {% endif %}
     </script>
 </body>
 </html>
