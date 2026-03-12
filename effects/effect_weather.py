@@ -53,10 +53,10 @@ class EffectWeather(BaseEffect):
         self.last_time = time.time()
 
         # Wind band parameters – adjusted for visibility
-        self.wavelength = 8.0           # larger → fewer bands on screen
-        self.amplitude = 0.85            # darkness factor (0.7 = 30% brightness min)
+        self.wavelength = 9.0           # larger → fewer bands on screen
+        self.amplitude = 0.6            # darkness factor (0.7 = 30% brightness min)
         self.band_sharpness = 5.0       # lower = smoother, wider band
-        self.speed_scale = 1          # maps m/s to offset units per second
+        self.speed_scale = 1            # maps m/s to offset units per second
 
         # Precipitation parameters
         self.precip_scale = 0.15        # spawn probability per column per second per mm/h
