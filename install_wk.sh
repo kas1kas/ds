@@ -53,9 +53,25 @@ log "Running apt update..."
 sudo apt update -y >> "$LOGFILE" 2>&1
 check "apt update failed"
 
-log "Installing git, python3-dev and python3-venv..."
+log "Installing ahavi, git, python3-dev and python3-venv..."
+sudo apt install -y avahi-daemon avahi-utils >> "$LOGFILE" 2>&1
 sudo apt install git python3-dev python3-venv -y >> "$LOGFILE" 2>&1
 check "apt install failed"
+
+log "Configuring mDNS and disabling IPv6"
+# Disable IPv6 at kernel level
+if ! grep -q "disable_ipv6" /etc/sysctl.conf; then
+    echo "net.ipv6.conf.all.disable_ipv6 = 1" | sudo tee -a /etc/sysctl.conf
+    echo "net.ipv6.conf.default.disable_ipv6 = 1" | sudo tee -a /etc/sysctl.conf
+fi
+sudo sysctl -p
+
+# Configure avahi to use IPv4 only (idempotent)
+sudo sed -i '/^use-ipv6/d' /etc/avahi/avahi-daemon.conf
+sudo sed -i '/^use-ipv4/d' /etc/avahi/avahi-daemon.conf
+sudo sed -i '/^\[server\]/a use-ipv4=yes\nuse-ipv6=no' /etc/avahi/avahi-daemon.conf
+sudo systemctl enable avahi-daemon
+sudo systemctl restart avahi-daemon
 
 log "STEP 1 complete."
 
