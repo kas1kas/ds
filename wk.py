@@ -1,6 +1,6 @@
-__version__ = "7.42"
+__version__ = "7.44"
 # Woordklok - Plugin version
-# 16x16 support
+# rc 1
 import argparse
 import json
 import logging
@@ -166,7 +166,6 @@ class WordClock:
             self.lux_hysteresis = 0.9
         else:
             self.lux_hysteresis = 0.9  # safe default for unknown sensors
-            logging.warning(f"Unknown sensor type '{self.light_sensor_type}', using default hysteresis")
         
         # Start light sensor thread
         if self.light_sensor != "none":
@@ -186,7 +185,7 @@ class WordClock:
         else:
             logging.info("Weather updates disabled")
     
-        # Load effects - simple dictionary of effect instances
+        # Init effects
         self.effects = {}
         self.current_effect_id = self.default_effect  # Default
         
@@ -194,7 +193,7 @@ class WordClock:
         effects_info = discover_effects()
         #logging.info(f"WK - Discovered effects: {list(effects_info.keys())}")
         
-        # Creating effects:
+        # Create effects:
         for effect_id, info in effects_info.items():
             try:
                 effect_class = info['class']
@@ -341,7 +340,6 @@ class WordClock:
             # Only update stable_lux if change exceeds hysteresis threshold
             if abs(lux - self._stable_lux) > self.lux_hysteresis:
                 self._stable_lux = lux
-
             
             lux = max(self.lut_in[0], min(self._stable_lux, self.lut_in[-1]))
             
@@ -510,7 +508,7 @@ class WordClock:
       
     def cls(self):
         """Clear LEDs to background color"""
-        if hasattr(self, 'effect_full_panel') and not self.effect_full_panel:
+        if not self.effect_full_panel:
             # Power saving mode - only clear clock area
             for x in range(self.clock_columns):  # 0-10
                 for y in range(self.clock_rows):  # 0-9
@@ -526,7 +524,7 @@ class WordClock:
            When effect_full_panel is True, x,y are relative to full panel (0-15, 0-15)
         """
         if self.grid == "16":
-            if hasattr(self, 'effect_full_panel') and not self.effect_full_panel:
+            if not self.effect_full_panel:
                 # Power saving mode - x,y are clock area coordinates (0-10, 0-9)
                 # Map to full panel coordinates with offset
                 panel_x = x + 2  # Clock area starts at column 2
