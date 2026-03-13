@@ -71,6 +71,9 @@ class EffectRainbow(BaseEffect):
         
         # Use clear_screen() instead of cls() to respect effect_full_panel setting
         self.clear_screen()
+
+        # Get background brightness factor
+        bg_factor = self.word_clock.background_brightness_factor
         
         # Get dimensions based on config
         max_cols, max_rows = self.get_dimensions()
@@ -106,6 +109,16 @@ class EffectRainbow(BaseEffect):
                     k = (x * 37 + y * 53 + self.j) & 255
                 
                 color = self.kwheel(k)
+
+                # Apply background dimming to all pixels
+                # The time overlay will be drawn bright on top
+                if bg_factor < 1.0:
+                    color = (
+                        int(color[0] * bg_factor),
+                        int(color[1] * bg_factor),
+                        int(color[2] * bg_factor)
+                    )
+                
                 self.word_clock.setcolor_x_y(x, y, color)
         
         self.word_clock.update_clock()
