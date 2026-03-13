@@ -1,6 +1,6 @@
-__version__ = "7.44"
+__version__ = "7.45"
 # Woordklok - Plugin version
-# rc 1
+# rc 2
 import argparse
 import json
 import logging
@@ -98,6 +98,7 @@ class WordClock:
         self.led_dma = 10
         self.led_channel = 0
         self.def_brightness = config["DEF_BRIGHTNESS"]
+        self.background_brightness_factor = config["BG_BRIGHTNESS_FACTOR"]
         self.last_brightness = config["DEF_BRIGHTNESS"]
         self.background_color = config["BACKGROUND_COLOR"]
         self.letter_active_color = config["LETTER_ACTIVE_COLOR"]
@@ -360,8 +361,14 @@ class WordClock:
             self.strip.setBrightness(int(self.last_brightness))
     
         except Exception as e:
-            logging.error(f"Failed to update brightness: {e}")    
-    
+            logging.error(f"Failed to update brightness: {e}")
+            
+    def set_background_brightness(self, value):
+        """Update background brightness dynamically."""
+        self.background_brightness_factor = max(0.0, min(1.0, float(value)))
+        # Optionally save to config
+        # self.save_config()
+        
     def update_language(self, new_language):
         return self.language_settings.update_language(new_language)
 
