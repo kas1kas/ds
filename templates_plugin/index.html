@@ -210,7 +210,7 @@
 
         <div class="line"></div>
         <div class="control-group">
-            <label for="bg-brightness">Background Brightness: <span id="bg-value">100%</span></label>
+            <label for="bg-brightness">Background: <span id="bg-value">--%</span></label>
             <input type="range" 
                    id="bg-brightness" 
                    min="0" 
@@ -319,7 +319,7 @@
             document.getElementById('bg-value').textContent = Math.round(value * 100) + '%';
             
             // Send to server
-            fetch('/api/set_background_brightness', {
+            fetch('/set_background_brightness', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({value: parseFloat(value)})
@@ -327,7 +327,7 @@
         }
         
         // Load initial value
-        fetch('/api/get_background_brightness')
+        fetch('/get_background_brightness')
             .then(response => response.json())
             .then(data => {
                 document.getElementById('bg-brightness').value = data.value;
