@@ -26,6 +26,11 @@ class EffectRandom(BaseEffect):
         x = random.randint(0, max_cols - 1)
         y = random.randint(0, max_rows - 1)
         color = self.word_clock.random_color(self.tint)
+
+        # Apply current background brightness dynamically
+        # This will use the latest slider value
+        color = self.apply_background_brightness(color)
+        
         self.word_clock.setcolor_x_y(x, y, color)
         
         # Overlay the time
