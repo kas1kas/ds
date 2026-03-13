@@ -1,4 +1,4 @@
-__version__ = "7.41"
+__version__ = "7.45"
 import logging
 import bisect
 import time
@@ -115,4 +115,22 @@ def register_routes():
             return jsonify({"brightness": f"{lux}:  {brightness}"}), 200
         except Exception as e:
             logging.error(f"Failed to fetch brightness: {e}")
-            return jsonify({"brightness": "Error reading sensor"}), 500        
+            return jsonify({"brightness": "Error reading sensor"}), 500  
+            
+    # ================== Back_ground BRIGHTNESS ROUTES ================
+    @app.route('/set_background_brightness', methods=['POST'])
+    def set_background_brightness():
+        data = request.json
+        value = data.get('value', 1.0)
+        
+        if word_clock:
+            word_clock.set_background_brightness(value)
+            return jsonify({'success': True, 'value': value})
+        return jsonify({'success': False}), 400
+    
+    @app.route('/get_background_brightness', methods=['GET'])
+    def get_background_brightness():
+        if word_clock:
+            value = word_clock.background_brightness_factor
+            return jsonify({'value': value})
+        return jsonify({'value': 1.0})
