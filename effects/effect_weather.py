@@ -121,6 +121,9 @@ class EffectWeather(BaseEffect):
         direction = self.word_clock.wind_direction
         precip = self.word_clock.precipitation
 
+        # Get background_factor
+        bg_factor = self.word_clock.background_brightness_factor
+        
         # Clear screen based on config
         self.clear_screen()
 
@@ -135,12 +138,6 @@ class EffectWeather(BaseEffect):
         if random.random() < 0.01:  # ~1% of frames
             bg_factor = self.word_clock.background_brightness_factor
             print(f"BG Factor: {bg_factor}, Base color: {base_color}")
-
-        bg_factor = self.apply_background_brightness(base_color)
-
-        # Debug: compare colors
-        if random.random() < 0.01:
-            print(f"After dim: {bg_color}")
 
         # 2. Wind movement update
         self.offset += speed * self.speed_scale * dt
