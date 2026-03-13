@@ -209,6 +209,17 @@
         </div>
 
         <div class="line"></div>
+        <div class="control-group">
+            <label for="bg-brightness">Background Brightness: <span id="bg-value">100%</span></label>
+            <input type="range" 
+                   id="bg-brightness" 
+                   min="0" 
+                   max="1" 
+                   step="0.01" 
+                   value="1.0"
+                   oninput="updateBackgroundBrightness(this.value)">
+        </div>
+        <div class="line"></div>
         <div class="brightness-display">
             <h6><span>Lux:Bright = </span><span id="brightnessValue">0</span></h6>
         </div>
@@ -301,7 +312,28 @@
                 alert("Failed to update color");
             });
         }
-
+        
+        // ---- Background slider ---
+        function updateBackgroundBrightness(value) {
+            // Update display
+            document.getElementById('bg-value').textContent = Math.round(value * 100) + '%';
+            
+            // Send to server
+            fetch('/api/set_background_brightness', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({value: parseFloat(value)})
+            });
+        }
+        
+        // Load initial value
+        fetch('/api/get_background_brightness')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('bg-brightness').value = data.value;
+                document.getElementById('bg-value').textContent = Math.round(data.value * 100) + '%';
+            });
+        
         // --- Update clock type ---
         function updateClockType() {
             const select = document.getElementById('clock_type');
