@@ -153,6 +153,12 @@ class EffectWeather(BaseEffect):
                 r = int(base_color[0] * factor)
                 g = int(base_color[1] * factor)
                 b = int(base_color[2] * factor)
+
+                # Apply background dimming AFTER wind effect
+                r = int(r * bg_factor)
+                g = int(g * bg_factor)
+                b = int(b * bg_factor)
+                                
                 r = max(0, min(255, r))
                 g = max(0, min(255, g))
                 b = max(0, min(255, b))
