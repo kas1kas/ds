@@ -133,11 +133,10 @@ class EffectWeather(BaseEffect):
         # 1. Background color from temperature
         base_color = self._temperature_to_rgb(temp)
 
-        # Apply current background brightness dynamically
         # Debug: print values occasionally
-        if random.random() < 0.01:  # ~1% of frames
-            bg_factor = self.word_clock.background_brightness_factor
-            print(f"BG Factor: {bg_factor}, Base color: {base_color}")
+#        if random.random() < 0.01:  # ~1% of frames
+#            bg_factor = self.word_clock.background_brightness_factor
+#            print(f"BG Factor: {bg_factor}, Base color: {base_color}")
 
         # 2. Wind movement update
         self.offset += speed * self.speed_scale * dt
