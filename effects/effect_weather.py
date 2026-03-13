@@ -131,9 +131,8 @@ class EffectWeather(BaseEffect):
         base_color = self._temperature_to_rgb(temp)
 
         # Apply current background brightness dynamically
-        # This will use the latest slider value every frame
-        bg_color = self.apply_background_brightness(base_color)
-
+        bg_factor = self.word_clock.background_brightness_factor
+        
         # 2. Wind movement update
         self.offset += speed * self.speed_scale * dt
 
