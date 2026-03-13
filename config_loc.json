@@ -1,5 +1,5 @@
 {
-    "VERSION": "7.41",
+    "VERSION": "7.45",
     "PURIST": true,
     "WOORDKLOK": "name",
     "LANGUAGE": "NL",
@@ -13,6 +13,7 @@
     "WEATHER_UPDATE_INTERVAL": 300,
     "LIGHT_INTERVAL": 1,
     "DEF_BRIGHTNESS" : 10,
+    "BG_BRIGHTNESS_FACTOR": 0.9,
     "BACKGROUND_COLOR": [0, 0, 0],
     "LETTER_ACTIVE_COLOR": [255, 255, 255],
     "DOT_ACTIVE_COLOR": [255, 255, 255],
