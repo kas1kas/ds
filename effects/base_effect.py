@@ -58,7 +58,7 @@ class BaseEffect:
     def apply_background_brightness(self, color):
         """Apply background brightness factor to a color.
         Can be called dynamically as the factor changes."""
-        factor = getattr(self.word_clock, 'background_brightness_factor', 1.0)
+        factor = self.word_clock.background_brightness_factor
         
         # Only apply if factor < 1.0 (optimization)
         if factor >= 1.0:
@@ -72,7 +72,7 @@ class BaseEffect:
     
     def get_background_brightness(self):
         """Get current background brightness factor."""
-        return getattr(self.word_clock, 'background_brightness_factor', 1.0)    
+        return self.word_clock.background_brightness_factor   
             
     def draw(self):
         """Draw one frame. Called every loop iteration."""
