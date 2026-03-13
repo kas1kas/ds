@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!--version: 8.1 - Compact layout -->
+<!--version: 8.1 - Compact layout with increased sizing -->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -40,12 +40,13 @@
             --slider-track: linear-gradient(90deg, #ff006e, #fb5607, #ffbe0b);
             --select-border: 2px solid var(--primary-color);
             
-            /* Spacing - REDUCED for compact layout */
-            --spacing-xs: 4px;
-            --spacing-sm: 6px;
-            --spacing-md: 10px;
-            --spacing-lg: 14px;
-            --spacing-xl: 20px;
+            /* ===== SPACING - ADJUST THESE VALUES ===== */
+            /* Increase these for more vertical breathing room */
+            --spacing-xs: 8px;     /* WAS: 4px - INCREASED for more space */
+            --spacing-sm: 12px;    /* WAS: 6px - INCREASED for more space */
+            --spacing-md: 16px;    /* WAS: 10px - INCREASED for more space */
+            --spacing-lg: 20px;    /* WAS: 14px - INCREASED for more space */
+            --spacing-xl: 28px;    /* WAS: 20px - INCREASED for more space */
             
             /* Animations */
             --transition-speed: 0.3s;
@@ -87,7 +88,7 @@
             box-shadow: var(--card-shadow);
             text-align: center;
             width: 100%;
-            max-width: 400px; /* Slightly narrower for compact look */
+            max-width: 400px;
             margin: auto;
             transition: transform var(--transition-speed);
             border: 1px solid rgba(255, 255, 255, 0.3);
@@ -97,25 +98,25 @@
             transform: translateY(-5px);
         }
 
-        /* ===== TYPOGRAPHY ===== */
+        /* ===== TYPOGRAPHY - ADJUST FONT SIZES HERE ===== */
         h3 {
             color: var(--text-primary);
             margin: 0 0 var(--spacing-xs) 0;
-            font-size: 1.4rem; /* Slightly smaller */
+            font-size: 1.8rem;     /* WAS: 1.4rem - INCREASED for larger title */
             font-weight: 600;
             letter-spacing: -0.5px;
         }
 
         h3:last-of-type {
             color: var(--secondary-color);
-            font-size: 1.1rem; /* Slightly smaller */
+            font-size: 1.4rem;     /* WAS: 1.1rem - INCREASED for subtitle */
             margin-bottom: var(--spacing-sm);
         }
 
         h6 {
             color: var(--text-light);
             margin: var(--spacing-xs) 0 0 0;
-            font-size: 0.75rem;
+            font-size: 0.8rem;      /* WAS: 0.75rem - INCREASED slightly */
             font-weight: 400;
         }
 
@@ -123,8 +124,8 @@
         .section {
             background: var(--section-bg);
             border-radius: 16px;
-            padding: var(--spacing-sm) var(--spacing-md);
-            margin: var(--spacing-sm) 0;
+            padding: 14px 16px;     /* WAS: var(--spacing-sm) var(--spacing-md) - INCREASED for more internal space */
+            margin: 16px 0;          /* WAS: var(--spacing-sm) 0 - INCREASED space between sections */
             border: var(--section-border);
             box-shadow: var(--section-shadow);
             backdrop-filter: blur(5px);
@@ -139,11 +140,11 @@
 
         .section-title {
             color: var(--text-primary);
-            font-size: 0.85rem;
+            font-size: 1.0rem;       /* WAS: 0.85rem - INCREASED for section headers */
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 1px;
-            margin-bottom: var(--spacing-xs);
+            margin-bottom: var(--spacing-sm);  /* WAS: xs - INCREASED spacing below title */
             text-align: left;
             padding-left: var(--spacing-xs);
         }
@@ -153,23 +154,23 @@
             display: none;
         }
 
-        /* ===== COLOR PICKER SECTION - COMPACT ===== */
+        /* ===== COLOR PICKER SECTION ===== */
         .color-picker-container {
             display: flex;
             align-items: center;
-            gap: var(--spacing-sm);
+            gap: var(--spacing-md);  /* WAS: sm - INCREASED gap between button and inputs */
             width: 100%;
         }
 
         #swatchBtn {
-            width: 44px;  /* Much smaller */
-            height: 44px; /* Much smaller */
-            border-radius: 12px; /* Square with slight rounding - more modern */
+            width: 48px;             /* WAS: 44px - INCREASED button size */
+            height: 48px;            /* WAS: 44px - INCREASED button size */
+            border-radius: 12px;
             border: 3px solid white;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
             cursor: pointer;
             transition: transform var(--transition-speed), box-shadow var(--transition-speed);
-            flex-shrink: 0; /* Prevent button from shrinking */
+            flex-shrink: 0;
         }
 
         #swatchBtn:hover {
@@ -188,7 +189,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            font-size: 0.7rem;
+            font-size: 0.8rem;       /* WAS: 0.7rem - INCREASED for readability */
             font-weight: 600;
             color: var(--text-secondary);
             flex: 1;
@@ -196,14 +197,14 @@
 
         .rgb-inputs input {
             width: 100%;
-            padding: var(--spacing-xs);
+            padding: 6px;             /* WAS: var(--spacing-xs) - INCREASED input padding */
             text-align: center;
             border: 2px solid #e0e0e0;
             border-radius: 8px;
-            font-size: 0.9rem;
+            font-size: 1.0rem;        /* WAS: 0.9rem - INCREASED input text */
             font-weight: 600;
             transition: all var(--transition-speed);
-            margin-top: 2px;
+            margin-top: 4px;           /* WAS: 2px - INCREASED spacing */
         }
 
         .rgb-inputs input:focus {
@@ -217,11 +218,11 @@
         .rgb-inputs label:nth-child(2) input { color: var(--success-color); }
         .rgb-inputs label:last-child input { color: var(--primary-color); }
 
-        /* ===== SETTINGS SECTION - COMPACT WITH INLINE DROPDOWNS ===== */
+        /* ===== SETTINGS SECTION ===== */
         .settings {
             display: flex;
             flex-direction: column;
-            gap: var(--spacing-xs);
+            gap: var(--spacing-md);    /* WAS: xs - INCREASED gap between setting rows */
             width: 100%;
         }
 
@@ -235,18 +236,18 @@
         .setting-row label {
             font-weight: 600;
             color: var(--text-primary);
-            font-size: 0.85rem;
-            min-width: 100px; /* Fixed width for labels */
+            font-size: 1.0rem;         /* WAS: 0.85rem - INCREASED label size */
+            min-width: 100px;
             text-align: left;
         }
 
         .setting-row select {
             flex: 1;
-            padding: var(--spacing-sm) var(--spacing-md);
+            padding: 10px 14px;        /* WAS: var(--spacing-sm) var(--spacing-md) - INCREASED select padding */
             border-radius: 10px;
             border: var(--select-border);
             background: white;
-            font-size: 0.9rem;
+            font-size: 1.1rem;         /* WAS: 0.9rem - INCREASED select text */
             font-weight: 500;
             color: var(--text-primary);
             cursor: pointer;
@@ -263,7 +264,7 @@
             box-shadow: 0 2px 8px rgba(114, 9, 183, 0.2);
         }
 
-        /* ===== SLIDER SECTION - COMPACT ===== */
+        /* ===== SLIDER SECTION ===== */
         .control-group {
             width: 100%;
         }
@@ -272,34 +273,34 @@
             display: block;
             font-weight: 600;
             color: var(--text-primary);
-            font-size: 0.85rem;
+            font-size: 1.0rem;         /* WAS: 0.85rem - INCREASED label size */
             text-align: left;
-            margin-bottom: 2px;
+            margin-bottom: 6px;         /* WAS: 2px - INCREASED space below label */
         }
 
         #bg-value {
             color: var(--secondary-color);
             background: rgba(114, 9, 183, 0.1);
-            padding: 2px 6px;
+            padding: 4px 8px;           /* WAS: 2px 6px - INCREASED padding */
             border-radius: 20px;
             margin-left: var(--spacing-xs);
-            font-size: 0.8rem;
+            font-size: 0.9rem;           /* WAS: 0.8rem - INCREASED slightly */
         }
 
         input[type=range] {
             -webkit-appearance: none;
             width: 100%;
-            height: 6px; /* Thinner */
+            height: 8px;                /* WAS: 6px - INCREASED slider height */
             border-radius: 10px;
             background: var(--slider-track);
             outline: none;
-            margin: var(--spacing-xs) 0;
+            margin: var(--spacing-sm) 0; /* WAS: xs - INCREASED margin around slider */
         }
 
         input[type=range]::-webkit-slider-thumb {
             -webkit-appearance: none;
-            width: 20px; /* Smaller thumb */
-            height: 20px;
+            width: 24px;                /* WAS: 20px - INCREASED thumb size */
+            height: 24px;               /* WAS: 20px - INCREASED thumb size */
             border-radius: 50%;
             background: white;
             border: 3px solid var(--primary-color);
@@ -316,22 +317,22 @@
         .brightness-display {
             background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
             border-radius: 16px;
-            padding: var(--spacing-sm);
+            padding: var(--spacing-md);  /* WAS: sm - INCREASED padding */
             margin: var(--spacing-xs) 0;
         }
 
         .brightness-display h6 {
             color: var(--text-white);
             margin: 0;
-            font-size: 0.9rem;
+            font-size: 1.0rem;           /* WAS: 0.9rem - INCREASED text size */
             font-weight: 500;
         }
 
         #brightnessValue {
-            font-size: 1rem;
+            font-size: 1.1rem;            /* WAS: 1.0rem - INCREASED slightly */
             font-weight: 700;
             background: rgba(255, 255, 255, 0.2);
-            padding: 2px 8px;
+            padding: 4px 10px;            /* WAS: 2px 8px - INCREASED padding */
             border-radius: 30px;
             display: inline-block;
             margin-left: var(--spacing-xs);
@@ -341,7 +342,7 @@
         #pickerAnchor {
             display: none;
             width: 100%;
-            margin-top: var(--spacing-sm);
+            margin-top: var(--spacing-md); /* WAS: sm - INCREASED space above picker */
         }
         
         #pickerAnchor.open {
@@ -363,22 +364,22 @@
 
         #pickerAnchor .picker_sl {
             width: 100% !important;
-            height: 200px !important; /* Smaller picker */
+            height: 220px !important;      /* WAS: 200px - INCREASED picker height */
             border-radius: 16px !important;
         }
 
         #pickerAnchor .picker_hue {
             width: 100% !important;
-            height: 24px !important; /* Thinner hue slider */
+            height: 28px !important;       /* WAS: 24px - INCREASED hue slider height */
             margin-top: var(--spacing-sm) !important;
             border-radius: 20px !important;
         }
 
         /* ===== FOOTER ===== */
         .footer {
-            margin-top: var(--spacing-sm);
+            margin-top: var(--spacing-lg);  /* WAS: sm - INCREASED space above footer */
             color: var(--text-light);
-            font-size: 0.7rem;
+            font-size: 0.8rem;              /* WAS: 0.7rem - INCREASED text size */
             opacity: 0.8;
         }
     </style>
@@ -388,7 +389,7 @@
         <h3>✨ Woordklok</h3>
         <h3>{{woordklok_name}}</h3>
 
-        <!-- Color Picker Section - Compact -->
+        <!-- Color Picker Section -->
         <div class="section">
             <div class="section-title">🎨 Theme Color</div>
             <div class="color-picker-container">
@@ -402,7 +403,7 @@
             <div id="pickerAnchor"></div>
         </div>
 
-        <!-- Display Settings Section - Compact with inline dropdowns -->
+        <!-- Display Settings Section -->
         <div class="section">
             <div class="section-title">⚙️ Display Settings</div>
             <div class="settings">
