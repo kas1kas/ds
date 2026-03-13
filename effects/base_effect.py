@@ -53,7 +53,26 @@ class BaseEffect:
                     self.word_clock.setcolor_x_y(x, y, (0, 0, 0))
         else:
             # Clear only clock area
-            self.word_clock.cls()  # Original cls method clears only clock area        
+            self.word_clock.cls()  # Original cls method clears only clock area
+            
+    def apply_background_brightness(self, color):
+        """Apply background brightness factor to a color.
+        Can be called dynamically as the factor changes."""
+        factor = getattr(self.word_clock, 'background_brightness_factor', 1.0)
+        
+        # Only apply if factor < 1.0 (optimization)
+        if factor >= 1.0:
+            return color
+            
+        return (
+            int(color[0] * factor),
+            int(color[1] * factor),
+            int(color[2] * factor)
+        )
+    
+    def get_background_brightness(self):
+        """Get current background brightness factor."""
+        return getattr(self.word_clock, 'background_brightness_factor', 1.0)    
             
     def draw(self):
         """Draw one frame. Called every loop iteration."""
