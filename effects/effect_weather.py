@@ -136,7 +136,7 @@ class EffectWeather(BaseEffect):
             bg_factor = self.word_clock.background_brightness_factor
             print(f"BG Factor: {bg_factor}, Base color: {base_color}")
 
-        bg_color = self.apply_background_brightness(base_color)
+        bg_factor = self.apply_background_brightness(base_color)
 
         # Debug: compare colors
         if random.random() < 0.01:
