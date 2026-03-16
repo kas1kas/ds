@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!--version: 8.1 - Compact layout with increased sizing -->
+<!--version: 8.2 - Compact layout with increased sizing -->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -42,11 +42,11 @@
             
             /* ===== SPACING - ADJUST THESE VALUES ===== */
             /* Increase these for more vertical breathing room */
-            --spacing-xs: 8px;     /* WAS: 4px - INCREASED for more space */
-            --spacing-sm: 12px;    /* WAS: 6px - INCREASED for more space */
-            --spacing-md: 16px;    /* WAS: 10px - INCREASED for more space */
-            --spacing-lg: 20px;    /* WAS: 14px - INCREASED for more space */
-            --spacing-xl: 28px;    /* WAS: 20px - INCREASED for more space */
+            --spacing-xs: 6px;     /* WAS: 8px - INCREASED for more space */
+            --spacing-sm: 8px;     /* WAS: 12px - INCREASED for more space */
+            --spacing-md: 12px;    /* WAS: 16px - INCREASED for more space */
+            --spacing-lg: 16px;    /* WAS: 20px - INCREASED for more space */
+            --spacing-xl: 24px;    /* WAS: 28px - INCREASED for more space */
             
             /* Animations */
             --transition-speed: 0.3s;
@@ -102,7 +102,7 @@
         h3 {
             color: var(--text-primary);
             margin: 0 0 var(--spacing-xs) 0;
-            font-size: 1.8rem;     /* WAS: 1.4rem - INCREASED for larger title */
+            font-size: 1.6rem;     /* WAS: 1.8rem - INCREASED for larger title */
             font-weight: 600;
             letter-spacing: -0.5px;
         }
@@ -124,8 +124,8 @@
         .section {
             background: var(--section-bg);
             border-radius: 16px;
-            padding: 14px 16px;     /* WAS: var(--spacing-sm) var(--spacing-md) - INCREASED for more internal space */
-            margin: 16px 0;          /* WAS: var(--spacing-sm) 0 - INCREASED space between sections */
+            padding: 12px 14px;     /* WAS: 14px 16px */
+            margin: 12px 0;          /* WAS: 16px  space between sections */
             border: var(--section-border);
             box-shadow: var(--section-shadow);
             backdrop-filter: blur(5px);
@@ -163,8 +163,8 @@
         }
 
         #swatchBtn {
-            width: 48px;             /* WAS: 44px - INCREASED button size */
-            height: 48px;            /* WAS: 44px - INCREASED button size */
+            width: 44px;             /* WAS: 48px -  button size */
+            height: 44px;            /* WAS: 48px -  button size */
             border-radius: 12px;
             border: 3px solid white;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
@@ -201,7 +201,7 @@
             text-align: center;
             border: 2px solid #e0e0e0;
             border-radius: 8px;
-            font-size: 1.0rem;        /* WAS: 0.9rem - INCREASED input text */
+            font-size: 0.8rem;        /* WAS: 1.0rem - INCREASED input text */
             font-weight: 600;
             transition: all var(--transition-speed);
             margin-top: 4px;           /* WAS: 2px - INCREASED spacing */
@@ -236,7 +236,7 @@
         .setting-row label {
             font-weight: 600;
             color: var(--text-primary);
-            font-size: 1.0rem;         /* WAS: 0.85rem - INCREASED label size */
+            font-size: 0.9rem;         /* WAS: 0.85rem - INCREASED label size */
             min-width: 100px;
             text-align: left;
         }
@@ -247,7 +247,7 @@
             border-radius: 10px;
             border: var(--select-border);
             background: white;
-            font-size: 1.1rem;         /* WAS: 0.9rem - INCREASED select text */
+            font-size: 0.85rem;         /* WAS: 1.1rem - INCREASED select text */
             font-weight: 500;
             color: var(--text-primary);
             cursor: pointer;
@@ -273,7 +273,7 @@
             display: block;
             font-weight: 600;
             color: var(--text-primary);
-            font-size: 1.0rem;         /* WAS: 0.85rem - INCREASED label size */
+            font-size: 0.9rem;         /* WAS: 0.85rem - INCREASED label size */
             text-align: left;
             margin-bottom: 6px;         /* WAS: 2px - INCREASED space below label */
         }
@@ -284,7 +284,7 @@
             padding: 4px 8px;           /* WAS: 2px 6px - INCREASED padding */
             border-radius: 20px;
             margin-left: var(--spacing-xs);
-            font-size: 0.9rem;           /* WAS: 0.8rem - INCREASED slightly */
+            font-size: 0.85rem;           /* WAS: 0.8rem - INCREASED slightly */
         }
 
         input[type=range] {
@@ -324,12 +324,12 @@
         .brightness-display h6 {
             color: var(--text-white);
             margin: 0;
-            font-size: 1.0rem;           /* WAS: 0.9rem - INCREASED text size */
+            font-size: 0.9rem;           /* WAS: 0.9rem - INCREASED text size */
             font-weight: 500;
         }
 
         #brightnessValue {
-            font-size: 1.1rem;            /* WAS: 1.0rem - INCREASED slightly */
+            font-size: 0.9rem;            /* WAS: 1.0rem - INCREASED slightly */
             font-weight: 700;
             background: rgba(255, 255, 255, 0.2);
             padding: 4px 10px;            /* WAS: 2px 8px - INCREASED padding */
@@ -390,7 +390,7 @@
 
         <!-- Color Picker Section -->
         <div class="section">
-            <div class="section-title">🎨 Words Color</div>
+            <div class="section-title">Words Color</div>
             <div class="color-picker-container">
                 <button id="swatchBtn" onclick="togglePicker()" title="Pick colour"></button>
                 <div class="rgb-inputs">
@@ -420,16 +420,16 @@
                 <div class="setting-row">
                     <label for="purist">Purist Mode</label>
                     <select id="purist" onchange="updateSettings()">
-                        <option value="true" {% if initial_purist == True %}selected{% endif %}>✨ On</option>
-                        <option value="false" {% if initial_purist == False %}selected{% endif %}>🔘 Off</option>
+                        <option value="true" {% if initial_purist == True %}selected{% endif %}>On</option>
+                        <option value="false" {% if initial_purist == False %}selected{% endif %}>Off</option>
                     </select>
                 </div>
 
                 <div class="setting-row">
                     <label for="language">Language</label>
                     <select id="language" onchange="updateSettings()">
-                        <option value="NL" {% if initial_language == "NL" %}selected{% endif %}>🇳🇱 Nederlands</option>
-                        <option value="EN" {% if initial_language == "EN" %}selected{% endif %}>🇬🇧 English</option>
+                        <option value="NL" {% if initial_language == "NL" %}selected{% endif %}>Nederlands</option>
+                        <option value="EN" {% if initial_language == "EN" %}selected{% endif %}>English</option>
                     </select>
                 </div>
             </div>
@@ -437,7 +437,7 @@
 
         <!-- Background Brightness Section -->
         <div class="section">
-            <div class="section-title">🌙 Background Dimming</div>
+            <div class="section-title">Background Dimming</div>
             <div class="control-group">
                 <label>Brightness Level <span id="bg-value">--%</span></label>
                 <input type="range" 
@@ -453,7 +453,7 @@
         <!-- Light Sensor Section -->
         {% if has_light_sensor %}
         <div class="section">
-            <div class="section-title">☀️ Ambient Light</div>
+            <div class="section-title">Ambient Light</div>
             <div class="brightness-display">
                 <h6>Current Brightness <span id="brightnessValue">0</span></h6>
             </div>
