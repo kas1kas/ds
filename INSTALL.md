@@ -30,11 +30,13 @@ swk
 https://github.com/davesteele/comitup
 ```
 ## 6 Web interface
-- connect via phone or computer with your web browser
-- use the local IP-address (check your router) or use hostname (see step 1)
-- try various options in the UI
+- connect via phone or computer
+- check your router for the ipaddress of the wordclock (something like 192.178.168.22)
+- in your web browser type ipaddress:8080/
+- save a shortcut or add to the homescreen
+
 ## 7 Automatic start at reboot
-The clock should start automatically within a minute
+The clock starts automatically within a minute after reboot
 
 ## Moving the Wordclock
 When moving the wordclock to another location, you can connect to the new wifi network with the procedure below. If you give this clock to someone, make sure to give them this procedure.
