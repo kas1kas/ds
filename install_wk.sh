@@ -189,24 +189,24 @@ CONFIG_MSG="
   First time configuration
 ====================================================
 
-Before starting WordClock, you need to configure
-your location and hardware settings.
+Before starting WordClock, 
+   Make sure that you know the IP address of the Wordclock, 
+   so you can control it via your web browser.
 
-Your config file is located at:
-  $CONFIG_DIR/config_loc.json
+   You need to configure your location and hardware settings.
+   The config file is located at:
+   $CONFIG_DIR/config_loc.json
 
-Open it with:
-  nano $CONFIG_DIR/config_loc.json
+   Open it with:
+   nano $CONFIG_DIR/config_loc.json
 
-Key settings to check/update:
-  - latitude / longitude   : your location
-  - led_count              : number of LEDs on your strip
-  - gpio_pin               : GPIO pin connected to data line
-  - i2c_bus                : usually 1 (check: ls /dev/i2c*)
+  Key settings to check/update:
+   -see the file INSTALL.md
+   -at least make sure that the GRID setting is correct
 
-IMPORTANT: Make sure I2C is enabled on your Pi:
-  sudo raspi-config
-  → Interface Options → I2C → Enable → reboot
+  GRID:        "11" or "16"
+
+The wordclock starts automatically after a reboot.
 
 After configuring, start WordClock with:
   swk
