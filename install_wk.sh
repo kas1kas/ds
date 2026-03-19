@@ -231,33 +231,28 @@ log "STEP 6: First time configuration."
 
 CONFIG_MSG="
 ====================================================
-  First time configuration
+  Configuration
 ====================================================
 
-Before starting WordClock, 
+Before starting WordClock:
    Make sure that you know the IP address of the Wordclock, 
    so you can control it via your web browser.
 
-   You need to configure your location and hardware settings.
-   The config file is located at:
-   $CONFIG_DIR/config_loc.json
-
-   Open it with:
+   You must configure your location and hardware settings.
+   Do this with:
+   
    nano $CONFIG_DIR/config_loc.json
-
-  Key settings to check/update:
-   -see the file INSTALL.md
+   
    -at least make sure that the GRID setting is correct
-
-  GRID:        "11" or "16"
+    GRID:    "11" or "16"
+  
+   -for all details see the file INSTALL.md
+   
+   A reboot is required now:
+   
+sudo reboot
 ====================================================
 "
-echo ""
-echo "=== Install complete! ==="
-echo "=== mDNS ready after reboot: $(hostname).local ==="
-echo ""
-echo "A reboot is required to apply all changes."
-echo "Run: sudo reboot"
 echo "$CONFIG_MSG"
 echo "$CONFIG_MSG" >> "$LOGFILE"
 
