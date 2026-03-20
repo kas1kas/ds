@@ -22,14 +22,6 @@ log() {
 # ------------------------------------------------------------------------------
 log "STEP 1b: Configuring network (mDNS, IPv6, WiFi power management)..."
 
-log "Disabling WiFi power management..."
-sudo iwconfig wlan0 power off
-sudo tee /etc/NetworkManager/conf.d/wifi-power.conf > /dev/null <<EOF
-[connection]
-wifi.powersave = 2
-EOF
-check "Failed to configure WiFi power management"
-
 log "Disabling IPv6 via NetworkManager..."
 ACTIVE_CON=$(nmcli -g NAME connection show --active | head -1)
 CURRENT_IPV6=$(nmcli -g ipv6.method connection show "$ACTIVE_CON")
@@ -95,18 +87,36 @@ log "Crontab cleaned."
 log "STEP 1c complete."
 
 # ------------------------------------------------------------------------------
-# Step 1d - Fix brcmfmac WiFi driver bug (Pi Zero 2W / Fritzbox)
+# Step 1d - Fix brcmfmac WiFi driver bug (Pi Zero 2W only)
 # ------------------------------------------------------------------------------
-log "STEP 1d: Applying brcmfmac WiFi driver fix..."
+log "STEP 1d: Checking for brcmfmac WiFi driver fix..."
 
-if ! grep -q "roamoff" /etc/modprobe.d/brcmfmac.conf 2>/dev/null; then
-    sudo tee /etc/modprobe.d/brcmfmac.conf > /dev/null <<EOF
+WIFI_DRIVER=$(nmcli -g GENERAL.DRIVER device show wlan0 2>/dev/null)
+PI_MODEL=$(cat /proc/cpuinfo | grep Model | head -1)
+
+log "WiFi driver: $WIFI_DRIVER"
+log "Pi model: $PI_MODEL"
+
+if lsmod | grep -q "brcmfmac"; then
+    log "brcmfmac driver detected — applying fix..."
+
+    if ! grep -q "roamoff" /etc/modprobe.d/brcmfmac.conf 2>/dev/null; then
+        sudo tee /etc/modprobe.d/brcmfmac.conf > /dev/null <<EOF
 options brcmfmac roamoff=1 feature_disable=0x82000
 EOF
-    check "Failed to create brcmfmac.conf"
-    log "brcmfmac driver fix applied."
+        check "Failed to create brcmfmac.conf"
+
+        sudo tee /etc/NetworkManager/conf.d/wifi-power.conf > /dev/null <<EOF
+[connection]
+wifi.powersave = 2
+EOF
+        check "Failed to configure WiFi power management"
+        log "brcmfmac driver fix and power management applied."
+    else
+        log "brcmfmac fix already present — skipping"
+    fi
 else
-    log "brcmfmac driver fix already present — skipping"
+    log "brcmfmac driver not detected ($(lsmod | grep wifi || echo 'other driver')) — skipping fix"
 fi
 
 log "STEP 1d complete."
