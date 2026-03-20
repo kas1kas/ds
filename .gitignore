@@ -9,5 +9,7 @@
 nohup.out
 test.py
 wkt.py
-/effects/effect_test.py
+effects/effect_test.py
+effects/effect_random2.py
+effects/effect_GridTest.py
 
