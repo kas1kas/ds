@@ -73,7 +73,7 @@ log "STEP 1 complete."
 log "STEP 2: Configuring network (mDNS, IPv6, WiFi power management)..."
 
 log "Disabling WiFi power management..."
-sudo iwconfig wlan0 power off
+# Disable WiFi power saving (persistent, all connections)
 sudo tee /etc/NetworkManager/conf.d/wifi-power.conf > /dev/null <<EOF
 [connection]
 wifi.powersave = 2
