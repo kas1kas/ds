@@ -93,3 +93,20 @@ crontab -l 2>/dev/null | grep -v "@reboot.*wk.py" | crontab -
 log "Crontab cleaned."
 
 log "STEP 1c complete."
+
+# ------------------------------------------------------------------------------
+# Step 1d - Fix brcmfmac WiFi driver bug (Pi Zero 2W / Fritzbox)
+# ------------------------------------------------------------------------------
+log "STEP 1d: Applying brcmfmac WiFi driver fix..."
+
+if ! grep -q "roamoff" /etc/modprobe.d/brcmfmac.conf 2>/dev/null; then
+    sudo tee /etc/modprobe.d/brcmfmac.conf > /dev/null <<EOF
+options brcmfmac roamoff=1 feature_disable=0x82000
+EOF
+    check "Failed to create brcmfmac.conf"
+    log "brcmfmac driver fix applied."
+else
+    log "brcmfmac driver fix already present — skipping"
+fi
+
+log "STEP 1d complete."
