@@ -1,4 +1,4 @@
-__version__ = "7.41"
+__version__ = "7.46"
 import json
 import re
 import os
@@ -89,8 +89,8 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
     
     # Define file paths
-    python_files = ['wk.py', 'version.py'] 
-    html_files = ['templates_plugin/index.html', 'templates_plugin/calibration.html']
+    python_files = ['wk.py', 'version.py', 'web_routes.py'] 
+    html_files = ['templates_plugin/index.html']
     json_files = ['config_gen.json', 'config_loc.json', '/home/pi/.workclock/config_loc.json']
     
     # Check versions
