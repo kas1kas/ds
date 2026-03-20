@@ -66,7 +66,7 @@ class VersionChecker:
             print(f"Error reading JSON file: {e}")
         return None
     
-    def check_versions(self, python_files, html_files, json_files):
+    def check_versions(self, python_files, bash_files, html_files, json_files):
         versions = {}
         
         # Collect versions from all files
