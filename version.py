@@ -22,7 +22,22 @@ class VersionChecker:
         except Exception as e:
             print(f"Error reading Python file: {e}")
         return None
-    
+        
+    def get_bash_version(self, bash_file_path):
+        """Extract version from Bash script"""
+        try:
+            with open(bash_file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            # Look for __version__ = "x.xx" pattern
+            version_pattern = r'__version__\s*=\s*["\']([\d.]+)["\']'
+            match = re.search(version_pattern, content)
+            if match:
+                return match.group(1).strip()
+        except Exception as e:
+            print(f"Error reading Bash file: {e}")
+        return None
+
     def get_html_version(self, html_file_path):
         """Extract version from HTML file"""
         try:
@@ -58,6 +73,10 @@ class VersionChecker:
         for py_file in python_files:
             if os.path.exists(py_file):
                 versions[py_file] = self.get_python_version(py_file)
+
+        for sh_file in bash_files:
+            if os.path.exists(sh_file):
+                versions[sh_file] = self.get_bash_version(py_file)        
         
         for html_file in html_files:
             if os.path.exists(html_file):
@@ -89,12 +108,13 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
     
     # Define file paths
-    python_files = ['wk.py', 'version.py', 'web_routes.py'] 
+    python_files = ['wk.py', 'version.py', 'web_routes.py']
+    bash_files = ['install.sh']
     html_files = ['templates_plugin/index.html']
     json_files = ['config_gen.json', 'config_loc.json', '/home/pi/.workclock/config_loc.json']
     
     # Check versions
-    inconsistencies = checker.check_versions(python_files, html_files, json_files)
+    inconsistencies = checker.check_versions(python_files, bash_files, html_files, json_files)
     
     print("Versions in this build:")
     for file_path, version in inconsistencies:
