@@ -1,3 +1,22 @@
+#!/bin/bash
+# ==============================================================================
+# install_net.sh - network update installation script for Raspberry Pi
+# __version__ = "7.45"
+# ==============================================================================
+
+LOGFILE="/home/pi/wk_net_install.log"
+VENV="/home/pi/wk_env"
+PROJECT="/home/pi/ds"
+CONFIG_DIR="/home/pi/.wordclock"
+
+# ------------------------------------------------------------------------------
+# Logging helper
+# ------------------------------------------------------------------------------
+log() {
+    local msg="[$(date '+%Y-%m-%d %H:%M:%S')] $1"
+    echo "$msg"
+    echo "$msg" >> "$LOGFILE"
+}
 # ------------------------------------------------------------------------------
 # Step 1b - Network configuration (mDNS, IPv6, WiFi power management)
 # ------------------------------------------------------------------------------
