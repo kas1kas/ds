@@ -1,3 +1,0 @@
-@reboot sudo /home/pi/wk_env/bin/python /home/pi/ds/wk.py
-#> /home/pi/cron_log.txt 2>&1
-
