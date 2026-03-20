@@ -1,7 +1,7 @@
 #!/bin/bash
 # ==============================================================================
 # install_wk.sh - WordClock installation script for Raspberry Pi
-# _version_ = 7.46
+# __version__ = "7.45"
 # ==============================================================================
 
 LOGFILE="/home/pi/wk_install.log"
