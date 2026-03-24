@@ -1,7 +1,7 @@
 #!/bin/bash
 # ==============================================================================
 # install_wk.sh - WordClock installation script for Raspberry Pi
-# __version__ = "7.45"
+# __version__ = "7.51"
 # ==============================================================================
 
 LOGFILE="/home/pi/wk_install.log"
@@ -59,18 +59,11 @@ sudo apt install -y avahi-daemon avahi-utils >> "$LOGFILE" 2>&1
 sudo apt install git python3-dev python3-venv -y >> "$LOGFILE" 2>&1
 check "apt install failed"
 
-# Configure avahi to use IPv4 only (idempotent)
-sudo sed -i '/^use-ipv6/d' /etc/avahi/avahi-daemon.conf
-sudo sed -i '/^use-ipv4/d' /etc/avahi/avahi-daemon.conf
-sudo sed -i '/^\[server\]/a use-ipv4=yes\nuse-ipv6=no' /etc/avahi/avahi-daemon.conf
-sudo systemctl enable avahi-daemon
-sudo systemctl restart avahi-daemon
-
 log "STEP 1 complete."
 # ------------------------------------------------------------------------------
-# Step 2 - Network configuration (mDNS, IPv6, WiFi power management)
+# Step 2 - Network configuration (IPv6, WiFi power management)
 # ------------------------------------------------------------------------------
-log "STEP 2: Configuring network (mDNS, IPv6, WiFi power management)..."
+log "STEP 2: Configuring network (IPv6, WiFi power management)..."
 
 log "For zero2W driver bug: Checking for brcmfmac WiFi driver fix..."
 
@@ -104,33 +97,27 @@ fi
 
 log "zero2W STEP complete."
 
-log "Disabling IPv6 via NetworkManager..."
-ACTIVE_CON=$(nmcli -g NAME connection show --active | head -1)
-CURRENT_IPV6=$(nmcli -g ipv6.method connection show "$ACTIVE_CON")
-if [ "$CURRENT_IPV6" != "ignore" ]; then
-    sudo nmcli connection modify "$ACTIVE_CON" ipv6.method ignore >> "$LOGFILE" 2>&1
-    check "Failed to set ipv6.method ignore"
-    sudo nmcli connection down "$ACTIVE_CON" >> "$LOGFILE" 2>&1
-    sudo nmcli connection up "$ACTIVE_CON" >> "$LOGFILE" 2>&1
-    check "Failed to reconnect WiFi after IPv6 change"
-    log "IPv6 disabled on connection: $ACTIVE_CON"
-else
-    log "IPv6 already disabled on connection: $ACTIVE_CON — skipping"
-fi
+log "Disabling IPv6 via sysctl..."
 
-log "Configuring avahi for IPv4 only..."
-if ! grep -q "^use-ipv4=yes" /etc/avahi/avahi-daemon.conf; then
-    sudo sed -i '/^use-ipv6/d' /etc/avahi/avahi-daemon.conf
-    sudo sed -i '/^use-ipv4/d' /etc/avahi/avahi-daemon.conf
-    sudo sed -i '/^\[server\]/a use-ipv4=yes\nuse-ipv6=no' /etc/avahi/avahi-daemon.conf
-    check "Failed to configure avahi"
-    log "Avahi configured for IPv4 only."
-else
-    log "Avahi already configured for IPv4 only — skipping"
-fi
-sudo systemctl enable avahi-daemon >> "$LOGFILE" 2>&1
-sudo systemctl restart avahi-daemon >> "$LOGFILE" 2>&1
-check "Failed to restart avahi-daemon"
+# Define the configuration file path
+SYSCTL_CONF="/etc/sysctl.d/99-disable-ipv6.conf"
+
+# Create or overwrite the configuration file with the required settings
+# Using 'cat' with a here-document ensures the file content is exactly as specified
+sudo bash -c "cat > $SYSCTL_CONF <<EOF
+net.ipv6.conf.all.disable_ipv6 = 1
+net.ipv6.conf.default.disable_ipv6 = 1
+net.ipv6.conf.lo.disable_ipv6 = 1
+EOF" >> "$LOGFILE" 2>&1
+check "Failed to create or write to $SYSCTL_CONF"
+
+log "Configuration written to $SYSCTL_CONF, applying settings..."
+
+# Apply the settings immediately
+sudo sysctl -p "$SYSCTL_CONF" >> "$LOGFILE" 2>&1
+check "Failed to apply sysctl settings from $SYSCTL_CONF"
+
+log "IPv6 disabled globally via sysctl."
 
 log "STEP 2 complete."
 
