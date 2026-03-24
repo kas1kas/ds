@@ -1,6 +1,7 @@
 alias eal='sudo nano ~/.bash_aliases'
 alias ual='cp /home/pi/ds/alias.txt ~/.bash_aliases && source ~/.bash_aliases'
 alias alis='alias -p | sort'
+alias crs='systemctl status cron'
 alias iwk='curl -L https://raw.githubusercontent.com/kas1kas/ds/main/install_wk.sh | bash'
 alias gchtp='git clone "https://github.com/kas1kas/ds.git'
 alias gcssh='git clone git@github.com:kas1kas/ds.git'
