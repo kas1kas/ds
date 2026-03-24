@@ -1,7 +1,8 @@
 #!/bin/bash
 # ==============================================================================
 # install_net.sh - network update installation script for Raspberry Pi
-# __version__ = "7.45"
+#                  create woordklok as service
+# __version__ = "7.51"
 # ==============================================================================
 
 LOGFILE="/home/pi/wk_net_install.log"
@@ -18,51 +19,11 @@ log() {
     echo "$msg" >> "$LOGFILE"
 }
 # ------------------------------------------------------------------------------
-# Step 1b - Network configuration (IPv6, WiFi power management)
+# Step 2 - Network configuration (IPv6, WiFi power management)
 # ------------------------------------------------------------------------------
-log "STEP 1b: Configuring network (IPv6, WiFi power management)..."
+log "STEP 2: Configuring network (IPv6, WiFi power management)..."
 
-
-log "STEP 1b complete."
-
-# ------------------------------------------------------------------------------
-# Step 1c - systemd service (replaces crontab)
-# ------------------------------------------------------------------------------
-log "STEP 1c: Installing Woordklok systemd service..."
-
-sudo tee /etc/systemd/system/wk.service > /dev/null <<EOF
-[Unit]
-Description=Woordklok
-After=network-online.target
-Wants=network-online.target
-
-[Service]
-User=root
-WorkingDirectory=/home/pi/ds
-ExecStart=/home/pi/wk_env/bin/python /home/pi/ds/wk.py
-Restart=on-failure
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
-EOF
-check "Failed to create wk.service"
-
-sudo systemctl daemon-reload >> "$LOGFILE" 2>&1
-sudo systemctl enable wk >> "$LOGFILE" 2>&1
-check "Failed to enable wk.service"
-log "Woordklok systemd service installed and enabled."
-
-log "Removing crontab @reboot entry if present..."
-crontab -l 2>/dev/null | grep -v "@reboot.*wk.py" | crontab -
-log "Crontab cleaned."
-
-log "STEP 1c complete."
-
-# ------------------------------------------------------------------------------
-# Step 1d - Fix brcmfmac WiFi driver bug (Pi Zero 2W only)
-# ------------------------------------------------------------------------------
-log "STEP 1d: Checking for brcmfmac WiFi driver fix..."
+log "For zero2W driver bug: Checking for brcmfmac WiFi driver fix..."
 
 WIFI_DRIVER=$(nmcli -g GENERAL.DRIVER device show wlan0 2>/dev/null)
 PI_MODEL=$(cat /proc/cpuinfo | grep Model | head -1)
@@ -92,4 +53,63 @@ else
     log "brcmfmac driver not detected ($(lsmod | grep wifi || echo 'other driver')) — skipping fix"
 fi
 
-log "STEP 1d complete."
+log "zero2W STEP complete."
+
+log "Disabling IPv6 via sysctl..."
+
+# Define the configuration file path
+SYSCTL_CONF="/etc/sysctl.d/99-disable-ipv6.conf"
+
+# Create or overwrite the configuration file with the required settings
+# Using 'cat' with a here-document ensures the file content is exactly as specified
+sudo bash -c "cat > $SYSCTL_CONF <<EOF
+net.ipv6.conf.all.disable_ipv6 = 1
+net.ipv6.conf.default.disable_ipv6 = 1
+net.ipv6.conf.lo.disable_ipv6 = 1
+EOF" >> "$LOGFILE" 2>&1
+check "Failed to create or write to $SYSCTL_CONF"
+
+log "Configuration written to $SYSCTL_CONF, applying settings..."
+
+# Apply the settings immediately
+sudo sysctl -p "$SYSCTL_CONF" >> "$LOGFILE" 2>&1
+check "Failed to apply sysctl settings from $SYSCTL_CONF"
+
+log "IPv6 disabled globally via sysctl."
+
+log "STEP 2 complete."
+
+# ------------------------------------------------------------------------------
+# Step 4 - systemd service (replaces crontab)
+# ------------------------------------------------------------------------------
+log "STEP 4: Installing Woordklok systemd service..."
+
+sudo tee /etc/systemd/system/wk.service > /dev/null <<EOF
+[Unit]
+Description=Woordklok
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=root
+WorkingDirectory=/home/pi/ds
+ExecStart=/home/pi/wk_env/bin/python /home/pi/ds/wk.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+check "Failed to create wk.service"
+
+sudo systemctl daemon-reload >> "$LOGFILE" 2>&1
+sudo systemctl enable wk >> "$LOGFILE" 2>&1
+check "Failed to enable wk.service"
+log "Woordklok systemd service installed and enabled."
+
+log "Removing crontab @reboot entry if present..."
+crontab -l 2>/dev/null | grep -v "@reboot.*wk.py" | crontab -
+log "Crontab cleaned."
+
+log "STEP 4 complete."
+
