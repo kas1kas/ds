@@ -8,7 +8,6 @@ class EffectOeteldonk(BaseEffect):
     
     def __init__(self, word_clock, variant_id=None):
         super().__init__(word_clock, variant_id)
-        self.offset = 0
         self.last_update = 0
         self.update_interval = 0.05
         
@@ -26,20 +25,17 @@ class EffectOeteldonk(BaseEffect):
         # Clear screen based on config
         self.clear_screen()
         
-        # Update offset for moving bands (slow vertical scroll)
-        self.offset = (self.offset + 1) % (max_rows * 2)
+        # Calculate band heights (each exactly one third)
+        band_height = max_rows // 3
         
-        # Draw the flag pattern
+        # Draw the static flag pattern
         for x in range(max_cols):
             for y in range(max_rows):
-                # Calculate the band position with offset for animation
-                band_y = (y + self.offset) % max_rows
-                
                 # Determine which third of the flag this pixel falls in
-                if band_y < max_rows // 3:
+                if y < band_height:
                     # Top band - Red
                     color = (255, 0, 0)
-                elif band_y < 2 * max_rows // 3:
+                elif y < band_height * 2:
                     # Middle band - White
                     color = (255, 255, 255)
                 else:
