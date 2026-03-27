@@ -25,17 +25,25 @@ class EffectOeteldonk(BaseEffect):
         # Clear screen based on config
         self.clear_screen()
         
-        # Calculate band heights (each exactly one third)
+        # Calculate band heights with middle band taking any remainder
         band_height = max_rows // 3
+        remainder = max_rows % 3
+        
+        # Top band height
+        top_height = band_height
+        # Middle band gets the remainder
+        middle_height = band_height + remainder
+        # Bottom band height
+        bottom_height = band_height
         
         # Draw the static flag pattern
         for x in range(max_cols):
             for y in range(max_rows):
                 # Determine which third of the flag this pixel falls in
-                if y < band_height:
+                if y < top_height:
                     # Top band - Red
                     color = (255, 0, 0)
-                elif y < band_height * 2:
+                elif y < top_height + middle_height:
                     # Middle band - White
                     color = (255, 255, 255)
                 else:
