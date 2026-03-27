@@ -1,6 +1,6 @@
-__version__ = "7.45"
+__version__ = "7.51"
 # Woordklok - Plugin version
-# rc 2
+# rc3
 import argparse
 import json
 import logging
@@ -16,6 +16,7 @@ from python_tsl2591 import tsl2591
 import smbus2
 from smbus2 import SMBus
 from flask import Flask, request, render_template, jsonify, send_file
+from werkzeug.serving import WSGIRequestHandler
 from buienradar.buienradar import get_data, parse_data
 
 # Import effect system
@@ -614,6 +615,8 @@ def run_clock():
 
 if __name__ == "__main__":
     # Start the Flask web server in a separate thread
+    # Disable info/warning logs from the server
+    logging.getLogger('werkzeug').setLevel(logging.ERROR)
     from threading import Thread
     flask_thread = Thread(target=lambda: app.run(host="0.0.0.0", port=8080))
     flask_thread.daemon = True
