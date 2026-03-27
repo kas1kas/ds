@@ -52,11 +52,11 @@ class EffectOeteldonk(BaseEffect):
                 
                 self.word_clock.setcolor_x_y(x, y, color)
         
-        # Draw time in white on top
+        # Draw time in contrasting cyan (visible on all bands)
         original_color = self.word_clock.letter_active_color
         original_dot = self.word_clock.dot_active_color
-        self.word_clock.letter_active_color = (255, 255, 255)
-        self.word_clock.dot_active_color = (255, 255, 255)
+        self.word_clock.letter_active_color = (5, 255, 225)  # Bright cyan
+        self.word_clock.dot_active_color = (5, 255, 225)    # Same for dots
         self.word_clock.update_clock()
         self.word_clock.letter_active_color = original_color
         self.word_clock.dot_active_color = original_dot
