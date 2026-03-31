@@ -13,8 +13,8 @@ class EffectRainbow(BaseEffect):
         patterns = [
             ("rainbow_diagonal", "Rainbow Diagonal"),
             ("rainbow_spiral", "Rainbow Spiral"),
-            ("rainbow_spiral", "Rainbow Psycho"),
-            ("rainbow_twinkle", "Rainbow Wave")
+            ("rainbow_psycho", "Rainbow Psycho"),
+            ("rainbow_wave", "Rainbow Wave")
         ]
         return patterns
     
