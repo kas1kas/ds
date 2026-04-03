@@ -11,7 +11,6 @@ use ssh to connect
 ```
 sudo raspi-config
 ```
-- interface options - enable I2C
 - change default hostname
 - reboot
 ## 3 install software
@@ -19,11 +18,11 @@ sudo raspi-config
 cd ~
 curl -L https://raw.githubusercontent.com/kas1kas/ds/main/install_wk.sh | bash
 ```
-## 4 config and test
+## 4 config and reboot
 - See chapter below: **personalisation**
 ```
-nano ~/.wordclock/config_loc.json
-swk
+-nano ~/.wordclock/config_loc.json
+-reboot
 ```
 ## 5 install Comitup
 ```
@@ -63,12 +62,13 @@ When moving the wordclock to another location, you can connect to the new wifi n
 edit the file ~/.wordclock/config_loc.json. Do not add the comments between (). These are only here to explain.
 ```
 {
-    "VERSION": "7.xy",
+    "VERSION": "x.yz",
     "PURIST": true,
     "CALIBRATE": false, 
     "WOORDKLOK": "yourname",
     "LANGUAGE": "NL",
     "GRID" : "11",
+    "SENSOR": "TSL2591",
     "DEFAULT_EFFECT": "matrix",
     "RAND_COLOR": "blue",
     "WEATHER_ENABLED": true,
