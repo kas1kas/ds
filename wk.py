@@ -1,6 +1,6 @@
-__version__ = "7.51"
-# Woordklok - Plugin version
-# rc3
+# -*- coding: utf-8 -*-
+__version__ = "7.62"
+# Woordklok - lux version
 import argparse
 import json
 import logging
@@ -12,12 +12,12 @@ import random
 import bisect
 import math
 from rpi_ws281x import PixelStrip, Color
-from python_tsl2591 import tsl2591
-import smbus2
-from smbus2 import SMBus
 from flask import Flask, request, render_template, jsonify, send_file
 from werkzeug.serving import WSGIRequestHandler
 from buienradar.buienradar import get_data, parse_data
+
+# Light sensor client (reads from lux_daemon over Unix socket)
+from lux_client import get_lux
 
 # Import effect system
 from effects import discover_effects
@@ -28,41 +28,6 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 # Initialize Flask app
 app = Flask(__name__, template_folder='templates_plugin')
 
-# BH1750 Sensor Implementation
-class BH1750:
-    # Define some constants from the datasheet
-    POWER_DOWN = 0x00
-    POWER_ON = 0x01
-    RESET = 0x07
-    CONTINUOUS_HIGH_RES_MODE = 0x10
-    CONTINUOUS_HIGH_RES_MODE_2 = 0x11
-    CONTINUOUS_LOW_RES_MODE = 0x13
-    ONE_TIME_HIGH_RES_MODE = 0x20
-    ONE_TIME_HIGH_RES_MODE_2 = 0x21
-    ONE_TIME_LOW_RES_MODE = 0x23
-
-    def __init__(self, bus=1, address=0x23):
-        self.bus = SMBus(bus)
-        self.address = address
-
-    def _set_mode(self, mode):
-        self.bus.write_byte(self.address, mode)
-
-    def reset(self):
-        self._set_mode(self.RESET)
-
-    def power_down(self):
-        self._set_mode(self.POWER_DOWN)
-
-    def power_on(self):
-        self._set_mode(self.POWER_ON)
-
-    def measure_high_res(self, mode=CONTINUOUS_HIGH_RES_MODE):
-        """Measure luminosity in lux with high resolution"""
-        self._set_mode(mode)
-        time.sleep(0.180 if mode == self.CONTINUOUS_HIGH_RES_MODE_2 else 0.120)
-        data = self.bus.read_i2c_block_data(self.address, mode, 2)
-        return (data[0] << 8 | data[1]) / 1.2
 
 class LanguageSettings:
     def __init__(self, config, language, grid_size):
@@ -70,20 +35,21 @@ class LanguageSettings:
         self.language = language
         self.grid_size = grid_size
         self.load_language_settings()
-        
+
     def load_language_settings(self):
         self.it_is = self.config["IT_IS"].get(self.language, {})
         self.minute_blocks = self.config["MINUTE_BLOCKS"].get(self.language, {})
         self.words = self.config["WORDS"].get(self.language, {}).get(str(self.grid_size), {})
         self.min_block_check = self.config["MIN_BLOCK_CHECK"].get(self.language, {})
         self.hour_words = self.config["HOUR_WORDS"].get(self.language, {})
-        
+
     def update_language(self, new_language):
         if new_language in ["NL", "EN"]:
             self.language = new_language
             self.load_language_settings()
             return True
         return False
+
 
 class WordClock:
     def __init__(self, config):
@@ -100,34 +66,39 @@ class WordClock:
         self.led_channel = 0
         self.def_brightness = config["DEF_BRIGHTNESS"]
         self.background_brightness_factor = config["BG_BRIGHTNESS_FACTOR"]
-        self.last_brightness = config["DEF_BRIGHTNESS"]
+        self.last_brightness = float(config["DEF_BRIGHTNESS"])
         self.background_color = config["BACKGROUND_COLOR"]
         self.letter_active_color = config["LETTER_ACTIVE_COLOR"]
         self.dot_active_color = config["DOT_ACTIVE_COLOR"]
         self.dot_inactive_color = config["DOT_INACTIVE_COLOR"]
-        self.minute_dots = config["MINUTE_DOTS"].get(str(self.grid), {}) 
-        self.dot_order = ["MLT", "MLB", "MRB", "MRT"]     # Fixed cycling order
-        self.current_dot_index = 0                        # Initialize cycling position
-        self.dot_dark_color = config["DOT_DARK_COLOR"]       
+        self.minute_dots = config["MINUTE_DOTS"].get(str(self.grid), {})
+        self.dot_order = ["MLT", "MLB", "MRB", "MRT"]
+        self.current_dot_index = 0
+        self.dot_dark_color = config["DOT_DARK_COLOR"]
         self.default_effect = config["DEFAULT_EFFECT"]
         self.rand_color = config["RAND_COLOR"]
+        self.light_sensor_type = config.get("SENSOR", "none")
 
-        self.sensor_scale = config["SENSOR_SCALE"]        # calulate sensor behavior:     
+        # Lux state — updated each frame by run_clock()
+        # -1.0 means no sensor/daemon available
+        self.lux = -1.0
+
+        # EMA smoothing for brightness control
+        # 0.20 = fast response, 0.90 = very slow/smooth
+        self.smoothing_alpha = 0.20
+        self._smoothed_lux   = -1.0       # internal EMA state
+
+        self.sensor_scale = config["SENSOR_SCALE"]
         lut = config["LUT"]
         self.lut_in  = [row[0] for row in lut]
         self.lut_out = [row[1] for row in lut]
-        self.light_sensor = "none"
-        self.light_sensor_type = "none"                   # default before autodetect
-        self._lux = 0.0
-        self._stable_lux = 0.0
-        self.smoothing_alpha = 0.90     # 0.9 → slow, smooth fade, 0.5 → faster response, less smoothing, 0.1 → almost no smoothing (reacts instantly)
 
-        self.temperature = 24
+        self.temperature = 28
         self.precipitation = 5
         self.wind_speed = 5
         self.wind_direction = 270
-        
-        # Panel dimensions (physical LED layout)
+
+        # Panel dimensions
         if self.grid == "16":
             self.panel_columns = 16
             self.panel_rows = 16
@@ -136,46 +107,37 @@ class WordClock:
             self.panel_columns = 11
             self.panel_rows = 10
             self.led_count = 114
-        
-        # Clock area dimensions (where the time is displayed)
+
         self.clock_columns = 11
         self.clock_rows = 10
-        
-        # For backward compatibility, set columns/rows to clock area
         self.columns = self.clock_columns
         self.rows = self.clock_rows
 
-        logging.info(f"Woordklok: {self.woordklok}")
-        logging.info(f"version  : {self.version}")
-        logging.info(f"Design   : Woosh") 
-        logging.info(f"Assist   : DeepSeek&Claude") 
-        logging.info(f"Made by  : GraWoosh Labs") 
-        logging.info(f"Random   : {self.rand_color}") 
-        logging.info(f"Language : {self.language_settings.language}")
-        logging.info(f"Grid     : {self.grid}") 
-        logging.info(f"Fullpanel: {self.effect_full_panel}")
-        logging.info(f"Lut In   : {self.lut_in}")
-        logging.info(f"Lut Out  : {self.lut_out}")
-        
+        logging.info(f"Woordklok    : {self.woordklok}")
+        logging.info(f"version      : {self.version}")
+        logging.info(f"Design       : Woosh")
+        logging.info(f"Assist       : DeepSeek&Claude")
+        logging.info(f"Made by      : GraWoosh Labs")
+        logging.info(f"Random       : {self.rand_color}")
+        logging.info(f"Language     : {self.language_settings.language}")
+        logging.info(f"Grid         : {self.grid}")
+        logging.info(f"Fullpanel    : {self.effect_full_panel}")
+        logging.info(f"Light sensor : {self.light_sensor_type}")
+        logging.info(f"Smoothing α  : {self.smoothing_alpha}")
+        logging.info(f"Lut In       : {self.lut_in}")
+        logging.info(f"Lut Out      : {self.lut_out}")
+
         # Initialize LED strip
         self.initialize_led()
 
-        # Initialize light sensor
-        self.initialize_lightsensor()
-        if self.light_sensor_type == "TSL2591":
-            self.lux_hysteresis = 0.05
-        elif self.light_sensor_type == "BH1750":
-            self.lux_hysteresis = 0.9
+        # Log lux daemon status
+        initial_lux = get_lux()
+        if initial_lux >= 0:
+            logging.info(f"Lux daemon reachable – initial lux: {initial_lux:.2f}")
         else:
-            self.lux_hysteresis = 0.9  # safe default for unknown sensors
-        
-        # Start light sensor thread
-        if self.light_sensor != "none":
-           self._sensor_thread = threading.Thread(target=self._sensor_loop, daemon=True)
-           self._sensor_thread.start()
-           logging.info(f"Lightsensor background thread started")
+            logging.warning("Lux daemon not reachable – brightness control disabled")
 
-        #Start weather tread
+        # Start weather thread
         self.weather_enabled = config.get("WEATHER_ENABLED", False)
         if self.weather_enabled:
             self.weather_lat = config.get("WEATHER_LAT", 51.5078)
@@ -186,38 +148,28 @@ class WordClock:
             logging.info("Weather background thread started")
         else:
             logging.info("Weather updates disabled")
-    
+
         # Init effects
         self.effects = {}
-        self.current_effect_id = self.default_effect  # Default
-        
-        # Discover effects
+        self.current_effect_id = self.default_effect
+
         effects_info = discover_effects()
-        #logging.info(f"WK - Discovered effects: {list(effects_info.keys())}")
-        
-        # Create effects:
         for effect_id, info in effects_info.items():
             try:
                 effect_class = info['class']
-                variant_id = info.get('variant_id')  # May be None for single-variant effects
+                variant_id = info.get('variant_id')
                 self.effects[effect_id] = effect_class(self, variant_id=variant_id)
-                #logging.info(f"WK - Loaded effect: {effect_id} - {info['name']}")
             except Exception as e:
                 logging.error(f"Failed to load effect {effect_id}: {e}")
 
-        #logging.info(f"=== END EFFECT DISCOVERY ===")
-        #logging.info(f"Total effects loaded: {len(self.effects)}")
-                
-        # Set initial effect
         if "DEFAULT_EFFECT" in config:
             self.current_effect_id = config["DEFAULT_EFFECT"]
         elif self.current_effect_id in self.effects:
-            pass  # Keep default
+            pass
         else:
-            # Find first available effect
             self.current_effect_id = next(iter(self.effects.keys()), "normal")
-        logging.info(f"Effect   : {self.current_effect_id}") 
-        
+        logging.info(f"Effect       : {self.current_effect_id}")
+
     def initialize_led(self):
         try:
             self.strip = PixelStrip(
@@ -232,8 +184,6 @@ class WordClock:
             exit(1)
 
     def _weather_loop(self):
-        """Background thread: fetch immediately with retries, then every interval."""
-        # Try initial fetch up to 3 times with short pauses
         for attempt in range(3):
             try:
                 self._fetch_weather()
@@ -241,165 +191,93 @@ class WordClock:
                 break
             except Exception as e:
                 logging.warning(f"Initial weather fetch attempt {attempt+1} failed: {e}")
-                time.sleep(5)  # wait 5 seconds before retry
+                time.sleep(5)
         else:
             logging.error("All initial weather fetch attempts failed – will retry later")
-    
-        # Now loop forever with the normal interval
+
         while True:
             time.sleep(self.weather_update_interval)
             self._fetch_weather()
-    
+
     def _fetch_weather(self):
-        """Retrieve weather data and update instance variables.
-           Gracefully handles failures – keeps previous values on error."""
         try:
             from buienradar.buienradar import get_data, parse_data
-    
+
             result = get_data(latitude=self.weather_lat, longitude=self.weather_lon)
             if result is None or 'content' not in result:
                 logging.warning("Weather fetch returned no data")
                 return
-    
+
             data = parse_data(result['content'], result.get('raincontent'),
                               self.weather_lat, self.weather_lon)
             if data is None or 'data' not in data:
                 logging.warning("Weather parse returned no data")
                 return
-    
+
             current = data['data']
-    
-            # Update values, falling back to existing ones if a key is missing
-            self.temperature = current.get('temperature', self.temperature)
-            self.wind_speed = current.get('windspeed', self.wind_speed)
-            self.wind_direction = current.get('windazimuth', self.wind_direction)
-            self.precipitation = current.get('precipitation', self.precipitation)
-    
+            self.temperature    = current.get('temperature',   self.temperature)
+            self.wind_speed     = current.get('windspeed',     self.wind_speed)
+            self.wind_direction = current.get('windazimuth',   self.wind_direction)
+            self.precipitation  = current.get('precipitation', self.precipitation)
+
             logging.debug(f"Weather updated: T={self.temperature}°C, "
                           f"wind={self.wind_speed}m/s {self.wind_direction}°")
         except Exception as e:
             logging.error(f"Weather update failed: {e}")
-            # Keep previous values – no changes
-        
-    def _sensor_loop(self):
-        while True:
-            try:
-                if self.light_sensor_type == "TSL2591":
-                    full, ir = self.light_sensor.get_full_luminosity()
-                    self._lux = self.light_sensor.calculate_lux(full, ir)
-                elif self.light_sensor_type == "BH1750":
-                    self._lux = self.light_sensor.measure_high_res()
-            except Exception as e:
-                logging.error(f"Sensor read failed: {e}")
-            time.sleep(0.05)
-        
-    def initialize_lightsensor(self):        
-        BH1750_ADDRESS = 0x23  # Can also be 0x5C for some BH1750 variants
-        TSL2591_ADDRESS = 0x29
-        
-        bus = smbus2.SMBus(1)  # 1 indicates /dev/i2c-1
-        try:
-            try:
-                # BH1750 power on command
-                bus.write_byte(BH1750_ADDRESS, 0x01)
-                time.sleep(0.1)
-                # Try to read (one time high res mode)
-                bus.write_byte(BH1750_ADDRESS, 0x20)
-                time.sleep(0.1)
-                data = bus.read_i2c_block_data(BH1750_ADDRESS, 0x20, 2)
-                self.light_sensor = BH1750()
-                self.light_sensor_type = "BH1750"
-                logging.info("BH1750 light sensor detected and initialized.")
-                return "BH1750"
-            except (IOError, OSError):
-                pass
-            
-            try:
-                # Read TSL2591 ID register (should return 0x50)
-                bus.write_byte(TSL2591_ADDRESS, 0xB2)  # 0xB2 is command bit + ID register
-                id_reg = bus.read_byte(TSL2591_ADDRESS)
-                if id_reg == 0x50:
-                    self.light_sensor = tsl2591()
-                    self.light_sensor_type = "TSL2591"
-                    logging.info("TSL2591 light sensor detected and initialized.")
-                    return "TSL2591"
-            except (IOError, OSError):
-                pass
-            
-            self.light_sensor = "none"
-            self.light_sensor_type = "none"
-            logging.warning("No light sensor detected")
-            logging.info(f"Default brightness: {self.def_brightness}")
-            return "No light sensor detected"
-        
-        finally:
-            bus.close()
 
-    def update_brightness(self):
-        try:
-            lux = self._lux * self.sensor_scale
+    def update_brightness(self, raw_lux: float):
+        """Apply EMA smoothing, sensor_scale and LUT to raw_lux, then set strip brightness.
 
-            # Only update stable_lux if change exceeds hysteresis threshold
-            if abs(lux - self._stable_lux) > self.lux_hysteresis:
-                self._stable_lux = lux
-            
-            lux = max(self.lut_in[0], min(self._stable_lux, self.lut_in[-1]))
-            
-            #find where lux falls in the LUT using bisect, subtract 1 to get the left index of the surrounding segment
+        raw_lux is passed in from run_clock() so this method never calls get_lux() itself.
+        """
+        try:
+            # EMA smoothing on the raw lux value
+#            if self._smoothed_lux < 0:
+#                self._smoothed_lux = raw_lux   # seed on first valid reading
+#            else:
+#                self._smoothed_lux = (self.smoothing_alpha * raw_lux
+#                                      + (1 - self.smoothing_alpha) * self._smoothed_lux)
+#            lux = self._smoothed_lux * self.sensor_scale
+
+            lux = raw_lux * self.sensor_scale
+            lux = max(self.lut_in[0], min(lux, self.lut_in[-1]))
+
             idx = bisect.bisect_right(self.lut_in, lux) - 1
-            
-            #clamp that index so it never goes below 0 or beyond the second-to-last entry (since you always need idx and idx+1 to interpolate)
             idx = max(0, min(idx, len(self.lut_in) - 2))
-            
-            # Linear interpolation
-            x0, x1 = self.lut_in[idx], self.lut_in[idx + 1]    
-            y0, y1 = self.lut_out[idx], self.lut_out[idx + 1]  
+
+            x0, x1 = self.lut_in[idx],  self.lut_in[idx + 1]
+            y0, y1 = self.lut_out[idx], self.lut_out[idx + 1]
             target = y0 if x1 == x0 else y0 + (y1 - y0) * (lux - x0) / (x1 - x0)
-    
-            self.last_brightness = (self.smoothing_alpha * self.last_brightness +
-                                    (1 - self.smoothing_alpha) * target)
-    
+
+            self.last_brightness = target
             self.strip.setBrightness(int(self.last_brightness))
-    
+
         except Exception as e:
             logging.error(f"Failed to update brightness: {e}")
-            
+
     def set_background_brightness(self, value):
-        """Update background brightness dynamically."""
         self.background_brightness_factor = max(0.0, min(1.0, float(value)))
-        # Optionally save to config
-        # self.save_config()
-        
+
     def update_language(self, new_language):
         return self.language_settings.update_language(new_language)
 
     def set_effect(self, effect_id):
-        """Switch to a different effect"""
         if effect_id in self.effects:
             self.current_effect_id = effect_id
-            # Clear the display when switching
             self.cls()
             self.strip.show()
-        
-            # Force an immediate draw of the new effect
             current_effect = self.effects.get(effect_id)
             if current_effect:
                 current_effect.draw()
-        
             logging.info(f"Switched to effect: {effect_id}")
             return True
         return False
-        
+
     def next_minuteled(self):
-        # Turn off previous LED
         prev_dot = self.dot_order[(self.current_dot_index - 1) % 4]
         self.set_led_color(self.minute_dots[prev_dot], (0, 0, 0))
-              
-        # Turn on current LED
         current_dot = self.dot_order[self.current_dot_index]
         self.set_led_color(self.minute_dots[current_dot], self.dot_dark_color)
-              
-        # Advance to next LED
         self.current_dot_index = (self.current_dot_index + 1) % 4
 
     def set_led_color(self, led_index, color):
@@ -407,22 +285,21 @@ class WordClock:
             self.strip.setPixelColor(led_index, Color(color[0], color[1], color[2]))
 
     def map_grid_to_led(self, grid_index):
-        if self.grid == "16":                              #16x16 grid
-           grd = grid_index + 34 + 5 * (grid_index // 11) 
-           col = grd % 16                                  # Column (0-10)
-           row = grd // 16                                 # Row (0-15, top to bottom)
-           if col % 2 == 0:                                # even columns: bottom to top
-               led_index = (col * 16) + (15 - 1 - row)
-           else:                                           # odd columns: top to bottom
-               led_index = (col * 16) + row + 1
-           return led_index
+        if self.grid == "16":
+            grd = grid_index + 34 + 5 * (grid_index // 11)
+            col = grd % 16
+            row = grd // 16
+            if col % 2 == 0:
+                led_index = (col * 16) + (15 - 1 - row)
+            else:
+                led_index = (col * 16) + row + 1
+            return led_index
         else:
-                                                           # For 11x10 grid
             col = grid_index % self.columns
             row = grid_index // self.columns
-            if col % 2 == 0:                               # Even columns: top to bottom
-                led_index = 2 + (col * self.rows) + row    # rows = 10
-            else:                                          # Odd columns: bottom to top
+            if col % 2 == 0:
+                led_index = 2 + (col * self.rows) + row
+            else:
                 led_index = 2 + (col * self.rows) + (self.rows - 1 - row)
             return led_index
 
@@ -433,132 +310,99 @@ class WordClock:
                 led_index = self.map_grid_to_led(i)
                 if led_index != -1:
                     self.set_led_color(led_index, self.letter_active_color)
-   
+
     def update_clock(self):
-        """Draw current time """
-        
         now = time.localtime()
         hours = now.tm_hour % 12 or 12
         minutes = now.tm_min
-        
-        # Set minute dots
+
         minute_dots = minutes % 5
         for dot, index in self.minute_dots.items():
-            self.set_led_color(index, self.dot_active_color \
-                  if minute_dots >= list(self.minute_dots.keys()).index(dot) + 1 else self.dot_inactive_color)
-        
-        # Determine minute phrase and hour
-        minute_block = minutes // 5
-        adjusted_hours = hours    
-        
-        # Show "IT IS"
+            self.set_led_color(index, self.dot_active_color
+                  if minute_dots >= list(self.minute_dots.keys()).index(dot) + 1
+                  else self.dot_inactive_color)
+
+        minute_block   = minutes // 5
+        adjusted_hours = hours
+
         if not self.purist:
             for word in self.language_settings.it_is:
                 self.activate_word(word)
-        
-        # Adjust hour per language minutes
+
         if minute_block >= self.language_settings.min_block_check:
             adjusted_hours = (hours % 12) + 1
             if adjusted_hours == 13:
                 adjusted_hours = 1
-        
-        # Activate words based on minute block
+
         if str(minute_block) in self.language_settings.minute_blocks:
             for word in self.language_settings.minute_blocks[str(minute_block)]:
                 self.activate_word(word)
             self.activate_word(self.language_settings.hour_words[adjusted_hours - 1])
-        
+
         self.strip.show()
 
     def set_random_led(self, tint):
-        """Set a random LED with tint"""
-        # Use full panel dimensions if effect_full_panel is True
         if hasattr(self, 'effect_full_panel') and self.effect_full_panel:
-            max_x = 15  # 0-15 for full panel
+            max_x = 15
             max_y = 15
         else:
-            max_x = self.columns - 1  # 0-10 for clock area
-            max_y = self.rows - 1     # 0-9 for clock area
-        
+            max_x = self.columns - 1
+            max_y = self.rows - 1
         self.setcolor_x_y(
             random.randint(0, max_x),
             random.randint(0, max_y),
             self.random_color(tint)
         )
-           
-      
+
     def cls(self):
-        """Clear LEDs to background color"""
         if not self.effect_full_panel:
-            # Power saving mode - only clear clock area
-            for x in range(self.clock_columns):  # 0-10
-                for y in range(self.clock_rows):  # 0-9
+            for x in range(self.clock_columns):
+                for y in range(self.clock_rows):
                     self.setcolor_x_y(x, y, self.background_color)
         else:
-            # Full panel mode - clear all LEDs
             for i in range(self.led_count):
                 self.set_led_color(i, self.background_color)
-            
+
     def setcolor_x_y(self, x, y, color):
-        """Set LED color by grid coordinates 
-           When effect_full_panel is False, x,y are relative to clock area (0-10, 0-9)
-           When effect_full_panel is True, x,y are relative to full panel (0-15, 0-15)
-        """
         if self.grid == "16":
             if not self.effect_full_panel:
-                # Power saving mode - x,y are clock area coordinates (0-10, 0-9)
-                # Map to full panel coordinates with offset
-                panel_x = x + 2  # Clock area starts at column 2
-                panel_y = y + 3  # Clock area starts at row 3
+                panel_x = x + 2
+                panel_y = y + 3
             else:
-                # Full panel mode - x,y are already panel coordinates
                 panel_x = x
                 panel_y = y
-                
-            # Validate panel coordinates
             if panel_x < 0 or panel_x >= 16 or panel_y < 0 or panel_y >= 16:
                 return
-                
-            # Map to physical LED using serpentine pattern
-            if panel_x % 2 == 0:  # Even columns: bottom to top
+            if panel_x % 2 == 0:
                 led_index = (panel_x * 16) + (15 - panel_y)
-            else:  # Odd columns: top to bottom
+            else:
                 led_index = (panel_x * 16) + panel_y
-                
-        else:  # For 11x10 grid (legacy)
+        else:
             if x < 0 or x >= self.columns or y < 0 or y >= self.rows:
                 return
-            if x % 2 == 0:  # Even columns: top to bottom
+            if x % 2 == 0:
                 led_index = 2 + (x * 10) + y
-            else:  # Odd columns: bottom to top
+            else:
                 led_index = 2 + (x * 10) + (9 - y)
-                
         self.set_led_color(led_index, color)
 
-    
-    # End Subs ------------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Config loading
+# ---------------------------------------------------------------------------
 
-# Merge configs before creating the instance
 def load_merged_config():
-    """
-    Load and merge system config (from git) with user config (preserved)
-    User settings in config_loc.json override system defaults in config_gen.json
-    """
-    script_dir = '/home/pi/ds'
+    script_dir      = '/home/pi/ds'
     user_config_dir = '/home/pi/.wordclock'
-    
-    # Paths
+
     system_config_path = os.path.join(script_dir, 'config_gen.json')
-    user_config_path = os.path.join(user_config_dir, 'config_loc.json')
-    
+    user_config_path   = os.path.join(user_config_dir, 'config_loc.json')
+
     try:
-        # Load system config (this gets updated with git pull)
         with open(system_config_path) as f:
             config_gen = json.load(f)
         logging.info(f"Loaded system config from {system_config_path}")
-        
-        # Load user config if it exists (preserved across updates)
+
         if os.path.exists(user_config_path):
             with open(user_config_path) as f:
                 config_loc = json.load(f)
@@ -566,17 +410,9 @@ def load_merged_config():
         else:
             config_loc = {}
             logging.warning(f"No user config found at {user_config_path}, using defaults only")
-        
-        # MERGE: user settings override system defaults
-        merged_config = {**config_gen, **config_loc}
-        
-        # Log what was merged
-#        overridden_keys = set(config_loc.keys()) & set(config_gen.keys())
-#        if overridden_keys:
-#            logging.info(f"User settings overriding system defaults for: {overridden_keys}")
-        
-        return merged_config
-        
+
+        return {**config_gen, **config_loc}
+
     except FileNotFoundError as e:
         logging.error(f"Required config file not found: {e}")
         return None
@@ -586,41 +422,51 @@ def load_merged_config():
     except Exception as e:
         logging.error(f"Unexpected error loading config: {e}")
         return None
-        
-# Initialize word clock
-config = load_merged_config()
+
+
+# ---------------------------------------------------------------------------
+# Bootstrap
+# ---------------------------------------------------------------------------
+
+config     = load_merged_config()
 word_clock = WordClock(config)
 
-# Initialize web routes (must be after word_clock is created)
 import web_routes
 web_routes.init_routes(word_clock, app)
 
-# Main function to run the word clock
+
+# ---------------------------------------------------------------------------
+# Main loop
+# ---------------------------------------------------------------------------
+
 def run_clock():
     frame_delay = 0.01
-    
     try:
         while True:
-            if word_clock.light_sensor_type != "none": word_clock.update_brightness()           
+            # Call get_lux() once per frame — store result for both
+            # update_brightness() and the web interface
+            lux = get_lux()
+            word_clock.lux = lux        # web_routes reads this; -1.0 = no sensor
+
+            if lux >= 0:
+                word_clock.update_brightness(lux)
+
             current_effect = word_clock.effects.get(word_clock.current_effect_id)
             if current_effect:
                 current_effect.draw()
             time.sleep(frame_delay)
-            
+
     except KeyboardInterrupt:
         logging.info("Exiting...")
     finally:
         word_clock.cls()
         word_clock.strip.show()
 
+
 if __name__ == "__main__":
-    # Start the Flask web server in a separate thread
-    # Disable info/warning logs from the server
     logging.getLogger('werkzeug').setLevel(logging.ERROR)
     from threading import Thread
     flask_thread = Thread(target=lambda: app.run(host="0.0.0.0", port=8080))
     flask_thread.daemon = True
     flask_thread.start()
-
-    # Run the word clock
     run_clock()
