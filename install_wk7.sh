@@ -1,16 +1,17 @@
 #!/bin/bash
 # ==============================================================================
 # install_wk.sh - WordClock installation script for Raspberry Pi
-# __version__ = "7.51"
+# __version__ = "7.62"
 # ==============================================================================
 
 LOGFILE="/home/pi/wk_install.log"
 VENV="/home/pi/wk_env"
 PROJECT="/home/pi/ds"
 CONFIG_DIR="/home/pi/.wordclock"
+CONFIG_LOC="$CONFIG_DIR/config_loc.json"
 
 # ------------------------------------------------------------------------------
-# Logging helper
+# Logging helpers
 # ------------------------------------------------------------------------------
 log() {
     local msg="[$(date '+%Y-%m-%d %H:%M:%S')] $1"
@@ -36,11 +37,12 @@ check() {
 }
 
 # ==============================================================================
-# Start
+# Start — always append to log, never overwrite
 # ==============================================================================
 echo "" >> "$LOGFILE"
 log "======================================================"
 log "  WordClock installation started"
+log "  $(date '+%A %d %B %Y  %H:%M:%S')"
 log "======================================================"
 
 # ------------------------------------------------------------------------------
@@ -54,23 +56,21 @@ log "Running apt update..."
 sudo apt update -y >> "$LOGFILE" 2>&1
 check "apt update failed"
 
-log "Installing ahavi, git, python3-dev and python3-venv..."
+log "Installing avahi, git, python3-dev, python3-venv, i2c-tools..."
 sudo apt install -y avahi-daemon avahi-utils >> "$LOGFILE" 2>&1
-sudo apt install git python3-dev python3-venv -y >> "$LOGFILE" 2>&1
+sudo apt install -y git python3-dev python3-venv i2c-tools >> "$LOGFILE" 2>&1
 check "apt install failed"
 
 log "STEP 1 complete."
+
 # ------------------------------------------------------------------------------
 # Step 2 - Network configuration (IPv6, WiFi power management)
 # ------------------------------------------------------------------------------
 log "STEP 2: Configuring network (IPv6, WiFi power management)..."
 
-log "For zero2W driver bug: Checking for brcmfmac WiFi driver fix..."
+log "Checking for brcmfmac WiFi driver fix (zero2W)..."
 
-WIFI_DRIVER=$(nmcli -g GENERAL.DRIVER device show wlan0 2>/dev/null)
-PI_MODEL=$(cat /proc/cpuinfo | grep Model | head -1)
-
-log "WiFi driver: $WIFI_DRIVER"
+PI_MODEL=$(grep Model /proc/cpuinfo | head -1)
 log "Pi model: $PI_MODEL"
 
 if lsmod | grep -q "brcmfmac"; then
@@ -87,39 +87,61 @@ EOF
 wifi.powersave = 2
 EOF
         check "Failed to configure WiFi power management"
-        log "brcmfmac driver fix and power management applied."
+        log "brcmfmac fix and WiFi power management applied."
     else
-        log "brcmfmac fix already present — skipping"
+        log "brcmfmac fix already present — skipping."
     fi
 else
-    log "brcmfmac driver not detected ($(lsmod | grep wifi || echo 'other driver')) — skipping fix"
+    log "brcmfmac driver not detected — skipping fix."
 fi
-
-log "zero2W STEP complete."
 
 log "Disabling IPv6 via sysctl..."
 
-# Define the configuration file path
 SYSCTL_CONF="/etc/sysctl.d/99-disable-ipv6.conf"
-
-# Create or overwrite the configuration file with the required settings
-# Using 'cat' with a here-document ensures the file content is exactly as specified
 sudo bash -c "cat > $SYSCTL_CONF <<EOF
 net.ipv6.conf.all.disable_ipv6 = 1
 net.ipv6.conf.default.disable_ipv6 = 1
 net.ipv6.conf.lo.disable_ipv6 = 1
 EOF" >> "$LOGFILE" 2>&1
-check "Failed to create or write to $SYSCTL_CONF"
+check "Failed to write $SYSCTL_CONF"
 
-log "Configuration written to $SYSCTL_CONF, applying settings..."
-
-# Apply the settings immediately
 sudo sysctl -p "$SYSCTL_CONF" >> "$LOGFILE" 2>&1
-check "Failed to apply sysctl settings from $SYSCTL_CONF"
+check "Failed to apply sysctl settings"
 
-log "IPv6 disabled globally via sysctl."
-
+log "IPv6 disabled."
 log "STEP 2 complete."
+
+# ------------------------------------------------------------------------------
+# Step 2b - Enable I2C
+# ------------------------------------------------------------------------------
+log "STEP 2b: Enabling I2C interface..."
+
+if sudo raspi-config nonint do_i2c 0 >> "$LOGFILE" 2>&1; then
+    log "I2C enabled via raspi-config."
+else
+    log_error "raspi-config do_i2c failed — trying direct config.txt edit..."
+    BOOT_CONFIG="/boot/firmware/config.txt"
+    [ ! -f "$BOOT_CONFIG" ] && BOOT_CONFIG="/boot/config.txt"
+
+    if ! grep -q "^dtparam=i2c_arm=on" "$BOOT_CONFIG"; then
+        echo "dtparam=i2c_arm=on" | sudo tee -a "$BOOT_CONFIG" >> "$LOGFILE" 2>&1
+        check "Failed to enable I2C in $BOOT_CONFIG"
+        log "I2C enabled via $BOOT_CONFIG."
+    else
+        log "I2C already enabled in $BOOT_CONFIG."
+    fi
+fi
+
+# Load i2c-dev immediately so it is available in this session without a reboot
+if ! lsmod | grep -q "i2c_dev"; then
+    sudo modprobe i2c-dev >> "$LOGFILE" 2>&1
+    check "Failed to load i2c-dev kernel module"
+    log "i2c-dev kernel module loaded."
+else
+    log "i2c-dev already loaded."
+fi
+
+log "STEP 2b complete."
 
 # ------------------------------------------------------------------------------
 # Step 3 - WordClock software
@@ -129,7 +151,7 @@ log "STEP 3: Installing WordClock software..."
 cd ~ || { log_error "Cannot cd to home directory"; exit 1; }
 
 if [ -d "$PROJECT" ]; then
-    log "Project directory $PROJECT already exists, pulling latest changes..."
+    log "Project directory $PROJECT exists — pulling latest changes..."
     cd "$PROJECT" && git pull >> "$LOGFILE" 2>&1
     check "git pull failed"
     cd ~
@@ -144,15 +166,15 @@ mkdir -p "$CONFIG_DIR"
 check "Failed to create $CONFIG_DIR"
 chmod 755 "$CONFIG_DIR"
 
-log "Copying config file..."
-if [ -f "$CONFIG_DIR/config_loc.json" ]; then
-    log "Config file already exists at $CONFIG_DIR/config_loc.json — skipping copy to preserve your settings."
+# Copy config_loc.json only on first install — never overwrite user settings
+if [ -f "$CONFIG_LOC" ]; then
+    log "Config file already exists at $CONFIG_LOC — preserving user settings."
 elif [ -f "$PROJECT/config_loc.json" ]; then
-    cp "$PROJECT/config_loc.json" "$CONFIG_DIR/config_loc.json"
+    cp "$PROJECT/config_loc.json" "$CONFIG_LOC"
     check "Failed to copy config_loc.json"
-    log "Config file copied."
+    log "Config file copied to $CONFIG_LOC."
 else
-    log_error "config_loc.json not found in $PROJECT — skipping copy"
+    log_error "config_loc.json not found in $PROJECT — skipping copy."
 fi
 
 log "Installing bash aliases..."
@@ -160,26 +182,26 @@ if [ -f "$PROJECT/alias.txt" ]; then
     cp "$PROJECT/alias.txt" ~/.bash_aliases
     check "Failed to copy alias.txt"
     source ~/.bash_aliases
-    # Also add to .bashrc if not already there
     if ! grep -q "source ~/.bash_aliases" ~/.bashrc; then
         echo -e "\n# Load custom aliases\nif [ -f ~/.bash_aliases ]; then\n    . ~/.bash_aliases\nfi" >> ~/.bashrc
     fi
-    log "Aliases loaded."
+    log "Aliases installed."
 else
-    log_error "alias.txt not found in $PROJECT — skipping"
+    log_error "alias.txt not found in $PROJECT — skipping."
 fi
+
 log "STEP 3 complete."
 
 # ------------------------------------------------------------------------------
-# Step 4 - systemd service (replaces crontab)
+# Step 4 - WordClock systemd service
 # ------------------------------------------------------------------------------
 log "STEP 4: Installing Woordklok systemd service..."
 
 sudo tee /etc/systemd/system/wk.service > /dev/null <<EOF
 [Unit]
 Description=Woordklok
-After=network-online.target
-Wants=network-online.target
+After=network-online.target lux_daemon.service
+Wants=network-online.target lux_daemon.service
 
 [Service]
 User=root
@@ -187,6 +209,8 @@ WorkingDirectory=/home/pi/ds
 ExecStart=/home/pi/wk_env/bin/python /home/pi/ds/wk.py
 Restart=on-failure
 RestartSec=5
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=multi-user.target
@@ -196,13 +220,45 @@ check "Failed to create wk.service"
 sudo systemctl daemon-reload >> "$LOGFILE" 2>&1
 sudo systemctl enable wk >> "$LOGFILE" 2>&1
 check "Failed to enable wk.service"
-log "Woordklok systemd service installed and enabled."
+log "wk.service installed and enabled."
 
 log "Removing crontab @reboot entry if present..."
 crontab -l 2>/dev/null | grep -v "@reboot.*wk.py" | crontab -
 log "Crontab cleaned."
 
 log "STEP 4 complete."
+
+# ------------------------------------------------------------------------------
+# Step 4b - lux_daemon systemd service (driven by SENSOR in config_loc.json)
+# ------------------------------------------------------------------------------
+log "STEP 4b: Installing lux_daemon systemd service..."
+
+sudo tee /etc/systemd/system/lux_daemon.service > /dev/null <<EOF
+[Unit]
+Description=Light sensor lux daemon (Unix socket)
+Before=wk.service
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/ds
+ExecStart=/home/pi/wk_env/bin/python3 /home/pi/ds/lux_daemon.py --sensor TSL2591
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+EOF
+check "Failed to create lux_daemon.service"
+
+sudo systemctl daemon-reload >> "$LOGFILE" 2>&1
+sudo systemctl enable lux_daemon >> "$LOGFILE" 2>&1
+check "Failed to enable lux_daemon.service"
+log "lux_daemon.service installed and enabled."
+
+log "STEP 4b complete."
 
 # ------------------------------------------------------------------------------
 # Step 5 - Python virtual environment
@@ -212,7 +268,7 @@ log "STEP 5: Setting up Python virtual environment..."
 cd ~ || { log_error "Cannot cd to home directory"; exit 1; }
 
 if [ -d "$VENV" ]; then
-    log "Virtual environment $VENV already exists, skipping creation."
+    log "Virtual environment $VENV already exists — skipping creation."
 else
     log "Creating virtual environment at $VENV..."
     python3 -m venv "$VENV"
@@ -223,12 +279,13 @@ log "Activating virtual environment..."
 source "$VENV/bin/activate"
 check "Failed to activate virtual environment"
 
-log "Upgrading pip to latest version..."
+log "Upgrading pip..."
 pip install --upgrade pip >> "$LOGFILE" 2>&1
 check "pip upgrade failed"
 
 log "Installing Python packages (this may take a while)..."
-pip install flask-restx rpi-ws281x python-tsl2591 buienradar --index-url https://pypi.org/simple/ >> "$LOGFILE" 2>&1
+pip install flask-restx rpi-ws281x python-tsl2591 smbus2 buienradar \
+    --index-url https://pypi.org/simple/ >> "$LOGFILE" 2>&1
 check "pip install failed — check $LOGFILE for details"
 
 log "Deactivating virtual environment..."
@@ -246,23 +303,22 @@ CONFIG_MSG="
   Configuration
 ====================================================
 
-Before starting WordClock:
-   Make sure that you know the IP address of the Wordclock, 
-   so you can control it via your web browser.
+Before starting WordClock, review your settings:
 
-   You must configure your location and hardware settings.
-   Do this with:
-   
-   nano $CONFIG_DIR/config_loc.json
-   
-   -at least make sure that the GRID setting is correct
-    GRID:    "11" or "16"
-  
-   -for all details see the file INSTALL.md
-   
-   A reboot is required now:
-   
-sudo reboot
+   nano $CONFIG_LOC
+
+   Key settings to verify:
+   - GRID:    \"11\" or \"16\"
+   - SENSOR:  \"TSL2591\" or \"none\" (for logging/display only)
+
+   The lux_daemon always starts on boot and returns -1 if the sensor
+   is absent or broken — the wordclock falls back to DEF_BRIGHTNESS.
+
+   For full details see INSTALL.md in $PROJECT.
+
+   A reboot is required:
+
+   sudo reboot
 ====================================================
 "
 echo "$CONFIG_MSG"
