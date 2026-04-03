@@ -1,14 +1,13 @@
 [Unit]
 Description=Light sensor lux daemon (Unix socket)
 # Must be up before the wordclock service reads lux
-# version 7.61
+# version 7.62
 Before=wk.service
 
 [Service]
 Type=simple
 User=pi
 WorkingDirectory=/home/pi/ds
-# Change --sensor to BH1750 if that is the sensor on this unit
 ExecStart=/home/pi/wk_env/bin/python3 /home/pi/ds/lux_daemon.py --sensor TSL2591
 Restart=on-failure
 RestartSec=5
