@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__version__ = "7.62"
+__version__ = "7.62a"
 import logging
 import bisect
 import time
@@ -115,7 +115,7 @@ def register_routes():
             lux = word_clock.lux           # raw lux set each frame by run_clock()
             if lux < 0:
                 return jsonify({"brightness": "No sensor"}), 200
-            brightness = round(word_clock.last_brightness, 1)
+            brightness = round(word_clock.last_brightness, 0)
             return jsonify({"brightness": f"{round(lux, 1)}  →  {brightness}"}), 200
         except Exception as e:
             logging.error(f"Failed to fetch brightness: {e}")
