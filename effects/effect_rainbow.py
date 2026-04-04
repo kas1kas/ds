@@ -12,9 +12,7 @@ class EffectRainbow(BaseEffect):
         """Return variants of rainbow effect"""
         patterns = [
             ("rainbow_diagonal", "Rainbow Diagonal"),
-            ("rainbow_spiral", "Rainbow Spiral"),
-            ("rainbow_psycho", "Rainbow Psycho"),
-            ("rainbow_wave", "Rainbow Wave")
+            ("rainbow_spiral", "Rainbow Spiral")
         ]
         return patterns
     
@@ -23,18 +21,14 @@ class EffectRainbow(BaseEffect):
         # Map variant_id to pattern index
         pattern_map = {
             "rainbow_diagonal": 0,
-            "rainbow_spiral": 1,
-            "rainbow_psycho": 2,
-            "rainbow_wave": 3
+            "rainbow_spiral": 1
         }
         self.pattern = pattern_map.get(variant_id, 0)
         
         # Set display name based on pattern
         pattern_names = [
             "Rainbow Diagonal",
-            "Rainbow Spiral",
-            "Rainbow Psycho",
-            "Rainbow Wave"
+            "Rainbow Spiral"
         ]
         self.name = pattern_names[self.pattern]
         
