@@ -309,7 +309,7 @@ Before starting WordClock, review your settings:
 
    Key settings to verify:
    - GRID:    \"11\" or \"16\"
-   - SENSOR:  \"TSL2591\" or \"none\" (for logging/display only)
+   - SENSOR:  \"TSL2591\" or \"none\"
 
    The lux_daemon always starts on boot and returns -1 if the sensor
    is absent or broken — the wordclock falls back to DEF_BRIGHTNESS.
