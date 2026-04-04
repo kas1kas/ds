@@ -115,7 +115,8 @@ def register_routes():
             lux = word_clock.lux           # raw lux set each frame by run_clock()
             if lux < 0:
                 return jsonify({"brightness": "No sensor"}), 200
-            brightness = round(word_clock.last_brightness, 0)
+            brightness = int(round(word_clock.last_brightness))    
+    # ======        brightness = round(word_clock.last_brightness, 1)
             return jsonify({"brightness": f"{round(lux, 1)}  →  {brightness}"}), 200
         except Exception as e:
             logging.error(f"Failed to fetch brightness: {e}")
