@@ -14,6 +14,7 @@ alias kerlogf='sudo journalctl -k -f'
 alias kerlog="sudo journalctl -k"
 alias kerlog='sudo journalctl -k'
 alias ls='ls --color=auto'
+alias luxbar='python3 lux_bar.py'
 alias luxdis='sudo systemctl disable lux_daemon'
 alias luxen='sudo systemctl enable lux_daemon'
 alias luxstat='systemctl status lux_daemon'
