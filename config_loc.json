@@ -1,9 +1,10 @@
 {
-    "VERSION": "7.62",
+    "VERSION": "7.63",
     "PURIST": true,
     "WOORDKLOK": "name",
     "LANGUAGE": "NL",
     "GRID": "11",
+    "LED_PIN": "18",
     "SENSOR": "TSL2591",
     "EFFECT_FULL_PANEL": false,
     "DEFAULT_EFFECT": "matrix",
