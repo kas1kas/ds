@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-__version__ = "7.62"
-# Woordklok - lux version
+__version__ = "7.63"
+# Woordklok - led pin via config
 import argparse
 import json
 import logging
@@ -60,7 +60,7 @@ class WordClock:
         self.effect_full_panel = config["EFFECT_FULL_PANEL"]
         self.light_interval = config["LIGHT_INTERVAL"]
         self.language_settings = LanguageSettings(config, config["LANGUAGE"], self.grid)
-        self.led_pin = 18
+        self.led_pin = config.get("LED_PIN", 18)       # use 18 if config is old and not yet has led pin
         self.led_freq_hz = 800000
         self.led_dma = 10
         self.led_channel = 0
