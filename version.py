@@ -15,7 +15,9 @@ class VersionChecker:
                 content = f.read()
             
             # Look for __version__ = "x.xx?" pattern
-            version_pattern = r'__version__\s*=\s*["\']([\d.]+ [a-z]?)["\']'
+            #version_pattern = r'__version__\s*=\s*["\']([\d.]+)["\']'
+            version_pattern = r'__version__\s*=\s*["\']([\d.]+[a-zA-Z]?)["\']'
+            #version_pattern = r'__version__\s*=\s*["\']([\d.]+ [a-z]?)["\']'
             match = re.search(version_pattern, content)
             if match:
                 return match.group(1).strip()
