@@ -14,8 +14,8 @@ class VersionChecker:
             with open(python_file_path, 'r', encoding='utf-8') as f:
                 content = f.read()
             
-            # Look for __version__ = "x.xx" pattern
-            version_pattern = r'__version__\s*=\s*["\']([\d.]+)["\']'
+            # Look for __version__ = "x.xx?" pattern
+            version_pattern = r'__version__\s*=\s*["\']([\d.]+ [a-z]?)["\']'
             match = re.search(version_pattern, content)
             if match:
                 return match.group(1).strip()
