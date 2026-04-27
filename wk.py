@@ -148,8 +148,8 @@ class WordClock:
             self._weather_thread = threading.Thread(target=self._weather_loop, daemon=True)
             self._weather_thread.start()
             logging.info("Weather background thread started")
-            logging.info(f"Lattitude :  {self.weather_lat}")
-            logging.info(f"Longtitude:  {self.weather_lon}")
+            logging.info(f"Lattitude    : {self.weather_lat}")
+            logging.info(f"Longtitude   : {self.weather_lon}")
         else:
             logging.info("Weather updates disabled")
 
