@@ -24,6 +24,7 @@ from effects import discover_effects
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logging.getLogger("buienradar").setLevel(logging.WARNING)
 
 # Initialize Flask app
 app = Flask(__name__, template_folder='templates_plugin')
@@ -139,10 +140,10 @@ class WordClock:
             logging.warning("Lux daemon not reachable – brightness control disabled")
 
         # Start weather thread
-        self.weather_enabled = config.get("WEATHER_ENABLED", False)
+        self.weather_enabled = config["WEATHER_ENABLED"]
         if self.weather_enabled:
-            self.weather_lat = config.get("WEATHER_LAT", 51.5078)
-            self.weather_lon = config.get("WEATHER_LON", 5.3978)
+            self.weather_lat = float(config["WEATHER_LAT"])
+            self.weather_lon = float(config["WEATHER_LON"])
             self.weather_update_interval = config.get("WEATHER_UPDATE_INTERVAL", 900)
             self._weather_thread = threading.Thread(target=self._weather_loop, daemon=True)
             self._weather_thread.start()
