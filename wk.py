@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-__version__ = "7.63"
-# Woordklok - led pin via config
+__version__ = "7.64"
+# Woordklok - Buienradar logging off
 import argparse
 import json
 import logging
