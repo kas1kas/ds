@@ -24,10 +24,10 @@ class EffectWeather(BaseEffect):
         ( 10, ( 85, 255,   0)),   # yellow green
         ( 15, (170, 255,   0)),
         ( 20, (255, 255,   0)),   # yellow
-        ( 25, (255, 180,   0)),
-        ( 30, (255, 100,   0)),   # orange
-        ( 35, (255,  50,   0)),
-        ( 40, (255,   0,   0))    # red
+#        ( 25, (255, 180,   0)),
+        ( 25, (255, 100,   0)),   # orange
+        ( 30, (255,  50,   0)),
+        ( 35, (255,   0,   0))    # red
     ]
 
     # Wind direction to movement vector (dx, dy)
