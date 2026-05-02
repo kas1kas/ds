@@ -253,7 +253,7 @@ class WordClock:
             if x1 == x0 or lux >= x1:          # ← covers the exact upper-boundary case
                 target = y1
             else:
-            target = y0 + (y1 - y0) * (lux - x0) / (x1 - x0)
+                target = y0 + (y1 - y0) * (lux - x0) / (x1 - x0)
             self.last_brightness = target
             self.strip.setBrightness(int(self.last_brightness))
 
