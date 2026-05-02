@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-__version__ = "7.64"
-# Woordklok - Buienradar logging off
+__version__ = "7.65"
+# Woordklok - brightness: fix lux maximum
 import argparse
 import json
 import logging
@@ -50,7 +50,6 @@ class LanguageSettings:
             self.load_language_settings()
             return True
         return False
-
 
 class WordClock:
     def __init__(self, config):
@@ -251,8 +250,10 @@ class WordClock:
 
             x0, x1 = self.lut_in[idx],  self.lut_in[idx + 1]
             y0, y1 = self.lut_out[idx], self.lut_out[idx + 1]
-            target = y0 if x1 == x0 else y0 + (y1 - y0) * (lux - x0) / (x1 - x0)
-
+            if x1 == x0 or lux >= x1:          # ← covers the exact upper-boundary case
+                target = y1
+            else:
+            target = y0 + (y1 - y0) * (lux - x0) / (x1 - x0)
             self.last_brightness = target
             self.strip.setBrightness(int(self.last_brightness))
 
