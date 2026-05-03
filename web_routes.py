@@ -57,6 +57,9 @@ def register_routes():
             initial_clock_type=initial_effect,
             initial_purist=initial_purist,
             woordklok_name=woordklok_name,
+            woordklok_location= word_clock.weather_location,
+            woordklok_lat     = word_clock.weather_lat,
+            woordklok_lon     = word_clock.weather_lon,
             woordklok_version=woordklok_version,
             available_effects=available_effects,
             has_light_sensor=has_light_sensor
