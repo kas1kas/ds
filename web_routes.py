@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__version__ = "7.62a"
+__version__ = "7.63"
 import logging
 import bisect
 import time
@@ -28,13 +28,16 @@ def register_routes():
     @app.route("/")
     def index():
         """Render the web interface with dynamic effect list."""
-        initial_color    = word_clock.letter_active_color
-        initial_language = word_clock.language_settings.language
-        initial_effect   = word_clock.current_effect_id
-        initial_purist   = word_clock.purist
-        woordklok_name   = word_clock.woordklok
+        initial_color    =  word_clock.letter_active_color
+        initial_language =  word_clock.language_settings.language
+        initial_effect   =  word_clock.current_effect_id
+        initial_purist   =  word_clock.purist
+        woordklok_name   =  word_clock.woordklok
         woordklok_version = word_clock.version
-
+        woordklok_location= word_clock.weather_location
+        woordklok_lat     = word_clock.weather_lat
+        woordklok_lon     = word_clock.weather_lon
+        
         # Sensor is active when the daemon is reachable and returning a valid lux.
         # word_clock.lux is updated every frame by run_clock(); -1.0 means no sensor.
         has_light_sensor = word_clock.lux >= 0
