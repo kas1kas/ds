@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-__version__ = "7.65"
-# Woordklok - brightness: fix lux maximum
+__version__ = "7.66"
+# Woordklok - Added location for weather
 import argparse
 import json
 import logging
@@ -78,6 +78,11 @@ class WordClock:
         self.default_effect = config["DEFAULT_EFFECT"]
         self.rand_color = config["RAND_COLOR"]
         self.light_sensor_type = config.get("SENSOR", "none")
+        self.weather_enabled = config["WEATHER_ENABLED"]
+        self.weather_location = config.get("WEATHER_LOCATION","none")
+        self.weather_lat = float(config.get("WEATHER_LAT",5))
+        self.weather_lon = float(config.get("WEATHER_LON",5))
+        self.weather_update_interval = config.get("WEATHER_UPDATE_INTERVAL", 900)
 
         # Lux state — updated each frame by run_clock()
         # -1.0 means no sensor/daemon available
@@ -127,6 +132,7 @@ class WordClock:
         logging.info(f"Smoothing α  : {self.smoothing_alpha}")
         logging.info(f"Lut In       : {self.lut_in}")
         logging.info(f"Lut Out      : {self.lut_out}")
+        logging.info(f"Location     : {self.weather_location}")
 
         # Initialize LED strip
         self.initialize_led()
@@ -139,18 +145,14 @@ class WordClock:
             logging.warning("Lux daemon not reachable – brightness control disabled")
 
         # Start weather thread
-        self.weather_enabled = config["WEATHER_ENABLED"]
         if self.weather_enabled:
-            self.weather_lat = float(config["WEATHER_LAT"])
-            self.weather_lon = float(config["WEATHER_LON"])
-            self.weather_update_interval = config.get("WEATHER_UPDATE_INTERVAL", 900)
             self._weather_thread = threading.Thread(target=self._weather_loop, daemon=True)
             self._weather_thread.start()
             logging.info("Weather background thread started")
             logging.info(f"Lattitude    : {self.weather_lat}")
             logging.info(f"Longtitude   : {self.weather_lon}")
         else:
-            logging.info("Weather updates disabled")
+            logging.info("Weather system disabled")
 
         # Init effects
         self.effects = {}
