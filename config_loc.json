@@ -1,5 +1,5 @@
 {
-    "VERSION": "7.71",
+    "VERSION": "7.64",
     "PURIST": true,
     "WOORDKLOK": "name",
     "LANGUAGE": "NL",
@@ -13,28 +13,6 @@
     "WEATHER_LOCATION": "Best",
     "WEATHER_LAT": 51.5,
     "WEATHER_LON": 5.4,
-    "WEATHER_LOC": {
-        "Ka":{
-           "lat": 51.5,
-           "lon": 5.4
-        },
-        "Su":{
-           "lat": 52.5,
-           "lon": 5.3
-        },
-        "Tu":{
-           "lat": 55.5,
-           "lon": 4.9
-        },
-        "Sh":{
-           "lat": 52.6,
-           "lon": 5.5
-        },
-        "Do": {
-           "lat": 54.5,
-           "lon": 4.7
-        }
-    },
     "WEATHER_UPDATE_INTERVAL": 60,
     "LIGHT_INTERVAL": 1,
     "DEF_BRIGHTNESS": 10,
