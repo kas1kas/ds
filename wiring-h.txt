@@ -1,0 +1,16 @@
+# wiring.py — LED strip wiring layouts for the Woordklok
+#
+# Owns all geometry: translates logical clock position (x, y) directly to
+# the physical LED strip index for a given hardware build.
+#
+#   x = column, 0 = leftmost,  10 = rightmost
+#   y = row,    0 = bottom,     9 = top
+#
+# config_gen.json word coordinates are stored as a flat index
+# (grid_index = y * 11 + x) and stay unchanged forever.
+#
+# How to add a new wiring variant:
+#   1. Define _xy_to_<name>(x, y) -> int
+#   2. Define its minute-dot dict (MLT/MLB/MRB/MRT -> physical index)
+#   3. Register both in _BUILDERS and _MINUTE_DOTS.
+#   4. Set  "WIRING": "<name>"  in config_loc.json.
