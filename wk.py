@@ -146,7 +146,7 @@ class WordClock:
         logging.info(f"Random       : {self.rand_color}")
         logging.info(f"Language     : {self.language_settings.language}")
         logging.info(f"Grid         : {self.grid}")
-        logging.info(f"Wiring       : {self.wiring}")
+        logging.info(f"Wiring       : {wiring_name}")
         logging.info(f"LED_PIN      : {self.led_pin}")
         logging.info(f"Fullpanel    : {self.effect_full_panel}")
         logging.info(f"Light sensor : {self.light_sensor_type}")
