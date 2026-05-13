@@ -1,9 +1,10 @@
 {
-    "VERSION": "7.64",
+    "VERSION": "7.71",
     "PURIST": true,
     "WOORDKLOK": "name",
     "LANGUAGE": "NL",
     "GRID": "11",
+    "WIRING": "vertical",
     "LED_PIN": 18,
     "SENSOR": "TSL2591",
     "EFFECT_FULL_PANEL": false,

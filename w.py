@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-__version__ = "7.66"
-# Woordklok - Added location for weather
+__version__ = "7.65"
+# Woordklok - Buienradar logging off
 import argparse
 import json
 import logging
@@ -54,6 +54,7 @@ class LanguageSettings:
             return True
         return False
 
+
 class WordClock:
     def __init__(self, config):
         self.version = __version__
@@ -63,7 +64,7 @@ class WordClock:
         self.effect_full_panel = config["EFFECT_FULL_PANEL"]
         self.light_interval = config["LIGHT_INTERVAL"]
         self.language_settings = LanguageSettings(config, config["LANGUAGE"], self.grid)
-        self.led_pin = config.get("LED_PIN", 18)       # use 18 if config is old and not yet has led pin
+        self.led_pin = config.get("LED_PIN", 18)
         self.led_freq_hz = 800000
         self.led_dma = 10
         self.led_channel = 0
@@ -74,27 +75,17 @@ class WordClock:
         self.letter_active_color = config["LETTER_ACTIVE_COLOR"]
         self.dot_active_color = config["DOT_ACTIVE_COLOR"]
         self.dot_inactive_color = config["DOT_INACTIVE_COLOR"]
-        self.minute_dots = config["MINUTE_DOTS"].get(str(self.grid), {})
-        self.dot_order = ["MLT", "MLB", "MRB", "MRT"]
-        self.current_dot_index = 0
         self.dot_dark_color = config["DOT_DARK_COLOR"]
         self.default_effect = config["DEFAULT_EFFECT"]
         self.rand_color = config["RAND_COLOR"]
         self.light_sensor_type = config.get("SENSOR", "none")
-        self.weather_enabled = config["WEATHER_ENABLED"]
-        self.weather_location = config.get("WEATHER_LOCATION","none")
-        self.weather_lat = float(config.get("WEATHER_LAT",5))
-        self.weather_lon = float(config.get("WEATHER_LON",5))
-        self.weather_update_interval = config.get("WEATHER_UPDATE_INTERVAL", 900)
 
-        # Lux state — updated each frame by run_clock()
-        # -1.0 means no sensor/daemon available
+        # Lux state — updated each frame by run_clock(); -1.0 = no sensor
         self.lux = -1.0
 
         # EMA smoothing for brightness control
-        # 0.20 = fast response, 0.90 = very slow/smooth
         self.smoothing_alpha = 0.20
-        self._smoothed_lux   = -1.0       # internal EMA state
+        self._smoothed_lux   = -1.0
 
         self.sensor_scale = config["SENSOR_SCALE"]
         lut = config["LUT"]
@@ -109,17 +100,17 @@ class WordClock:
         # Panel dimensions
         if self.grid == "16":
             self.panel_columns = 16
-            self.panel_rows = 16
-            self.led_count = 256
+            self.panel_rows    = 16
+            self.led_count     = 256
         else:
             self.panel_columns = 11
-            self.panel_rows = 10
-            self.led_count = 114
+            self.panel_rows    = 10
+            self.led_count     = 114
 
         self.clock_columns = 11
-        self.clock_rows = 10
-        self.columns = self.clock_columns
-        self.rows = self.clock_rows
+        self.clock_rows    = 10
+        self.columns       = self.clock_columns
+        self.rows          = self.clock_rows
 
         # ----------------------------------------------------------------
         # Wiring — owns all LED geometry for grid=11 variants.
@@ -130,7 +121,7 @@ class WordClock:
         # ----------------------------------------------------------------
         wiring_name  = config.get("WIRING", "vertical")
         self.wiring  = Wiring(wiring_name)
- 
+
         # Minute dots: physical indices come from the wiring object so they
         # are correct for every hardware variant.
         self.dot_order         = ["MLT", "MLB", "MRB", "MRT"]
@@ -146,13 +137,13 @@ class WordClock:
         logging.info(f"Random       : {self.rand_color}")
         logging.info(f"Language     : {self.language_settings.language}")
         logging.info(f"Grid         : {self.grid}")
+        logging.info(f"Wiring       : {wiring_name}")
         logging.info(f"LED_PIN      : {self.led_pin}")
         logging.info(f"Fullpanel    : {self.effect_full_panel}")
         logging.info(f"Light sensor : {self.light_sensor_type}")
         logging.info(f"Smoothing α  : {self.smoothing_alpha}")
         logging.info(f"Lut In       : {self.lut_in}")
         logging.info(f"Lut Out      : {self.lut_out}")
-        logging.info(f"Location     : {self.weather_location}")
 
         # Initialize LED strip
         self.initialize_led()
@@ -165,14 +156,18 @@ class WordClock:
             logging.warning("Lux daemon not reachable – brightness control disabled")
 
         # Start weather thread
+        self.weather_enabled = config["WEATHER_ENABLED"]
         if self.weather_enabled:
+            self.weather_lat = float(config["WEATHER_LAT"])
+            self.weather_lon = float(config["WEATHER_LON"])
+            self.weather_update_interval = config.get("WEATHER_UPDATE_INTERVAL", 900)
             self._weather_thread = threading.Thread(target=self._weather_loop, daemon=True)
             self._weather_thread.start()
             logging.info("Weather background thread started")
             logging.info(f"Lattitude    : {self.weather_lat}")
             logging.info(f"Longtitude   : {self.weather_lon}")
         else:
-            logging.info("Weather system disabled")
+            logging.info("Weather updates disabled")
 
         # Init effects
         self.effects = {}
@@ -182,7 +177,7 @@ class WordClock:
         for effect_id, info in effects_info.items():
             try:
                 effect_class = info['class']
-                variant_id = info.get('variant_id')
+                variant_id   = info.get('variant_id')
                 self.effects[effect_id] = effect_class(self, variant_id=variant_id)
             except Exception as e:
                 logging.error(f"Failed to load effect {effect_id}: {e}")
@@ -251,19 +246,8 @@ class WordClock:
             logging.error(f"Weather update failed: {e}")
 
     def update_brightness(self, raw_lux: float):
-        """Apply EMA smoothing, sensor_scale and LUT to raw_lux, then set strip brightness.
-
-        raw_lux is passed in from run_clock() so this method never calls get_lux() itself.
-        """
+        """Apply sensor_scale and LUT to raw_lux, then set strip brightness."""
         try:
-            # EMA smoothing on the raw lux value
-#            if self._smoothed_lux < 0:
-#                self._smoothed_lux = raw_lux   # seed on first valid reading
-#            else:
-#                self._smoothed_lux = (self.smoothing_alpha * raw_lux
-#                                      + (1 - self.smoothing_alpha) * self._smoothed_lux)
-#            lux = self._smoothed_lux * self.sensor_scale
-
             lux = raw_lux * self.sensor_scale
             lux = max(self.lut_in[0], min(lux, self.lut_in[-1]))
 
@@ -272,10 +256,8 @@ class WordClock:
 
             x0, x1 = self.lut_in[idx],  self.lut_in[idx + 1]
             y0, y1 = self.lut_out[idx], self.lut_out[idx + 1]
-            if x1 == x0 or lux >= x1:          # ← covers the exact upper-boundary case
-                target = y1
-            else:
-                target = y0 + (y1 - y0) * (lux - x0) / (x1 - x0)
+            target = y0 if x1 == x0 else y0 + (y1 - y0) * (lux - x0) / (x1 - x0)
+
             self.last_brightness = target
             self.strip.setBrightness(int(self.last_brightness))
 
@@ -301,9 +283,9 @@ class WordClock:
         return False
 
     def next_minuteled(self):
-        prev_dot = self.dot_order[(self.current_dot_index - 1) % 4]
-        self.set_led_color(self.minute_dots[prev_dot], (0, 0, 0))
+        prev_dot    = self.dot_order[(self.current_dot_index - 1) % 4]
         current_dot = self.dot_order[self.current_dot_index]
+        self.set_led_color(self.minute_dots[prev_dot], (0, 0, 0))
         self.set_led_color(self.minute_dots[current_dot], self.dot_dark_color)
         self.current_dot_index = (self.current_dot_index + 1) % 4
 
@@ -339,8 +321,8 @@ class WordClock:
                     self.set_led_color(led_index, self.letter_active_color)
 
     def update_clock(self):
-        now = time.localtime()
-        hours = now.tm_hour % 12 or 12
+        now     = time.localtime()
+        hours   = now.tm_hour % 12 or 12
         minutes = now.tm_min
 
         minute_dots = minutes % 5
@@ -415,6 +397,7 @@ class WordClock:
 
         self.set_led_color(led_index, color)
 
+
 # ---------------------------------------------------------------------------
 # Config loading
 # ---------------------------------------------------------------------------
@@ -471,8 +454,6 @@ def run_clock():
     frame_delay = 0.01
     try:
         while True:
-            # Call get_lux() once per frame — store result for both
-            # update_brightness() and the web interface
             lux = get_lux()
             word_clock.lux = lux        # web_routes reads this; -1.0 = no sensor
 
