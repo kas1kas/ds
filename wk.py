@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-__version__ = "7.71"
-# Woordklok - Added horizontal wiring
+__version__ = "7.72"
+# Woordklok - unified wiring for all grid variants
 import argparse
 import json
 import logging
@@ -22,7 +22,7 @@ from lux_client import get_lux
 # Import effect system
 from effects import discover_effects
 
-# Wiring abstraction — owns all LED geometry
+# Wiring abstraction — translates (x, y) → physical strip index
 from wiring import Wiring
 
 # Set up logging
@@ -54,6 +54,7 @@ class LanguageSettings:
             return True
         return False
 
+
 class WordClock:
     def __init__(self, config):
         self.version = __version__
@@ -63,7 +64,7 @@ class WordClock:
         self.effect_full_panel = config["EFFECT_FULL_PANEL"]
         self.light_interval = config["LIGHT_INTERVAL"]
         self.language_settings = LanguageSettings(config, config["LANGUAGE"], self.grid)
-        self.led_pin = config.get("LED_PIN", 18)       # use 18 if config is old and not yet has led pin
+        self.led_pin = config.get("LED_PIN", 18)
         self.led_freq_hz = 800000
         self.led_dma = 10
         self.led_channel = 0
@@ -74,27 +75,22 @@ class WordClock:
         self.letter_active_color = config["LETTER_ACTIVE_COLOR"]
         self.dot_active_color = config["DOT_ACTIVE_COLOR"]
         self.dot_inactive_color = config["DOT_INACTIVE_COLOR"]
-        self.minute_dots = config["MINUTE_DOTS"].get(str(self.grid), {})
-        self.dot_order = ["MLT", "MLB", "MRB", "MRT"]
-        self.current_dot_index = 0
         self.dot_dark_color = config["DOT_DARK_COLOR"]
         self.default_effect = config["DEFAULT_EFFECT"]
         self.rand_color = config["RAND_COLOR"]
         self.light_sensor_type = config.get("SENSOR", "none")
         self.weather_enabled = config["WEATHER_ENABLED"]
-        self.weather_location = config.get("WEATHER_LOCATION","none")
-        self.weather_lat = float(config.get("WEATHER_LAT",5))
-        self.weather_lon = float(config.get("WEATHER_LON",5))
+        self.weather_location = config.get("WEATHER_LOCATION", "none")
+        self.weather_lat = float(config.get("WEATHER_LAT", 5))
+        self.weather_lon = float(config.get("WEATHER_LON", 5))
         self.weather_update_interval = config.get("WEATHER_UPDATE_INTERVAL", 900)
 
-        # Lux state — updated each frame by run_clock()
-        # -1.0 means no sensor/daemon available
+        # Lux state — updated each frame by run_clock(); -1.0 = no sensor
         self.lux = -1.0
 
         # EMA smoothing for brightness control
-        # 0.20 = fast response, 0.90 = very slow/smooth
         self.smoothing_alpha = 0.20
-        self._smoothed_lux   = -1.0       # internal EMA state
+        self._smoothed_lux   = -1.0
 
         self.sensor_scale = config["SENSOR_SCALE"]
         lut = config["LUT"]
@@ -106,37 +102,47 @@ class WordClock:
         self.wind_speed = 5
         self.wind_direction = 270
 
-        # Panel dimensions
+        # LED count depends on grid
         if self.grid == "16":
-            self.panel_columns = 16
-            self.panel_rows = 16
             self.led_count = 256
         else:
-            self.panel_columns = 11
-            self.panel_rows = 10
             self.led_count = 114
 
+        # The word grid is always 11 columns × 10 rows regardless of panel size
         self.clock_columns = 11
-        self.clock_rows = 10
-        self.columns = self.clock_columns
-        self.rows = self.clock_rows
+        self.clock_rows    = 10
+        self.columns       = self.clock_columns
+        self.rows          = self.clock_rows
 
         # ----------------------------------------------------------------
-        # Wiring — owns all LED geometry for grid=11 variants.
-        # "vertical"   = original column-strip serpentine (default)
-        # "horizontal" = new horizontal-strip serpentine
-        # Set via  "WIRING": "horizontal"  in config_loc.json.
-        # grid=16 panel geometry is handled inline below (unchanged).
+        # Wiring — maps (x, y) → physical strip index for ALL grid variants.
+        #
+        # "vertical"   = original 11×10 column-strip serpentine (default)
+        # "horizontal" = new 11×10 horizontal-strip serpentine
+        # "matrix16"   = 16×16 LED panel with 11×10 word grid inset
+        #
+        # Set in config_loc.json:
+        #   "WIRING": "horizontal"   or   "WIRING": "matrix16"
+        # Omit to default to "vertical".
         # ----------------------------------------------------------------
         wiring_name  = config.get("WIRING", "vertical")
         self.wiring  = Wiring(wiring_name)
- 
-        # Minute dots: physical indices come from the wiring object so they
-        # are correct for every hardware variant.
+
+        # ----------------------------------------------------------------
+        # Minute dots — physical indices read from config_gen.json.
+        # MINUTE_DOTS is keyed by wiring name so each hardware variant
+        # has its own set of correct physical positions.
+        # wiring.py does not store these — config is the single source.
+        # ----------------------------------------------------------------
         self.dot_order         = ["MLT", "MLB", "MRB", "MRT"]
         self.current_dot_index = 0
-        self.minute_dots = {name: self.wiring.minute_dot(name)
-                            for name in self.dot_order}
+        minute_dot_config      = config.get("MINUTE_DOTS", {})
+        self.minute_dots       = minute_dot_config.get(wiring_name, {})
+        if not self.minute_dots:
+            logging.warning(
+                f"No MINUTE_DOTS entry for wiring '{wiring_name}' in config — "
+                f"minute dots will not light up."
+            )
 
         logging.info(f"Woordklok    : {self.woordklok}")
         logging.info(f"version      : {self.version}")
@@ -147,6 +153,7 @@ class WordClock:
         logging.info(f"Language     : {self.language_settings.language}")
         logging.info(f"Grid         : {self.grid}")
         logging.info(f"Wiring       : {wiring_name}")
+        logging.info(f"Minute dots  : {self.minute_dots}")
         logging.info(f"LED_PIN      : {self.led_pin}")
         logging.info(f"Fullpanel    : {self.effect_full_panel}")
         logging.info(f"Light sensor : {self.light_sensor_type}")
@@ -183,7 +190,7 @@ class WordClock:
         for effect_id, info in effects_info.items():
             try:
                 effect_class = info['class']
-                variant_id = info.get('variant_id')
+                variant_id   = info.get('variant_id')
                 self.effects[effect_id] = effect_class(self, variant_id=variant_id)
             except Exception as e:
                 logging.error(f"Failed to load effect {effect_id}: {e}")
@@ -252,19 +259,8 @@ class WordClock:
             logging.error(f"Weather update failed: {e}")
 
     def update_brightness(self, raw_lux: float):
-        """Apply EMA smoothing, sensor_scale and LUT to raw_lux, then set strip brightness.
-
-        raw_lux is passed in from run_clock() so this method never calls get_lux() itself.
-        """
+        """Apply sensor_scale and LUT to raw_lux, then set strip brightness."""
         try:
-            # EMA smoothing on the raw lux value
-#            if self._smoothed_lux < 0:
-#                self._smoothed_lux = raw_lux   # seed on first valid reading
-#            else:
-#                self._smoothed_lux = (self.smoothing_alpha * raw_lux
-#                                      + (1 - self.smoothing_alpha) * self._smoothed_lux)
-#            lux = self._smoothed_lux * self.sensor_scale
-
             lux = raw_lux * self.sensor_scale
             lux = max(self.lut_in[0], min(lux, self.lut_in[-1]))
 
@@ -273,10 +269,11 @@ class WordClock:
 
             x0, x1 = self.lut_in[idx],  self.lut_in[idx + 1]
             y0, y1 = self.lut_out[idx], self.lut_out[idx + 1]
-            if x1 == x0 or lux >= x1:          # ← covers the exact upper-boundary case
+            if x1 == x0 or lux >= x1:
                 target = y1
             else:
                 target = y0 + (y1 - y0) * (lux - x0) / (x1 - x0)
+
             self.last_brightness = target
             self.strip.setBrightness(int(self.last_brightness))
 
@@ -302,9 +299,9 @@ class WordClock:
         return False
 
     def next_minuteled(self):
-        prev_dot = self.dot_order[(self.current_dot_index - 1) % 4]
-        self.set_led_color(self.minute_dots[prev_dot], (0, 0, 0))
+        prev_dot    = self.dot_order[(self.current_dot_index - 1) % 4]
         current_dot = self.dot_order[self.current_dot_index]
+        self.set_led_color(self.minute_dots[prev_dot], (0, 0, 0))
         self.set_led_color(self.minute_dots[current_dot], self.dot_dark_color)
         self.current_dot_index = (self.current_dot_index + 1) % 4
 
@@ -314,22 +311,13 @@ class WordClock:
 
     def map_grid_to_led(self, grid_index):
         """
-        Translate a flat grid index from config_gen.json to a physical strip index.
-        grid_index = y * 11 + x  (y=0 is bottom row, x=0 is leftmost column).
+        Translate a flat config grid index to a physical strip index.
+        grid_index = y * 11 + x  (y=0=bottom row, x=0=leftmost column).
+        All grid variants go through self.wiring.xy() — no special-casing.
         """
-        col = grid_index % self.columns   # x
-        row = grid_index // self.columns  # y
-
-        if self.grid == "16":
-            grd = grid_index + 34 + 5 * (grid_index // 11)
-            panel_col = grd % 16
-            panel_row = grd // 16
-            if panel_col % 2 == 0:
-                return (panel_col * 16) + (15 - 1 - panel_row)
-            else:
-                return (panel_col * 16) + panel_row + 1
-        else:
-            return self.wiring.xy(col, row)
+        x = grid_index % self.columns
+        y = grid_index // self.columns
+        return self.wiring.xy(x, y)
 
     def activate_word(self, word):
         if word in self.language_settings.words:
@@ -340,8 +328,8 @@ class WordClock:
                     self.set_led_color(led_index, self.letter_active_color)
 
     def update_clock(self):
-        now = time.localtime()
-        hours = now.tm_hour % 12 or 12
+        now     = time.localtime()
+        hours   = now.tm_hour % 12 or 12
         minutes = now.tm_min
 
         minute_dots = minutes % 5
@@ -371,14 +359,15 @@ class WordClock:
 
     def set_random_led(self, tint):
         if hasattr(self, 'effect_full_panel') and self.effect_full_panel:
-            max_x = 15
-            max_y = 15
-        else:
-            max_x = self.columns - 1
-            max_y = self.rows - 1
+            max_x = self.led_count - 1
+            max_y = 0
+            # For full panel effects, iterate all LEDs directly
+            self.set_led_color(random.randint(0, self.led_count - 1),
+                               self.random_color(tint))
+            return
         self.setcolor_x_y(
-            random.randint(0, max_x),
-            random.randint(0, max_y),
+            random.randint(0, self.columns - 1),
+            random.randint(0, self.rows - 1),
             self.random_color(tint)
         )
 
@@ -395,26 +384,13 @@ class WordClock:
         """
         Set the color of the LED at logical clock position (x, y).
         x = column (0=leftmost), y = row (0=bottom).
+        All wiring variants are handled by self.wiring.xy() — no if/else on grid.
         """
-        if self.grid == "16":
-            if not self.effect_full_panel:
-                panel_x = x + 2
-                panel_y = y + 3
-            else:
-                panel_x = x
-                panel_y = y
-            if panel_x < 0 or panel_x >= 16 or panel_y < 0 or panel_y >= 16:
-                return
-            if panel_x % 2 == 0:
-                led_index = (panel_x * 16) + (15 - panel_y)
-            else:
-                led_index = (panel_x * 16) + panel_y
-        else:
-            if x < 0 or x >= self.columns or y < 0 or y >= self.rows:
-                return
-            led_index = self.wiring.xy(x, y)
-
+        if x < 0 or x >= self.columns or y < 0 or y >= self.rows:
+            return
+        led_index = self.wiring.xy(x, y)
         self.set_led_color(led_index, color)
+
 
 # ---------------------------------------------------------------------------
 # Config loading
@@ -472,8 +448,6 @@ def run_clock():
     frame_delay = 0.01
     try:
         while True:
-            # Call get_lux() once per frame — store result for both
-            # update_brightness() and the web interface
             lux = get_lux()
             word_clock.lux = lux        # web_routes reads this; -1.0 = no sensor
 
