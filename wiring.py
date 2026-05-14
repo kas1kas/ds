@@ -1,18 +1,20 @@
 # wiring.py — LED strip wiring layouts for the Woordklok
 #
-# Owns all geometry: translates logical clock position (x, y) directly to
-# the physical LED strip index for a given hardware build.
+# Translates logical clock position (x, y) to physical LED strip index.
 #
 #   x = column, 0 = leftmost,  10 = rightmost
 #   y = row,    0 = bottom,     9 = top
 #
-# config_gen.json word coordinates are stored as a flat index
-# (grid_index = y * 11 + x) and stay unchanged forever.
+# Minute dot physical indices are NOT stored here — they live in
+# config_gen.json under MINUTE_DOTS, keyed by wiring name.
+# wk.py reads them directly from config and uses set_led_color() with
+# those indices — no translation needed because the config values are
+# already the correct physical indices for each wiring variant.
 #
 # How to add a new wiring variant:
 #   1. Define _xy_to_<name>(x, y) -> int
-#   2. Define its minute-dot dict (MLT/MLB/MRB/MRT -> physical index)
-#   3. Register both in _BUILDERS and _MINUTE_DOTS.
+#   2. Register it in _BUILDERS.
+#   3. Add its MINUTE_DOTS entry to config_gen.json.
 #   4. Set  "WIRING": "<name>"  in config_loc.json.
 
 import logging
@@ -33,9 +35,11 @@ def _xy_to_vertical(x, y):
     Strips run vertically; columns snake left→right.
     Even columns (x=0,2,4,...) run bottom→top.
     Odd  columns (x=1,3,5,...) run top→bottom.
-    Physical 0,1 = minute corners MLB/MLT.
-    Physical 2..111 = word area.
-    Physical 112,113 = minute corners MRB/MRT.
+
+    Physical layout:
+      0, 1       = minute corners MLB / MLT
+      2 .. 111   = word area (110 LEDs)
+      112, 113   = minute corners MRB / MRT
     """
     if x % 2 == 0:
         return 2 + (x * _ROWS) + y
@@ -67,50 +71,50 @@ def _xy_to_horizontal(x, y):
       113        = MRT  minute dot  (after row 9)
     """
     if y == 0:
-        return 1 + x                            # L→R
+        return 1 + x
     elif 1 <= y <= 7:
         base = 13 + (y - 1) * _COLS
-        if y % 2 == 0:                          # even rows: L→R
+        if y % 2 == 0:          # even rows: L→R
             return base + x
-        else:                                   # odd rows:  R→L
+        else:                    # odd rows:  R→L
             return base + (_COLS - 1 - x)
     elif y == 8:
-        return 90 + x                           # even: L→R
+        return 90 + x
     elif y == 9:
-        return 102 + (_COLS - 1 - x)           # odd:  R→L
+        return 102 + (_COLS - 1 - x)
     else:
         raise ValueError(f"y={y} out of range 0..9")
 
 
-# ---------------------------------------------------------------------------
-# Minute-dot physical indices per wiring variant
-# ---------------------------------------------------------------------------
+def _xy_to_matrix16(x, y):
+    """
+    16×16 LED panel, column-serpentine wiring.
+    The 11×10 word grid is positioned at panel offset (col+2, row+3).
 
-_MINUTE_DOTS = {
-    "vertical": {
-        "MLT": 1,
-        "MLB": 0,
-        "MRB": 112,
-        "MRT": 113,
-    },
-    "horizontal": {
-        "MLT": 0,
-        "MLB": 12,
-        "MRB": 101,
-        "MRT": 113,
-    },
-    "matrix16": {
-        "MLT": 14,
-        "MLB": 1,
-        "MRB": 225,
-        "MRT": 238,
-    },
-}
+    Panel column direction:
+      Even panel columns (panel_x=2,4,6,...): panel_y=0 is BOTTOM, increases upward
+        → formula: panel_x*16 + (15 - panel_y)
+      Odd  panel columns (panel_x=3,5,7,...): panel_y=0 is TOP, increases downward
+        → formula: panel_x*16 + panel_y
+
+    y=0 is the bottom clock row, y=9 is the top clock row.
+    """
+    panel_x = x + 2
+    panel_y = y + 3
+    if panel_x % 2 == 0:
+        return panel_x * 16 + (15 - panel_y)
+    else:
+        return panel_x * 16 + panel_y
+
+
+# ---------------------------------------------------------------------------
+# Registry
+# ---------------------------------------------------------------------------
 
 _BUILDERS = {
     "vertical":   _xy_to_vertical,
     "horizontal": _xy_to_horizontal,
-    "matrix16":   None,   # panel geometry handled separately in wk.py
+    "matrix16":   _xy_to_matrix16,
 }
 
 
@@ -120,16 +124,21 @@ _BUILDERS = {
 
 class Wiring:
     """
-    Translates logical clock position (x, y) to physical strip index.
+    Translates logical clock position (x, y) to a physical LED strip index.
+
+    Minute dot indices are NOT the responsibility of this class.
+    They are read from config_gen.json["MINUTE_DOTS"][wiring_name] by wk.py.
 
     Usage in wk.py:
-        self.wiring = Wiring(config.get("WIRING", "vertical"))
+        wiring_name    = config.get("WIRING", "vertical")
+        self.wiring    = Wiring(wiring_name)
+        self.minute_dots = config["MINUTE_DOTS"][wiring_name]
 
-        # word LED at column x, row y:
+        # word LED:
         led_index = self.wiring.xy(x, y)
 
-        # minute dot:
-        led_index = self.wiring.minute_dot("MLT")
+        # minute dot (raw config value, no translation needed):
+        led_index = self.minute_dots["MLT"]
     """
 
     def __init__(self, name: str):
@@ -141,15 +150,10 @@ class Wiring:
             )
             name = "vertical"
 
-        self.name         = name
-        self._xy_fn       = _BUILDERS[name]
-        self._minute_dots = _MINUTE_DOTS[name]
+        self.name   = name
+        self._xy_fn = _BUILDERS[name]
         log.info("Wiring: %s", name)
 
     def xy(self, x: int, y: int) -> int:
         """Return physical strip index for logical clock position (x, y)."""
         return self._xy_fn(x, y)
-
-    def minute_dot(self, name: str) -> int:
-        """Return physical strip index for a named minute dot (MLT/MLB/MRB/MRT)."""
-        return self._minute_dots[name]
