@@ -102,6 +102,21 @@ class WordClock:
         self.wind_speed = 5
         self.wind_direction = 270
 
+        # Panel dimensions
+        if self.grid == "16":
+            self.panel_columns = 16
+            self.panel_rows = 16
+            self.led_count = 256
+        else:
+            self.panel_columns = 11
+            self.panel_rows = 10
+            self.led_count = 114
+
+        self.clock_columns = 11
+        self.clock_rows = 10
+        self.columns = self.clock_columns
+        self.rows = self.clock_rows
+
         # LED count depends on grid
         if self.grid == "16":
             self.led_count = 256
