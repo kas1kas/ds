@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+__version__ = "7.72"
 # wiring.py — LED strip wiring layouts for the Woordklok
 #
 # Translates logical clock position (x, y) to physical LED strip index.
