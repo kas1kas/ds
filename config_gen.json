@@ -1,17 +1,23 @@
 {
-    "VERSION": "6.1",
+    "VERSION": "7.1",
     "MINUTE_DOTS": {
-        "11":{
-           "MLT": 1,
-           "MLB": 0,
-           "MRB": 112,
-           "MRT": 113
+        "vertical": {
+          "MLT": 1,
+          "MLB": 0,
+          "MRB": 112,
+          "MRT": 113
         },
-        "16": {
-           "MLT": 14,
-           "MLB": 1,
-           "MRB": 225,
-           "MRT": 238
+        "horizontal": {
+          "MLT": 0,
+          "MLB": 12,
+          "MRB": 101,
+          "MRT": 113
+        },
+        "matrix16": {
+          "MLT": 34,
+          "MLB": 45,
+          "MRB": 205,
+          "MRT": 194
         }
     },
     "IT_IS": {
