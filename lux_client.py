@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+__version__ = "1.0"
 # lux_client.py  –  Reads the current lux value from lux_daemon.
 #
 # Usage:
