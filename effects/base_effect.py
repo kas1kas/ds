@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__version__ = "7.73"
+__version__ = "7.74"
 
 import logging
 
@@ -34,14 +34,6 @@ class BaseEffect:
             return self.word_clock.wiring.panel_dims   # (cols, rows) from wiring
         else:
             return self.word_clock.clock_columns, self.word_clock.clock_rows
-
-    def map_coordinates(self, x, y):
-        """
-        Previously applied a y-inversion workaround for the 16×16 panel.
-        No longer needed — wiring.panel_xy handles all panel geometry correctly.
-        Returns (x, y) unchanged; kept for backward compatibility with existing effects.
-        """
-        return x, y
 
     def clear_screen(self):
         """
