@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__version__ = "7.73"
+__version__ = "7.74"
 # wiring.py — LED strip wiring layouts for the Woordklok
 #
 # Two coordinate spaces, two methods:
@@ -59,50 +59,72 @@ def _panel_xy_vertical(x, y):
     """
     return _word_xy_vertical(x, _WORD_ROWS - 1 - y)
 
-
 # ---------------------------------------------------------------------------
-# HORIZONTAL wiring — new horizontal-strip serpentine
+# HORIZONTAL wiring — horizontal-strip serpentine, top→bottom
+#
+# The LED strip starts at the TOP row and snakes downward.
+#
+# Physical layout:
+#   0          = MLT  minute dot  (before top row, y=9)
+#   1  ..  11  = row 9  top row    L→R
+#   12         = MLB  minute dot  (after top row)
+#   13 ..  23  = row 8             R→L
+#   24 ..  34  = row 7             L→R
+#   35 ..  45  = row 6             R→L
+#   46 ..  56  = row 5             L→R
+#   57 ..  67  = row 4             R→L
+#   68 ..  78  = row 3             L→R
+#   79 ..  89  = row 2             R→L
+#   90 .. 100  = row 1             L→R
+#   101        = MRB  minute dot  (after row 1, before bottom row)
+#   102 .. 112 = row 0  bottom row R→L
+#   113        = MRT  minute dot  (after bottom row)
 # ---------------------------------------------------------------------------
-
+ 
 def _word_xy_horizontal(x, y):
     """
-    Horizontal-strip serpentine. Strips run horizontally, rows snake bottom→top.
-    Even rows (y=0,2,...): left→right.  Odd rows (y=1,3,...): right→left.
-
-    Physical layout:
-      0          = MLT  (before row 0)
-      1  ..  11  = row 0  L→R
-      12         = MLB  (after row 0)
-      13 ..  23  = row 1  R→L
-      24 ..  34  = row 2  L→R
-      35 ..  45  = row 3  R→L
-      46 ..  56  = row 4  L→R
-      57 ..  67  = row 5  R→L
-      68 ..  78  = row 6  L→R
-      79 ..  89  = row 7  R→L
-      90 .. 100  = row 8  L→R
-      101        = MRB  (after row 8, before row 9)
-      102 .. 112 = row 9  R→L
-      113        = MRT  (after row 9)
+    Word grid coords: y=0=bottom, y=9=top.
+    Converts to strip_row (0=top strip, 9=bottom strip) then computes physical index.
     """
-    if y == 0:
+    strip_row = 9 - y   # y=9 → strip_row=0 (top), y=0 → strip_row=9 (bottom)
+ 
+    if strip_row == 0:
+        return 1 + x                                     # L→R
+    elif 1 <= strip_row <= 7:
+        base = 13 + (strip_row - 1) * _WORD_COLS
+        if strip_row % 2 == 0:                           # even: L→R
+            return base + x
+        else:                                             # odd:  R→L
+            return base + (_WORD_COLS - 1 - x)
+    elif strip_row == 8:
+        return 90 + x                                    # L→R
+    elif strip_row == 9:
+        return 102 + (_WORD_COLS - 1 - x)               # R→L
+    else:
+        raise ValueError(f"strip_row={strip_row} out of range")
+ 
+def _panel_xy_horizontal(x, y):
+    """
+    Panel space for horizontal grid=11: y=0 is TOP.
+    strip_row == y directly (both count from top).
+    """
+    strip_row = y
+ 
+    if strip_row == 0:
         return 1 + x
-    elif 1 <= y <= 7:
-        base = 13 + (y - 1) * _WORD_COLS
-        return base + x if y % 2 == 0 else base + (_WORD_COLS - 1 - x)
-    elif y == 8:
+    elif 1 <= strip_row <= 7:
+        base = 13 + (strip_row - 1) * _WORD_COLS
+        if strip_row % 2 == 0:
+            return base + x
+        else:
+            return base + (_WORD_COLS - 1 - x)
+    elif strip_row == 8:
         return 90 + x
-    elif y == 9:
+    elif strip_row == 9:
         return 102 + (_WORD_COLS - 1 - x)
     else:
-        raise ValueError(f"y={y} out of range 0..9")
-
-
-def _panel_xy_horizontal(x, y):
-    """Panel space for horizontal grid=11: y=0 is the TOP row."""
-    return _word_xy_horizontal(x, _WORD_ROWS - 1 - y)
-
-
+        raise ValueError(f"strip_row={strip_row} out of range")
+ 
 # ---------------------------------------------------------------------------
 # MATRIX16 wiring — 16×16 LED panel, column-serpentine
 # ---------------------------------------------------------------------------
