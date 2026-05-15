@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# version 7.61
+__version__ = "7.61"
 import time
 from lux_client import get_lux
 
