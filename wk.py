@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__version__ = "7.73"
+__version__ = "7.74"
 # Woordklok — unified wiring for all grid variants, no grid checks in rendering
 import json
 import logging
@@ -108,7 +108,7 @@ class WordClock:
         self.panel_columns, self.panel_rows = self.wiring.panel_dims
 
         # Minute dots: physical indices from config, keyed by wiring name.
-        self.dot_order         = ["MLT", "MLB", "MRB", "MRT"]
+        self.dot_order         = ["ML1", "ML2", "ML3", "ML4"]
         self.current_dot_index = 0
         self.minute_dots       = config.get("MINUTE_DOTS", {}).get(wiring_name, {})
         if not self.minute_dots:
@@ -269,6 +269,26 @@ class WordClock:
         """
         return self.wiring.word_xy(grid_index % self.columns,
                                    grid_index // self.columns)
+    def setcolor_x_y(self, x, y, color):
+        """
+        Set one LED by logical coordinate.
+
+        Coordinate space depends on effect_full_panel:
+          False → word grid:  x=0..10, y=0..9,  y=0=bottom  (wiring.word_xy)
+          True  → full panel: x=0..W-1, y=0..H-1, y=0=top   (wiring.panel_xy)
+
+        All wiring and grid geometry is encapsulated in wiring.py.
+        No grid checks or offset arithmetic here.
+        """
+        if self.effect_full_panel:
+            cols, rows = self.wiring.panel_dims
+            if x < 0 or x >= cols or y < 0 or y >= rows:
+                return
+            self.set_led_color(self.wiring.panel_xy(x, y), color)
+        else:
+            if x < 0 or x >= self.columns or y < 0 or y >= self.rows:
+                return
+            self.set_led_color(self.wiring.word_xy(x, y), color)
 
     def activate_word(self, word):
         if word in self.language_settings.words:
@@ -323,28 +343,6 @@ class WordClock:
             for y in range(self.clock_rows):
                 self.set_led_color(self.wiring.word_xy(x, y), self.background_color)
 
-    def setcolor_x_y(self, x, y, color):
-        """
-        Set one LED by logical coordinate.
-
-        Coordinate space depends on effect_full_panel:
-          False → word grid:  x=0..10, y=0..9,  y=0=bottom  (wiring.word_xy)
-          True  → full panel: x=0..W-1, y=0..H-1, y=0=top   (wiring.panel_xy)
-
-        All wiring and grid geometry is encapsulated in wiring.py.
-        No grid checks or offset arithmetic here.
-        """
-        if self.effect_full_panel:
-            cols, rows = self.wiring.panel_dims
-            if x < 0 or x >= cols or y < 0 or y >= rows:
-                return
-            self.set_led_color(self.wiring.panel_xy(x, y), color)
-        else:
-            if x < 0 or x >= self.columns or y < 0 or y >= self.rows:
-                return
-            self.set_led_color(self.wiring.word_xy(x, y), color)
-
-
 # ---------------------------------------------------------------------------
 # Config loading
 # ---------------------------------------------------------------------------
@@ -375,7 +373,6 @@ def load_merged_config():
     except Exception as e:
         logging.error(f"Unexpected error loading config: {e}")
         return None
-
 
 # ---------------------------------------------------------------------------
 # Bootstrap
