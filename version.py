@@ -1,4 +1,4 @@
-__version__ = "7.46"
+__version__ = "7.47"
 import json
 import re
 import os
@@ -108,7 +108,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
     
     # Define file paths
-    python_files = ['wk.py', 'version.py', 'web_routes.py']
+    python_files = ['version.py', 'wk.py', 'wiring.py', 'lux_client.py', 'lux_daemon.py', 'web_routes.py', 'lux_bar.py']
     bash_files = ['install.sh']
     html_files = ['templates_plugin/index.html']
     json_files = ['config_gen.json', 'config_loc.json', '/home/pi/.workclock/config_loc.json']
