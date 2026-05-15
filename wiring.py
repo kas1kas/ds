@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__version__ = "7.74"
+__version__ = "7.75"
 # wiring.py — LED strip wiring layouts for the Woordklok
 #
 # Two coordinate spaces, two methods:
@@ -40,11 +40,6 @@ def _word_xy_vertical(x, y):
     """
     Column-strip serpentine. Strips run vertically, columns snake left→right.
     Even columns (x=0,2,...): bottom→top.  Odd columns (x=1,3,...): top→bottom.
-
-    Physical indices:
-      0, 1        = minute corners MLB / MLT
-      2 .. 111    = word area (110 LEDs)
-      112, 113    = minute corners MRB / MRT
     """
     if x % 2 == 0:
         return 2 + x * _WORD_ROWS + y
@@ -65,9 +60,9 @@ def _panel_xy_vertical(x, y):
 # The LED strip starts at the TOP row and snakes downward.
 #
 # Physical layout:
-#   0          = MLT  minute dot  (before top row, y=9)
+#   0          = minute dot  (before top row, y=9)
 #   1  ..  11  = row 9  top row    L→R
-#   12         = MLB  minute dot  (after top row)
+#   12         = minute dot  (after top row)
 #   13 ..  23  = row 8             R→L
 #   24 ..  34  = row 7             L→R
 #   35 ..  45  = row 6             R→L
@@ -76,9 +71,9 @@ def _panel_xy_vertical(x, y):
 #   68 ..  78  = row 3             L→R
 #   79 ..  89  = row 2             R→L
 #   90 .. 100  = row 1             L→R
-#   101        = MRB  minute dot  (after row 1, before bottom row)
+#   101        = minute dot  (after row 1, before bottom row)
 #   102 .. 112 = row 0  bottom row R→L
-#   113        = MRT  minute dot  (after bottom row)
+#   113        = minute dot  (after bottom row)
 # ---------------------------------------------------------------------------
  
 def _word_xy_horizontal(x, y):
