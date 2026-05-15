@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# version 7.71
+__version__ = "1.1"
 # lux_daemon.py  –  Reads the TSL2591 light sensor and serves the raw lux
 #                   value over a Unix domain socket at SOCKET_PATH.
 #
