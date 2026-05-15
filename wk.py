@@ -399,13 +399,33 @@ class WordClock:
         """
         Set the color of the LED at logical clock position (x, y).
         x = column (0=leftmost), y = row (0=bottom).
-        All wiring variants are handled by self.wiring.xy() — no if/else on grid.
+ 
+        For grid=16: effects can address the full 16x16 panel (effect_full_panel=True)
+        or just the 11x10 word grid inset (effect_full_panel=False, adds +2/+3 offset).
+        The raw panel formula is kept here because _xy_to_matrix16 in wiring.py
+        always applies the word-grid offset and cannot serve full-panel coordinates.
+ 
+        For grid=11 variants: wiring.xy() handles everything uniformly.
         """
-        if x < 0 or x >= self.columns or y < 0 or y >= self.rows:
-            return
-        led_index = self.wiring.xy(x, y)
+        if self.grid == "16":
+            if not self.effect_full_panel:
+                panel_x = x + 2
+                panel_y = y + 3
+            else:
+                panel_x = x
+                panel_y = y
+            if panel_x < 0 or panel_x >= 16 or panel_y < 0 or panel_y >= 16:
+                return
+            if panel_x % 2 == 0:
+                led_index = (panel_x * 16) + (15 - panel_y)
+            else:
+                led_index = (panel_x * 16) + panel_y
+        else:
+            if x < 0 or x >= self.columns or y < 0 or y >= self.rows:
+                return
+            led_index = self.wiring.xy(x, y)
+ 
         self.set_led_color(led_index, color)
-
 
 # ---------------------------------------------------------------------------
 # Config loading
