@@ -8,10 +8,10 @@
           "MRT": 113
         },
         "horizontal": {
-          "MLT": 0,
-          "MLB": 12,
-          "MRB": 101,
-          "MRT": 113
+          "MLT": 113,
+          "MLB": 0,
+          "MRB": 12,
+          "MRT": 101
         },
         "matrix16": {
           "MLT": 34,
