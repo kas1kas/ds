@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
-__version__ = "7.77"
+__version__ = "7.78"
 # Woordklok — single HARDWARE key drives all wiring and grid decisions
-# dot improvement and polling rate reduced 
 import json
 import logging
 import time
@@ -40,16 +39,15 @@ _HARDWARE_DEFAULT = "11x10V"
 
 
 class LanguageSettings:
-    def __init__(self, config, language, grid_size):
-        self.config = config
+    def __init__(self, config, language):
+        self.config   = config
         self.language = language
-        self.grid_size = grid_size
         self.load_language_settings()
 
     def load_language_settings(self):
         self.it_is           = self.config["IT_IS"].get(self.language, {})
         self.minute_blocks   = self.config["MINUTE_BLOCKS"].get(self.language, {})
-        self.words           = self.config["WORDS"].get(self.language, {}).get(str(self.grid_size), {})
+        self.words           = self.config["WORDS"].get(self.language, {})
         self.min_block_check = self.config["MIN_BLOCK_CHECK"].get(self.language, {})
         self.hour_words      = self.config["HOUR_WORDS"].get(self.language, {})
 
@@ -122,7 +120,7 @@ class WordClock:
 
         self.effect_full_panel           = config["EFFECT_FULL_PANEL"]
         self.light_interval              = config["LIGHT_INTERVAL"]
-        self.language_settings           = LanguageSettings(config, config["LANGUAGE"], self.grid)
+        self.language_settings           = LanguageSettings(config, config["LANGUAGE"])
         self.led_pin                     = config.get("LED_PIN", 18)
         self.led_freq_hz                 = 800000
         self.led_dma                     = 10
