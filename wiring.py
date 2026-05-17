@@ -128,8 +128,18 @@ def _word_xy_matrix16(x, y):
         return panel_x * _PANEL16_COLS + panel_y
 
 def _panel_xy_matrix16(x, y):
-    """Panel coords: x=0..15 L→R, y=0..15 top→bottom. Result: x*16+y."""
-    return x * _PANEL16_COLS + y
+    """
+    16x16 panel, full-panel coordinates.
+    x=0..15 left→right, y=0..15 top→bottom (screen-natural, y=0=top).
+
+    The physical panel is column-serpentine:
+      Even columns: bottom→top physically → y=0=top maps to (15-y)
+      Odd  columns: top→bottom physically → y=0=top maps to y
+    """
+    if x % 2 == 0:
+        return x * _PANEL16_COLS + (_PANEL16_COLS - 1 - y)
+    else:
+        return x * _PANEL16_COLS + y
 
 
 # ---------------------------------------------------------------------------
