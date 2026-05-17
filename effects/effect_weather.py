@@ -1,3 +1,4 @@
+__version__ = "7.1"
 import time
 import math
 import random
@@ -125,7 +126,8 @@ class EffectWeather(BaseEffect):
         bg_factor = self.word_clock.background_brightness_factor
         
         # Clear screen based on config
-        self.clear_screen()
+#        removed
+#        self.clear_screen()
 
         # Get dimensions based on config
         max_cols, max_rows = self.get_dimensions()
