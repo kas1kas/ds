@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 __version__ = "7.77"
 # Woordklok — single HARDWARE key drives all wiring and grid decisions
-# slower polling in run_clock
+# dot improvement and polling rate reduced 
 import json
 import logging
 import time
@@ -318,10 +318,10 @@ class WordClock:
         minutes = now.tm_min
 
         minute_dots = minutes % 5
-        for dot, index in self.minute_dots.items():
-            self.set_led_color(index, self.dot_active_color
-                  if minute_dots >= list(self.minute_dots.keys()).index(dot) + 1
-                  else self.dot_inactive_color)
+        for i, dot in enumerate(self.dot_order):
+            active = minute_dots >= i + 1
+            self.set_led_color(self.minute_dots[dot],
+                               self.dot_active_color if active else self.dot_inactive_color)
 
         minute_block   = minutes // 5
         adjusted_hours = hours
@@ -423,13 +423,14 @@ web_routes.init_routes(word_clock, app)
 # ---------------------------------------------------------------------------
 # Main loop
 # ---------------------------------------------------------------------------
+
 def run_clock():
     frame_delay   = 0.01
     last_lux_time = 0.0          # force an immediate read on first frame
     try:
         while True:
             now = time.time()
- 
+
             # Poll lux at light_interval cadence (default 1s), not every frame.
             # get_lux() opens a socket each call; the sensor only updates
             # every ~220 ms so polling at 100 fps is pure wasted overhead.
@@ -439,7 +440,7 @@ def run_clock():
                 last_lux_time  = now
                 if lux >= 0:
                     word_clock.update_brightness(lux)
- 
+
             current_effect = word_clock.effects.get(word_clock.current_effect_id)
             if current_effect:
                 current_effect.draw()
@@ -449,6 +450,7 @@ def run_clock():
     finally:
         word_clock.cls()
         word_clock.strip.show()
+
 
 if __name__ == "__main__":
     logging.getLogger('werkzeug').setLevel(logging.ERROR)
