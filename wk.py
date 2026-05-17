@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-__version__ = "7.76"
+__version__ = "7.77"
 # Woordklok — single HARDWARE key drives all wiring and grid decisions
+# slower polling in run_clock
 import json
 import logging
 import time
@@ -422,15 +423,23 @@ web_routes.init_routes(word_clock, app)
 # ---------------------------------------------------------------------------
 # Main loop
 # ---------------------------------------------------------------------------
-
 def run_clock():
-    frame_delay = 0.01
+    frame_delay   = 0.01
+    last_lux_time = 0.0          # force an immediate read on first frame
     try:
         while True:
-            lux = get_lux()
-            word_clock.lux = lux
-            if lux >= 0:
-                word_clock.update_brightness(lux)
+            now = time.time()
+ 
+            # Poll lux at light_interval cadence (default 1s), not every frame.
+            # get_lux() opens a socket each call; the sensor only updates
+            # every ~220 ms so polling at 100 fps is pure wasted overhead.
+            if now - last_lux_time >= word_clock.light_interval:
+                lux = get_lux()
+                word_clock.lux = lux
+                last_lux_time  = now
+                if lux >= 0:
+                    word_clock.update_brightness(lux)
+ 
             current_effect = word_clock.effects.get(word_clock.current_effect_id)
             if current_effect:
                 current_effect.draw()
@@ -440,7 +449,6 @@ def run_clock():
     finally:
         word_clock.cls()
         word_clock.strip.show()
-
 
 if __name__ == "__main__":
     logging.getLogger('werkzeug').setLevel(logging.ERROR)
