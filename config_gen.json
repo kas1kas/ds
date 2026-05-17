@@ -1,19 +1,19 @@
 {
-    "VERSION": "7.3",
+    "VERSION": "7.4",
     "MINUTE_DOTS": {
-        "vertical": {
+        "11x10V": {
           "ML1": 1,
           "ML2": 0,
           "ML3": 112,
           "ML4": 113
         },
-        "horizontal": {
+        "11x10H": {
           "ML1": 113,
           "ML2": 0,
           "ML3": 12,
           "ML4": 101
         },
-        "matrix16": {
+        "16x16": {
           "ML1": 34,
           "ML2": 45,
           "ML3": 205,
