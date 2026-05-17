@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__version__ = "7.76"
+__version__ = "7.77"
 # wiring.py — LED strip wiring layouts for the Woordklok
 #
 # Translates logical coordinates to physical LED strip indices.
@@ -192,7 +192,6 @@ class Wiring:
         self._word_fn   = _WORD_BUILDERS[name]
         self._panel_fn  = _PANEL_BUILDERS[name]
         self.panel_dims = PANEL_DIMS[name]
-        log.info("Wiring: %s  panel=%s", name, self.panel_dims)
 
     def word_xy(self, x: int, y: int) -> int:
         """Physical index for word grid position (x=col, y=row, y=0=bottom)."""
