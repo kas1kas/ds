@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__version__ = "7.81"
+__version__ = "7.82"
 # Woordklok — single HARDWARE key drives all wiring and grid decisions
 import json
 import logging
@@ -317,13 +317,20 @@ class WordClock:
         now     = time.localtime()
         hours   = now.tm_hour % 12 or 12
         minutes = now.tm_min
-
+ 
         minute_dots = minutes % 5
         for i, dot in enumerate(self.dot_order):
             active = minute_dots >= i + 1
-            self.set_led_color(self.minute_dots[dot],
-                               self.dot_active_color if active else self.dot_inactive_color)
-
+            if active:
+                # Dot is on — always paint it in dot_active_color.
+                self.set_led_color(self.minute_dots[dot], self.dot_active_color)
+            elif not self.effect_full_panel:
+                # Dot is off and no full-panel effect is running —
+                # explicitly set to dot_inactive_color (typically black).
+                self.set_led_color(self.minute_dots[dot], self.dot_inactive_color)
+            # else: full-panel effect is running and already painted this pixel;
+            # leaving it alone lets the effect color show through.
+ 
         minute_block   = minutes // 5
         adjusted_hours = hours
 
