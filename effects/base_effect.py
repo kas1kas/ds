@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__version__ = "7.80"
+__version__ = "7.81"
 import logging
 
 class BaseEffect:
@@ -65,5 +65,15 @@ class BaseEffect:
         return self.word_clock.background_brightness_factor
 
     def draw(self):
-        """Draw one frame. Called every loop iteration."""
+        """
+        Draw one frame. Called every loop iteration by run_clock().
+
+        IMPORTANT — strip.show() contract:
+        Effects that overlay the clock words must call
+        self.word_clock.update_clock() as the LAST step in draw().
+        update_clock() is the only place that calls strip.show(),
+        so all pixel writes before it are buffered and flushed together.
+        Effects that do NOT need the clock overlay must call
+        self.word_clock.strip.show() themselves at the end of draw().
+        """
         pass
