@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__version__ = "7.78"
+__version__ = "7.80"
 # Woordklok — single HARDWARE key drives all wiring and grid decisions
 import json
 import logging
@@ -277,7 +277,7 @@ class WordClock:
     def set_effect(self, effect_id):
         if effect_id in self.effects:
             self.current_effect_id = effect_id
-            self.cls()
+            self.clear_all()
             self.strip.show()
             current_effect = self.effects.get(effect_id)
             if current_effect:
@@ -349,11 +349,14 @@ class WordClock:
                                random.randint(0, self.rows - 1),
                                self.random_color(tint))
 
-    def cls(self):
-        """Clear the word grid using word coordinates (y=0=bottom)."""
-        for x in range(self.clock_columns):
-            for y in range(self.clock_rows):
-                self.set_led_color(self.wiring.word_xy(x, y), self.background_color)
+    def clear_all(self):
+        """Wipe every LED on the strip to background_color.
+        Used when switching effects to guarantee no residual pixels remain,
+        regardless of which effect was running or how large the panel is.
+        Effects use setcolor_x_y() / clear_screen() in base_effect instead.
+        """
+        for i in range(self.led_count):
+            self.set_led_color(i, self.background_color)
 
     def setcolor_x_y(self, x, y, color):
         """
@@ -364,7 +367,7 @@ class WordClock:
         effect_full_panel=False: word grid dimensions (11x10)
 
         Both cases use wiring.panel_xy() — no y-convention difference.
-        map_grid_to_led() and cls() use wiring.word_xy() (y=0=bottom) separately.
+        map_grid_to_led() uses wiring.word_xy() (y=0=bottom) for word rendering.
         """
         if self.effect_full_panel:
             cols, rows = self.wiring.panel_dims
@@ -446,7 +449,7 @@ def run_clock():
     except KeyboardInterrupt:
         logging.info("Exiting...")
     finally:
-        word_clock.cls()
+        word_clock.clear_all()
         word_clock.strip.show()
 
 
