@@ -3,7 +3,7 @@ from effects.base_effect import BaseEffect
 
 class EffectNormal(BaseEffect):
     name = "Normal"
-    
+
     def draw(self):
-        self.word_clock.cls()
+        self.clear_screen()
         self.word_clock.update_clock()
