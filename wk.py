@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__version__ = "7.80"
+__version__ = "7.81"
 # Woordklok — single HARDWARE key drives all wiring and grid decisions
 import json
 import logging
@@ -148,6 +148,9 @@ class WordClock:
 
         self.sensor_scale = config["SENSOR_SCALE"]
         lut = config["LUT"]
+        if len(lut) < 2:
+            logging.error("LUT must have at least 2 entries — check config_loc.json")
+            exit(1)
         self.lut_in  = [row[0] for row in lut]
         self.lut_out = [row[1] for row in lut]
 
