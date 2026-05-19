@@ -1,5 +1,5 @@
 {
-    "VERSION": "7.8",
+    "VERSION": "7.81",
     "PURIST": true,
     "WOORDKLOK": "name",
     "LANGUAGE": "NL",
@@ -10,7 +10,7 @@
     "DEFAULT_EFFECT": "matrix",
     "RAND_COLOR": "blue",
     "WEATHER_ENABLED": true,
-    "WEATHER_LOCATION": "Best",
+    "WEATHER_LOCATION": "Location",
     "WEATHER_LAT": 51.5,
     "WEATHER_LON": 5.4,
     "WEATHER_UPDATE_INTERVAL": 60,
@@ -26,8 +26,8 @@
     "MINUTE_DOTS": {
         "11x10V": { "ML1":  1, "ML2":  0, "ML3": 112, "ML4": 113 },
         "11x10H": { "ML1":  0, "ML2": 12, "ML3": 101, "ML4": 113 },
-        "16x16":  { "ML1": 81, "ML2": 78, "ML3":  49, "ML4":  46 },
-        "16-16":  { "ML1": 45, "ML2": 34, "ML3": 194, "ML4": 205 }
+        "16-16":  { "ML1": 81, "ML2": 78, "ML3":  49, "ML4":  46 },
+        "16x16":  { "ML1": 45, "ML2": 34, "ML3": 194, "ML4": 205 }
     },    
     "LUT": [
         [0,     3],
