@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__version__ = "7.82"
+__version__ = "7.83"
 # Woordklok — single HARDWARE key drives all wiring and grid decisions
 import json
 import logging
@@ -175,7 +175,6 @@ class WordClock:
         logging.info(f"Smoothing α  : {self.smoothing_alpha}")
         logging.info(f"Lut In       : {self.lut_in}")
         logging.info(f"Lut Out      : {self.lut_out}")
-        logging.info(f"Location     : {self.weather_location}")
 
         self.initialize_led()
 
@@ -188,7 +187,10 @@ class WordClock:
         if self.weather_enabled:
             self._weather_thread = threading.Thread(target=self._weather_loop, daemon=True)
             self._weather_thread.start()
-            logging.info(f"Weather      : enabled  lat={self.weather_lat} lon={self.weather_lon}")
+            logging.info(f"Weather      : enabled")
+            logging.info(f"Location     : {self.weather_location}")
+            logging.info(f"lat, lon     : {self.weather_lat},  {self.weather_lon}")
+
         else:
             logging.info("Weather      : disabled")
 
