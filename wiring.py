@@ -53,7 +53,7 @@ def _word_xy_vertical(x, y):
         return 2 + x * _WORD_ROWS + (_WORD_ROWS - 1 - y)
 
 def _panel_xy_vertical(x, y):
-return
+return (x,y)
 """Panel space: y=0 is TOP. Flip y to map to word_xy."""
 #    return _word_xy_vertical(x, _WORD_ROWS - 1 - y)
 
