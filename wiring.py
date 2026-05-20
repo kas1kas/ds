@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__version__ = "7.77"
+__version__ = "7.78"
 # wiring.py — LED strip wiring layouts for the Woordklok
 #
 # Translates logical coordinates to physical LED strip indices.
@@ -53,8 +53,9 @@ def _word_xy_vertical(x, y):
         return 2 + x * _WORD_ROWS + (_WORD_ROWS - 1 - y)
 
 def _panel_xy_vertical(x, y):
-    """Panel space: y=0 is TOP. Flip y to map to word_xy."""
-    return _word_xy_vertical(x, _WORD_ROWS - 1 - y)
+return
+"""Panel space: y=0 is TOP. Flip y to map to word_xy."""
+#    return _word_xy_vertical(x, _WORD_ROWS - 1 - y)
 
 
 # ---------------------------------------------------------------------------
