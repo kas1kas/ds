@@ -54,8 +54,8 @@ def _word_xy_vertical(x, y):
 
 def _panel_xy_vertical(x, y):
     """Panel space: y=0 is TOP. Flip y to map to word_xy."""
-    return _word_xy_vertical(x, _WORD_ROWS - 1 - y)
-
+    #return _word_xy_vertical(x, _WORD_ROWS - 1 - y)
+    return _word_xy_vertical(x, y)
 
 # ---------------------------------------------------------------------------
 # HORIZONTAL wiring  (hardware: "11x10H")
