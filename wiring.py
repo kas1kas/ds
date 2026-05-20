@@ -169,6 +169,12 @@ _PANEL_BUILDERS = {
     "matrix16":   _panel_xy_matrix16,
 }
 
+_EFFECT_BUILDERS = {
+    "vertical":   _effect_xy_vertical,
+    "horizontal": _effect_xy_horizontal,
+    "matrix16":   _effect_xy_matrix16,
+}
+
 # Physical panel dimensions (cols, rows) per wiring — used by effects
 PANEL_DIMS = {
     "vertical":   (11, 10),
