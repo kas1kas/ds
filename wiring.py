@@ -52,7 +52,7 @@ def _word_xy_vertical(x, y):
 
 def _panel_xy_vertical(x, y):
      return _word_xy_vertical(x, y)
-     """Panel space: y=0 is Bottom: No flippiong y required, like: return _word_xy_vertical(x, _WORD_ROWS - 1 - y)
+     # Panel space: y=0 is Bottom: No flippiong y required, like: return _word_xy_vertical(x, _WORD_ROWS - 1 - y)
 
 # ---------------------------------------------------------------------------
 # HORIZONTAL wiring  (hardware: "11x10H")
@@ -188,7 +188,7 @@ class Wiring:
         self.panel_dims = PANEL_DIMS[name]
 
     def word_xy(self, x: int, y: int) -> int:
-        """Physical index for word grid position (x=col, y=row, y=0=bottom)."""
+        # Physical index for word grid position (x=col, y=row, y=0=bottom).
         return self._word_fn(x, y)
 
     def panel_xy(self, x: int, y: int) -> int:
