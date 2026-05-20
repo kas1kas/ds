@@ -210,3 +210,10 @@ class Wiring:
     def panel_xy(self, x: int, y: int) -> int:
         """Physical index for panel position (x=col, y=row, y=0=top)."""
         return self._panel_fn(x, y)
+        
+    def effect_xy(self, x: int, y: int) -> int:
+        """Physical index for word grid position using panel convention (y=0=top).
+        Used by setcolor_x_y when effect_full_panel=False.
+        For 16x16: maps into the word grid area (not the full panel).
+        """
+        return self._effect_fn(x, y)
