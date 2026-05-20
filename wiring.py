@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__version__ = "7.78"
+__version__ = "7.84"
 # wiring.py — LED strip wiring layouts for the Woordklok
 #
 # Translates logical coordinates to physical LED strip indices.
@@ -136,6 +136,22 @@ def _panel_xy_matrix16(x, y):
         return x * _PANEL16_COLS + (_PANEL16_COLS - 1 - y)
     else:
         return x * _PANEL16_COLS + y
+
+# ---------------------------------------------------------------------------
+# EFFECT word-grid functions — word grid in panel space (y=0=top)
+# Used by setcolor_x_y when effect_full_panel=False.
+# Maps effect coords (y=0=top of word grid) to the word grid physical LEDs.
+# For 16x16: includes the +2/+3 panel offset; not the same as panel_xy.
+# ---------------------------------------------------------------------------
+ 
+def _effect_xy_vertical(x, y):
+    return _word_xy_vertical(x, _WORD_ROWS - 1 - y)
+ 
+def _effect_xy_horizontal(x, y):
+    return _word_xy_horizontal(x, _WORD_ROWS - 1 - y)
+ 
+def _effect_xy_matrix16(x, y):
+    return _word_xy_matrix16(x, _WORD_ROWS - 1 - y)
 
 # ---------------------------------------------------------------------------
 # Registry
