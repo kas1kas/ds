@@ -79,16 +79,16 @@ def _panel_xy_vertical(x, y):
 # ---------------------------------------------------------------------------
 
 def _word_xy_horizontal(x, y):
-    """Word coords: y=0=bottom, y=9=top."""
+    # Word coords: y=0=bottom, y=9=top.
     strip_row = 9 - y          # y=9→strip_row=0 (top), y=0→strip_row=9 (bottom)
     return _horizontal_phys(x, strip_row)
 
 def _panel_xy_horizontal(x, y):
-    """Panel coords: y=0=top. strip_row == y directly."""
+    # Panel coords: y=0=top. strip_row == y directly.
     return _horizontal_phys(x, y)
 
 def _horizontal_phys(x, strip_row):
-    """Common formula for horizontal wiring given strip_row (0=top)."""
+    # Common formula for horizontal wiring given strip_row (0=top).
     if strip_row == 0:
         return 1 + x
     elif 1 <= strip_row <= 7:
@@ -115,7 +115,7 @@ _WORD_OFFSET_COL = 2
 _WORD_OFFSET_ROW = 3
 
 def _word_xy_matrix16(x, y):
-    """Word coords: y=0=bottom > panel_y = y + 3."""
+    # Word coords: y=0=bottom > panel_y = y + 3.
     panel_x = x + _WORD_OFFSET_COL
     panel_y = y + _WORD_OFFSET_ROW
     if panel_x % 2 == 0:
@@ -124,14 +124,14 @@ def _word_xy_matrix16(x, y):
         return panel_x * _PANEL16_COLS + panel_y
 
 def _panel_xy_matrix16(x, y):
-    """
-    16x16 panel, full-panel coordinates.
-    x=0..15 left→right, y=0..15 top→bottom (screen-natural, y=0=top).
+    
+    # 16x16 panel, full-panel coordinates.
+    # x=0..15 left→right, y=0..15 top→bottom (screen-natural, y=0=top).
 
-    The physical panel is column-serpentine:
-      Even columns: bottom→top physically → y=0=top maps to (15-y)
-      Odd  columns: top→bottom physically → y=0=top maps to y
-    """
+    # The physical panel is column-serpentine:
+    #  Even columns: bottom→top physically → y=0=top maps to (15-y)
+    #  Odd  columns: top→bottom physically → y=0=top maps to y
+    
     if x % 2 == 0:
         return x * _PANEL16_COLS + (_PANEL16_COLS - 1 - y)
     else:
