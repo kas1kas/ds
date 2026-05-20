@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__version__ = "7.85"
+__version__ = "7.86"
 # Woordklok — single HARDWARE key drives all wiring and grid decisions
 import json
 import logging
@@ -395,8 +395,8 @@ class WordClock:
             else:
                 # Panel larger than word grid (16x16): use word_xy with y-flip
                 # so effect y=0=top maps correctly into the word grid area
-                self.set_led_color(self.wiring.word_xy(x, self.clock_rows - 1 - y), color)
- 
+                # self.set_led_color(self.wiring.word_xy(x, self.clock_rows - 1 - y), color)
+                self.set_led_color(self.wiring.word_xy(x, y), color) 
 # ---------------------------------------------------------------------------
 # Config loading
 # ---------------------------------------------------------------------------
