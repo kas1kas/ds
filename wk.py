@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__version__ = "7.83"
+__version__ = "7.85"
 # Woordklok — single HARDWARE key drives all wiring and grid decisions
 import json
 import logging
@@ -370,7 +370,7 @@ class WordClock:
         for i in range(self.led_count):
             self.set_led_color(i, self.background_color)
 
-    def oldsetcolor_x_y(self, x, y, color):
+    def 1setcolor_x_y(self, x, y, color):
         """
         Set one LED by panel coordinate: x=0..W-1 left-right, y=0..H-1 top-bottom.
         y=0 is always the TOP row for all hardware variants.
@@ -389,7 +389,7 @@ class WordClock:
             return
         self.set_led_color(self.wiring.panel_xy(x, y), color)
 
-    def setcolor_x_y(self, x, y, color):
+    def 2setcolor_x_y(self, x, y, color):
         """
         Set one LED by effect coordinate: x=left→right, y=0=TOP for all hardware.
  
@@ -408,8 +408,34 @@ class WordClock:
             if x < 0 or x >= self.clock_columns or y < 0 or y >= self.clock_rows:
                 return
             self.set_led_color(self.wiring.effect_xy(x, y), color)
- 
 
+    def setcolor_x_y(self, x, y, color):
+        """
+        Set one LED by effect coordinate: x=left→right, y=0=TOP for all hardware.
+ 
+        effect_full_panel=True:  full panel (e.g. 16x16) via wiring.panel_xy()
+        effect_full_panel=False: word grid area (11x10)
+ 
+        For 11x10 hardware panel_xy covers the word grid directly.
+        For 16x16 with effect_full_panel=False the word grid sits at an offset
+        inside the panel, so we use wiring.word_xy() with y flipped (y=0=top).
+        """
+        if self.effect_full_panel:
+            cols, rows = self.wiring.panel_dims
+            if x < 0 or x >= cols or y < 0 or y >= rows:
+                return
+            self.set_led_color(self.wiring.panel_xy(x, y), color)
+        else:
+            if x < 0 or x >= self.clock_columns or y < 0 or y >= self.clock_rows:
+                return
+            if self.wiring.panel_dims == (self.clock_columns, self.clock_rows):
+                # Panel == word grid (11x10 hardware): panel_xy works directly
+                self.set_led_color(self.wiring.panel_xy(x, y), color)
+            else:
+                # Panel larger than word grid (16x16): use word_xy with y-flip
+                # so effect y=0=top maps correctly into the word grid area
+                self.set_led_color(self.wiring.word_xy(x, self.clock_rows - 1 - y), color)
+ 
 # ---------------------------------------------------------------------------
 # Config loading
 # ---------------------------------------------------------------------------
