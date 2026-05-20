@@ -15,9 +15,8 @@ __version__ = "7.78"
 #     Panel: x=0..W-1 left→right, y=0..H-1 top→bottom (screen-natural).
 #     Used by effects for full-panel rendering (setcolor_x_y(effect_full_panel=True)).
 #
-# Minute dot physical indices are stored in config_gen.json MINUTE_DOTS,
+# Minute dot physical indices are stored in config_loc.json MINUTE_DOTS,
 # keyed by hardware name ("11x10V", "11x10H", "16x16").
-# wiring.py does not store them.
 #
 # How to add a new hardware variant:
 #   1. Define _word_xy_<name>(x, y) -> int
@@ -33,7 +32,6 @@ log = logging.getLogger(__name__)
 _WORD_ROWS = 10
 _WORD_COLS = 11
 
-
 # ---------------------------------------------------------------------------
 # VERTICAL wiring  (hardware: "11x10V")
 # Column-strip serpentine, strips run vertically, columns snake left→right.
@@ -41,9 +39,9 @@ _WORD_COLS = 11
 # Odd  columns (x=1,3,...): top→bottom.
 #
 # Physical indices:
-#   0, 1       = minute dots ML2, ML1
+#   0, 1       = minute dots
 #   2 .. 111   = word area (110 LEDs)
-#   112, 113   = minute dots ML3, ML4
+#   112, 113   = minute dots
 # ---------------------------------------------------------------------------
 
 def _word_xy_vertical(x, y):
@@ -54,9 +52,7 @@ def _word_xy_vertical(x, y):
 
 def _panel_xy_vertical(x, y):
      return _word_xy_vertical(x, y)
-"""Panel space: y=0 is TOP. Flip y to map to word_xy."""
-#    return _word_xy_vertical(x, _WORD_ROWS - 1 - y)
-
+     """Panel space: y=0 is Bottom: No flippiong y required, like: return _word_xy_vertical(x, _WORD_ROWS - 1 - y)
 
 # ---------------------------------------------------------------------------
 # HORIZONTAL wiring  (hardware: "11x10H")
@@ -66,9 +62,9 @@ def _panel_xy_vertical(x, y):
 # strip_row=0 is the TOP row (y=9 in word coords).
 #
 # Physical layout:
-#   0          = ML1  minute dot  (before top row)
+#   0          = minute dot  (before top row)
 #   1  ..  11  = row 9  top     L→R
-#   12         = ML2  minute dot  (after top row)
+#   12         = minute dot  (after top row)
 #   13 ..  23  = row 8           R→L
 #   24 ..  34  = row 7           L→R
 #   35 ..  45  = row 6           R→L
@@ -77,9 +73,9 @@ def _panel_xy_vertical(x, y):
 #   68 ..  78  = row 3           L→R
 #   79 ..  89  = row 2           R→L
 #   90 .. 100  = row 1           L→R
-#   101        = ML3  minute dot  (after row 1, before bottom row)
+#   101        = minute dot  (after row 1, before bottom row)
 #   102 .. 112 = row 0  bottom  R→L
-#   113        = ML4  minute dot  (after bottom row)
+#   113        = minute dot  (after bottom row)
 # ---------------------------------------------------------------------------
 
 def _word_xy_horizontal(x, y):
@@ -104,7 +100,6 @@ def _horizontal_phys(x, strip_row):
         return 102 + (_WORD_COLS - 1 - x)
     else:
         raise ValueError(f"strip_row={strip_row} out of range 0..9")
-
 
 # ---------------------------------------------------------------------------
 # MATRIX16 wiring  (hardware: "16x16")
@@ -142,7 +137,6 @@ def _panel_xy_matrix16(x, y):
     else:
         return x * _PANEL16_COLS + y
 
-
 # ---------------------------------------------------------------------------
 # Registry
 # ---------------------------------------------------------------------------
@@ -165,7 +159,6 @@ PANEL_DIMS = {
     "horizontal": (11, 10),
     "matrix16":   (16, 16),
 }
-
 
 # ---------------------------------------------------------------------------
 # Public API
