@@ -370,45 +370,6 @@ class WordClock:
         for i in range(self.led_count):
             self.set_led_color(i, self.background_color)
 
-    def 1setcolor_x_y(self, x, y, color):
-        """
-        Set one LED by panel coordinate: x=0..W-1 left-right, y=0..H-1 top-bottom.
-        y=0 is always the TOP row for all hardware variants.
-
-        effect_full_panel=True:  full panel dimensions (e.g. 16x16)
-        effect_full_panel=False: word grid dimensions (11x10)
-
-        Both cases use wiring.panel_xy() — no y-convention difference.
-        map_grid_to_led() uses wiring.word_xy() (y=0=bottom) for word rendering.
-        """
-        if self.effect_full_panel:
-            cols, rows = self.wiring.panel_dims
-        else:
-            cols, rows = self.clock_columns, self.clock_rows
-        if x < 0 or x >= cols or y < 0 or y >= rows:
-            return
-        self.set_led_color(self.wiring.panel_xy(x, y), color)
-
-    def 2setcolor_x_y(self, x, y, color):
-        """
-        Set one LED by effect coordinate: x=left→right, y=0=TOP for all hardware.
- 
-        effect_full_panel=True:  full panel (e.g. 16x16), uses wiring.panel_xy()
-        effect_full_panel=False: word grid area (11x10), uses wiring.effect_xy()
-            effect_xy maps y=0=top into the word grid physical LEDs, including
-            the +2/+3 panel offset for 16x16 hardware. This is NOT the same as
-            panel_xy for 16x16 — panel_xy addresses the raw full panel.
-        """
-        if self.effect_full_panel:
-            cols, rows = self.wiring.panel_dims
-            if x < 0 or x >= cols or y < 0 or y >= rows:
-                return
-            self.set_led_color(self.wiring.panel_xy(x, y), color)
-        else:
-            if x < 0 or x >= self.clock_columns or y < 0 or y >= self.clock_rows:
-                return
-            self.set_led_color(self.wiring.effect_xy(x, y), color)
-
     def setcolor_x_y(self, x, y, color):
         """
         Set one LED by effect coordinate: x=left→right, y=0=TOP for all hardware.
