@@ -207,6 +207,7 @@ class Wiring:
         self.name       = name
         self._word_fn   = _WORD_BUILDERS[name]
         self._panel_fn  = _PANEL_BUILDERS[name]
+        self._effect_fn = _EFFECT_BUILDERS[name]
         self.panel_dims = PANEL_DIMS[name]
 
     def word_xy(self, x: int, y: int) -> int:
