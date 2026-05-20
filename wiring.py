@@ -115,7 +115,7 @@ _WORD_OFFSET_COL = 2
 _WORD_OFFSET_ROW = 3
 
 def _word_xy_matrix16(x, y):
-    """Word coords: y=0=bottom → panel_y = y + 3."""
+    """Word coords: y=0=bottom > panel_y = y + 3."""
     panel_x = x + _WORD_OFFSET_COL
     panel_y = y + _WORD_OFFSET_ROW
     if panel_x % 2 == 0:
