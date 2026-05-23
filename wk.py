@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-__version__ = "8.00"
+__version__ = "8.01"
 # Woordklok — single HARDWARE key drives all wiring and grid decisions
+# setcolor_x_y improved for effects x direction
 import json
 import logging
 import time
@@ -379,24 +380,34 @@ class WordClock:
 
     def setcolor_x_y(self, x, y, color):
         """
-        Set one LED by effect coordinate: x=left→right, y=0=TOP for all hardware.
-
+        Set one LED by effect coordinate.
+ 
+        Effect convention (matches all existing effects):
+            x = 0 = RIGHT side of clock face (front view)
+            x increases leftward
+            y = 0 = TOP row, y increases downward
+ 
+        wiring.py convention (matches spec, front-view):
+            x = 0 = LEFT side
+            x increases rightward
+ 
+        The x-flip here bridges the two: wiring_x = (cols - 1 - x).
+        This keeps all effects working unchanged while wiring.py
+        remains correct per spec.
+ 
         effect_full_panel=True:  full panel (e.g. 16x16) via wiring.panel_xy()
         effect_full_panel=False: word grid area (11x10)   via wiring.word_xy()
-
-        Both wiring methods use y=0=top, so no flipping is needed here.
         """
         if self.effect_full_panel:
             cols, rows = self.wiring.panel_dims
             if x < 0 or x >= cols or y < 0 or y >= rows:
                 return
-            self.set_led_color(self.wiring.panel_xy(x, y), color)
+            self.set_led_color(self.wiring.panel_xy(cols - 1 - x, y), color)
         else:
             if x < 0 or x >= self.clock_columns or y < 0 or y >= self.clock_rows:
                 return
-            self.set_led_color(self.wiring.word_xy(x, y), color)
-
-
+            self.set_led_color(self.wiring.word_xy(self.clock_columns - 1 - x, y), color)
+ 
 # ---------------------------------------------------------------------------
 # Config loading
 # ---------------------------------------------------------------------------
