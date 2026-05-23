@@ -1,29 +1,32 @@
 # -*- coding: utf-8 -*-
-__version__ = "7.86"
+__version__ = "8.00"
 # wiring.py — LED strip wiring layouts for the Woordklok
 #
 # Translates logical coordinates to physical LED strip indices.
 # All hardware geometry lives here — wk.py has no wiring arithmetic.
 #
-# Two coordinate spaces, two methods:
+# ONE coordinate convention everywhere (spec section 7):
 #
-#   wiring.word_xy(x, y)
-#     Word grid: x=0..10 left→right, y=0..9 bottom→top.
-#     Used for clock words, cls(), and setcolor_x_y(effect_full_panel=False).
+#   x = 0-based, 0 = leftmost column  (front view)
+#   y = 0-based, 0 = TOP row          (y=0=top throughout)
 #
-#   wiring.panel_xy(x, y)
-#     Panel: x=0..W-1 left→right, y=0..H-1 top→bottom (screen-natural).
-#     Used by effects for full-panel rendering (setcolor_x_y(effect_full_panel=True)).
+# Two methods, same convention:
 #
-# Minute dot physical indices are stored in config_gen.json MINUTE_DOTS,
-# keyed by hardware name ("11x10V", "11x10H", "16x16").
-# wiring.py does not store them.
+#   wiring.word_xy(x, y)     Word grid:  x=0..10, y=0..9
+#   wiring.panel_xy(x, y)    Full panel: x=0..W-1, y=0..H-1
+#
+# Callers pass 0-based coordinates.
+# 1-based word-indices from config_gen.json are converted to 0-based
+# at the call site in wk.py  (index - 1 before calling word_xy).
+#
+# Minute dot physical indices live in config_loc.json MINUTE_DOTS,
+# keyed MD1..MD4. wiring.py does not store or compute them.
 #
 # How to add a new hardware variant:
-#   1. Define _word_xy_<name>(x, y) -> int
-#   2. Define _panel_xy_<name>(x, y) -> int
-#   3. Add entry to _WORD_BUILDERS, _PANEL_BUILDERS, PANEL_DIMS.
-#   4. Add entry to config_gen.json MINUTE_DOTS.
+#   1. Define _word_xy_<name>(x, y) -> int   (0-based, y=0=top)
+#   2. Define _panel_xy_<name>(x, y) -> int  (0-based, y=0=top)
+#   3. Add entries to _WORD_BUILDERS, _PANEL_BUILDERS, PANEL_DIMS.
+#   4. Add MINUTE_DOTS entry to config_loc.json.
 #   5. Add entry to _HARDWARE_PROFILES in wk.py.
 
 import logging
@@ -36,110 +39,124 @@ _WORD_COLS = 11
 
 # ---------------------------------------------------------------------------
 # VERTICAL wiring  (hardware: "11x10V")
-# Column-strip serpentine, strips run vertically, columns snake left→right.
-# Even columns (x=0,2,...): bottom→top.
-# Odd  columns (x=1,3,...): top→bottom.
 #
-# Physical indices:
-#   0, 1       = minute dots ML2, ML1
-#   2 .. 111   = word area (110 LEDs)
-#   112, 113   = minute dots ML3, ML4
+# Verified against spec-11X10Vscreenshot.png (front view).
+#
+# Strips run vertically, 11 columns, serpentine left→right (front view).
+# Even columns (x=0,2,4,6,8,10): top→bottom  (index increases with y)
+# Odd  columns (x=1,3,5,7,9):    bottom→top  (index decreases with y)
+#
+# Physical index layout (0-based):
+#   0        = MD2  (bottom-right, front view)
+#   1        = MD1  (top-right,    front view)
+#   2..111   = word area — col 11 (x=10) first, col 1 (x=0) last
+#   112      = MD3  (bottom-left,  front view)
+#   113      = MD4  (top-left,     front view)
+#
+# Derived base addresses (0-based):
+#   Even x: base = 102 - (x//2)*20  → led = base + y
+#   Odd  x: base = 101 - (x//2)*20  → led = base - y
 # ---------------------------------------------------------------------------
 
-def _word_xy_vertical(x, y):
+def _word_xy_vertical(x: int, y: int) -> int:
     if x % 2 == 0:
-        return 2 + x * _WORD_ROWS + y
+        return 102 - (x // 2) * 20 + y
     else:
-        return 2 + x * _WORD_ROWS + (_WORD_ROWS - 1 - y)
+        return 101 - (x // 2) * 20 - y
 
-def _panel_xy_vertical(x, y):
-    """Panel space: y=0 is TOP. Flip y to map to word_xy."""
-    #return _word_xy_vertical(x, _WORD_ROWS - 1 - y)
+
+def _panel_xy_vertical(x: int, y: int) -> int:
+    """11x10V panel == word grid."""
     return _word_xy_vertical(x, y)
+
 
 # ---------------------------------------------------------------------------
 # HORIZONTAL wiring  (hardware: "11x10H")
-# Row-strip serpentine, strips run horizontally, rows snake top→bottom.
-# Even strip rows (strip_row=0,2,...): left→right.
-# Odd  strip rows (strip_row=1,3,...): right→left.
-# strip_row=0 is the TOP row (y=9 in word coords).
 #
-# Physical layout:
-#   0          = ML1  minute dot  (before top row)
-#   1  ..  11  = row 9  top     L→R
-#   12         = ML2  minute dot  (after top row)
-#   13 ..  23  = row 8           R→L
-#   24 ..  34  = row 7           L→R
-#   35 ..  45  = row 6           R→L
-#   46 ..  56  = row 5           L→R
-#   57 ..  67  = row 4           R→L
-#   68 ..  78  = row 3           L→R
-#   79 ..  89  = row 2           R→L
-#   90 .. 100  = row 1           L→R
-#   101        = ML3  minute dot  (after row 1, before bottom row)
-#   102 .. 112 = row 0  bottom  R→L
-#   113        = ML4  minute dot  (after bottom row)
+# Verified against spec-11X10Hscreenshot.png (front view).
+#
+# Strips run horizontally, 10 rows, data connector top-right (front view).
+# Even rows (y=0,2,4,6,8): left→right
+# Odd  rows (y=1,3,5,7,9): right→left
+#
+# Physical index layout (0-based):
+#   0        = MD2  (bottom-right, front view)
+#   1..11    = row y=9 (bottom), right→left
+#   12       = MD3  (bottom-left, front view)
+#   13..23   = row y=8,  left→right
+#   24..34   = row y=7,  right→left
+#   35..45   = row y=6,  left→right
+#   46..56   = row y=5,  right→left
+#   57..67   = row y=4,  left→right
+#   68..78   = row y=3,  right→left
+#   79..89   = row y=2,  left→right
+#   90..100  = row y=1,  right→left
+#   101      = MD4  (top-left, front view)
+#   102..112 = row y=0 (top), left→right
+#   113      = MD1  (top-right, front view)
+#
+# Base (0-based) = leftmost LED index for each row:
 # ---------------------------------------------------------------------------
 
-def _word_xy_horizontal(x, y):
-    """Word coords: y=0=bottom, y=9=top."""
-    strip_row = 9 - y          # y=9→strip_row=0 (top), y=0→strip_row=9 (bottom)
-    return _horizontal_phys(x, strip_row)
+_H_STRIP_BASE = [
+    102,   # y=0  top     left→right   leds 102..112  (MD1=113 after)
+     90,   # y=1          right→left   leds 90..100   (MD4=101 after)
+     79,   # y=2          left→right   leds 79..89
+     68,   # y=3          right→left   leds 68..78
+     57,   # y=4          left→right   leds 57..67
+     46,   # y=5          right→left   leds 46..56
+     35,   # y=6          left→right   leds 35..45
+     24,   # y=7          right→left   leds 24..34
+     13,   # y=8          left→right   leds 13..23
+      1,   # y=9  bottom  right→left   leds 1..11     (MD2=0 before, MD3=12 after)
+]
 
-def _panel_xy_horizontal(x, y):
-    """Panel coords: y=0=top. strip_row == y directly."""
-    return _horizontal_phys(x, _WORD_ROWS - 1 - y)
 
-def _horizontal_phys(x, strip_row):
-    """Common formula for horizontal wiring given strip_row (0=top)."""
-    if strip_row == 0:
-        return 1 + x
-    elif 1 <= strip_row <= 7:
-        base = 13 + (strip_row - 1) * _WORD_COLS
-        return base + x if strip_row % 2 == 0 else base + (_WORD_COLS - 1 - x)
-    elif strip_row == 8:
-        return 90 + x
-    elif strip_row == 9:
-        return 102 + (_WORD_COLS - 1 - x)
+def _word_xy_horizontal(x: int, y: int) -> int:
+    base = _H_STRIP_BASE[y]
+    if y % 2 == 0:
+        return base + x
     else:
-        raise ValueError(f"strip_row={strip_row} out of range 0..9")
+        return base + (_WORD_COLS - 1 - x)
+
+
+def _panel_xy_horizontal(x: int, y: int) -> int:
+    """11x10H panel == word grid."""
+    return _word_xy_horizontal(x, y)
 
 
 # ---------------------------------------------------------------------------
-# MATRIX16 wiring  (hardware: "16x16")
+# MATRIX16 wiring  (hardware: "16x16V")
+#
+# Verified against spec-16X16Vscreenshot.png (front view).
+#
 # 16×16 LED panel, column-serpentine.
-# Word grid sits at panel offset col+2, row+3.
-# Even panel columns: led = panel_x*16 + (15 - panel_y)
-# Odd  panel columns: led = panel_x*16 + panel_y
+# Data connector: bottom-right corner (front view).
+# Col 16 (x=15, rightmost): bottom→top  (LED 0 at bottom)
+# Col 15 (x=14):            top→bottom
+# Alternating: col_from_right even → bottom→top, odd → top→bottom
+#
+# col_from_right = 15 - x
+# Even col_from_right: led = col_from_right*16 + (15-y)   (bottom→top → y=0=top)
+# Odd  col_from_right: led = col_from_right*16 + y
+#
+# Word grid sits at panel offset col=3, row=3 (0-based).
+# word(x, y) → panel(x+3, y+3)
 # ---------------------------------------------------------------------------
 
-_PANEL16_COLS    = 16
-_PANEL16_ROWS    = 16
-_WORD_OFFSET_COL = 2
+_PANEL16_SIZE    = 16
+_WORD_OFFSET_COL = 3
 _WORD_OFFSET_ROW = 3
 
-def _word_xy_matrix16(x, y):
-    """Word coords: y=0=bottom → panel_y = y + 3."""
-    panel_x = x + _WORD_OFFSET_COL
-    panel_y = y + _WORD_OFFSET_ROW
-    if panel_x % 2 == 0:
-        return panel_x * _PANEL16_COLS + (_PANEL16_COLS - 1 - panel_y)
-    else:
-        return panel_x * _PANEL16_COLS + panel_y
 
-def _panel_xy_matrix16(x, y):
-    """
-    16x16 panel, full-panel coordinates.
-    x=0..15 left→right, y=0..15 top→bottom (screen-natural, y=0=top).
+def _panel_xy_matrix16(x: int, y: int) -> int:
+    cfr = _PANEL16_SIZE - 1 - x          # col_from_right, 0-based
+    base = cfr * _PANEL16_SIZE
+    return base + (_PANEL16_SIZE - 1 - y) if cfr % 2 == 0 else base + y
 
-    The physical panel is column-serpentine:
-      Even columns: bottom→top physically → y=0=top maps to (15-y)
-      Odd  columns: top→bottom physically → y=0=top maps to y
-    """
-    if x % 2 == 0:
-        return x * _PANEL16_COLS + (_PANEL16_COLS - 1 - y)
-    else:
-        return x * _PANEL16_COLS + y
+
+def _word_xy_matrix16(x: int, y: int) -> int:
+    return _panel_xy_matrix16(x + _WORD_OFFSET_COL, y + _WORD_OFFSET_ROW)
 
 
 # ---------------------------------------------------------------------------
@@ -158,7 +175,7 @@ _PANEL_BUILDERS = {
     "matrix16":   _panel_xy_matrix16,
 }
 
-# Physical panel dimensions (cols, rows) per wiring — used by effects
+# Physical panel dimensions (cols, rows) — used by effects
 PANEL_DIMS = {
     "vertical":   (11, 10),
     "horizontal": (11, 10),
@@ -174,19 +191,26 @@ class Wiring:
     """
     Translates logical clock coordinates to physical LED strip indices.
 
-    Instantiated by wk.py using the internal wiring name derived from HARDWARE:
+    Instantiated by wk.py with the internal wiring name derived from HARDWARE:
         wiring = Wiring("vertical" | "horizontal" | "matrix16")
 
+    All inputs are 0-based with y=0=TOP (spec section 7):
+        x = 0-based, 0 = leftmost column (front view)
+        y = 0-based, 0 = top row
+
     Methods:
-        word_xy(x, y)   x=0..10, y=0..9 bottom→top  → physical index
-        panel_xy(x, y)  x=0..W-1, y=0..H-1 top→bottom → physical index
-        panel_dims       (cols, rows) of the full physical panel
+        word_xy(x, y)     x=0..10,  y=0..9   → physical led index (0-based)
+        panel_xy(x, y)    x=0..W-1, y=0..H-1 → physical led index (0-based)
+        panel_dims         (cols, rows) of the full physical panel
     """
 
     def __init__(self, name: str):
         if name not in _WORD_BUILDERS:
             known = ", ".join(sorted(_WORD_BUILDERS))
-            log.warning("Unknown wiring '%s', falling back to 'vertical'. Known: %s", name, known)
+            log.warning(
+                "Unknown wiring '%s', falling back to 'vertical'. Known: %s",
+                name, known
+            )
             name = "vertical"
         self.name       = name
         self._word_fn   = _WORD_BUILDERS[name]
@@ -195,9 +219,17 @@ class Wiring:
         log.info("Wiring: %s  panel=%s", name, self.panel_dims)
 
     def word_xy(self, x: int, y: int) -> int:
-        """Physical index for word grid position (x=col, y=row, y=0=bottom)."""
+        """
+        Physical LED index for word grid position.
+        x=0..10 left→right, y=0..9 top→bottom (y=0=TOP).
+        Returns 0-based physical index.
+        """
         return self._word_fn(x, y)
 
     def panel_xy(self, x: int, y: int) -> int:
-        """Physical index for panel position (x=col, y=row, y=0=top)."""
+        """
+        Physical LED index for full panel position.
+        x=0..cols-1 left→right, y=0..rows-1 top→bottom (y=0=TOP).
+        Returns 0-based physical index.
+        """
         return self._panel_fn(x, y)
