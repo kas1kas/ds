@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
-__version__ = "7.81"
+__version__ = "8.00"
 import logging
 
+
 class BaseEffect:
-    """Base class for all effects."""
+    """Base class for all Woordklok effects."""
 
     name        = "Base Effect"
     description = ""
@@ -20,35 +21,25 @@ class BaseEffect:
 
     def get_dimensions(self):
         """
-        Return the (cols, rows) to iterate over for this effect.
+        Return (cols, rows) for this effect's coordinate space.
 
-        effect_full_panel=True  → full physical panel (16×16 for matrix16, 11×10 for grid=11).
+        effect_full_panel=True  → full physical panel (16×16 or 11×10).
         effect_full_panel=False → word grid area only (11×10).
 
-        Coordinates match setcolor_x_y convention: y=0 is always TOP for all hardware.
+        All coordinates are y=0=top for all hardware.
         """
         if self.word_clock.effect_full_panel:
-            return self.word_clock.wiring.panel_dims   # (cols, rows) from wiring
+            return self.word_clock.wiring.panel_dims
         else:
             return self.word_clock.clock_columns, self.word_clock.clock_rows
-
-    def map_coordinates(self, x, y):
-        """
-        Previously applied a y-inversion workaround for the 16×16 panel.
-        No longer needed — wiring.panel_xy handles all panel geometry correctly.
-        Returns (x, y) unchanged; kept for backward compatibility with existing effects.
-        """
-        return x, y
 
     def clear_screen(self):
         """
         Clear the effect area to black using setcolor_x_y().
 
-        effect_full_panel=True:  clears the full panel (e.g. 16x16)
-        effect_full_panel=False: clears the word grid area (11x10)
-
-        Uses setcolor_x_y() in both cases — y=0=top for all hardware.
-        Does NOT call cls() or clear_all() — internal wk.py concerns.
+        Covers the full panel when effect_full_panel=True,
+        or the word grid only when effect_full_panel=False.
+        Does NOT call clear_all() — that is wk.py's concern for effect switches.
         """
         cols, rows = self.get_dimensions()
         for x in range(cols):
@@ -59,7 +50,11 @@ class BaseEffect:
         factor = self.word_clock.background_brightness_factor
         if factor >= 1.0:
             return color
-        return (int(color[0]*factor), int(color[1]*factor), int(color[2]*factor))
+        return (
+            int(color[0] * factor),
+            int(color[1] * factor),
+            int(color[2] * factor),
+        )
 
     def get_background_brightness(self):
         return self.word_clock.background_brightness_factor
@@ -68,12 +63,13 @@ class BaseEffect:
         """
         Draw one frame. Called every loop iteration by run_clock().
 
-        IMPORTANT — strip.show() contract:
-        Effects that overlay the clock words must call
-        self.word_clock.update_clock() as the LAST step in draw().
-        update_clock() is the only place that calls strip.show(),
-        so all pixel writes before it are buffered and flushed together.
-        Effects that do NOT need the clock overlay must call
-        self.word_clock.strip.show() themselves at the end of draw().
+        strip.show() contract:
+          Effects that overlay clock words must call
+          self.word_clock.update_clock() as the LAST step — it is the
+          only place that calls strip.show(), so all pixel writes are
+          buffered and flushed together.
+
+          Effects that do NOT overlay the clock (e.g. EffectDark) must
+          call self.word_clock.strip.show() themselves at the end.
         """
         pass
