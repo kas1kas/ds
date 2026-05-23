@@ -1,0 +1,12 @@
+In this version:
+
+Coordinates always front view
+
+Simpel, no more mirrored thinking
+
+All code freshly designed for all different hardware 
+11X10V
+11X10H
+16X16V
+
+
