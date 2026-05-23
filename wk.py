@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__version__ = "7.86"
+__version__ = "8.00"
 # Woordklok — single HARDWARE key drives all wiring and grid decisions
 import json
 import logging
@@ -24,16 +24,14 @@ app = Flask(__name__, template_folder='templates_plugin')
 # ---------------------------------------------------------------------------
 # Hardware profiles — single source of truth
 #
-# config_loc.json sets one key:  "HARDWARE": "11x10V" | "11x10H" | "16x16"
+# config_loc.json sets:  "HARDWARE": "11x10V" | "11x10H" | "16x16V"
 #
-# Everything else (wiring name, grid size, LED count) is derived here.
-# Programmers add new hardware by adding an entry to this dict.
-# Users never see the internal wiring/grid names.
+# Everything else (wiring name, LED count) is derived here.
 # ---------------------------------------------------------------------------
 _HARDWARE_PROFILES = {
-    "11x10V": {"wiring": "vertical",   "grid": "11", "led_count": 114},
-    "11x10H": {"wiring": "horizontal", "grid": "11", "led_count": 114},
-    "16x16":  {"wiring": "matrix16",   "grid": "16", "led_count": 256},
+    "11x10V": {"wiring": "vertical",   "led_count": 114},
+    "11x10H": {"wiring": "horizontal", "led_count": 114},
+    "16x16V": {"wiring": "matrix16",   "led_count": 256},
 }
 _HARDWARE_DEFAULT = "11x10V"
 
@@ -66,25 +64,9 @@ class WordClock:
         self.woordklok = config["WOORDKLOK"]
 
         # ----------------------------------------------------------------
-        # Resolve hardware profile from single HARDWARE key.
-        # Falls back gracefully if old GRID/WIRING keys are still present.
+        # Resolve hardware profile from HARDWARE key.
         # ----------------------------------------------------------------
-        hardware = config.get("HARDWARE")
-        if hardware is None:
-            # Backward compatibility: derive from old GRID + WIRING keys
-            old_grid   = config.get("GRID", "11")
-            old_wiring = config.get("WIRING", "vertical")
-            _legacy_map = {
-                ("11", "vertical"):   "11x10V",
-                ("11", "horizontal"): "11x10H",
-                ("16", "matrix16"):   "16x16",
-            }
-            hardware = _legacy_map.get((old_grid, old_wiring), _HARDWARE_DEFAULT)
-            logging.warning(
-                f"HARDWARE key missing — derived '{hardware}' from "
-                f"GRID='{old_grid}' + WIRING='{old_wiring}'. "
-                f"Please update config_loc.json."
-            )
+        hardware = config.get("HARDWARE", _HARDWARE_DEFAULT)
 
         if hardware not in _HARDWARE_PROFILES:
             logging.warning(
@@ -93,12 +75,11 @@ class WordClock:
             )
             hardware = _HARDWARE_DEFAULT
 
-        profile           = _HARDWARE_PROFILES[hardware]
-        self.hardware     = hardware
-        self.grid         = profile["grid"]       # "11" or "16" — used for word lookup
-        wiring_name       = profile["wiring"]     # internal name, not exposed to user
-        self.led_count    = profile["led_count"]
-        self.wiring       = Wiring(wiring_name)
+        profile        = _HARDWARE_PROFILES[hardware]
+        self.hardware  = hardware
+        wiring_name    = profile["wiring"]
+        self.led_count = profile["led_count"]
+        self.wiring    = Wiring(wiring_name)
 
         # Word grid is always 11×10
         self.clock_columns = 11
@@ -109,38 +90,41 @@ class WordClock:
         # Physical panel dimensions (used by effects)
         self.panel_columns, self.panel_rows = self.wiring.panel_dims
 
-        # Minute dots: physical indices from config, keyed by hardware name
-        self.dot_order         = ["ML1", "ML2", "ML3", "ML4"]
+        # Minute dots: 1-based physical indices from config_loc.json.
+        # Dot order MD1→MD4 matches functional spec (MD1 lights first).
+        # The user controls order by arranging MD1..MD4 in config_loc.json.
+        self.dot_order         = ["MD1", "MD2", "MD3", "MD4"]
         self.current_dot_index = 0
-        self.minute_dots       = config.get("MINUTE_DOTS", {}).get(hardware, {})
+        minute_dots_all        = config.get("MINUTE_DOTS", {})
+        self.minute_dots       = minute_dots_all.get(hardware, {})
         if not self.minute_dots:
             logging.warning(
-                f"No MINUTE_DOTS entry for hardware '{hardware}' — dots disabled."
+                f"No MINUTE_DOTS entry for hardware '{hardware}' in config — dots disabled."
             )
 
-        self.effect_full_panel           = config["EFFECT_FULL_PANEL"]
-        self.light_interval              = config["LIGHT_INTERVAL"]
-        self.language_settings           = LanguageSettings(config, config["LANGUAGE"])
-        self.led_pin                     = config.get("LED_PIN", 18)
-        self.led_freq_hz                 = 800000
-        self.led_dma                     = 10
-        self.led_channel                 = 0
-        self.def_brightness              = config["DEF_BRIGHTNESS"]
+        self.effect_full_panel            = config["EFFECT_FULL_PANEL"]
+        self.light_interval               = config["LIGHT_INTERVAL"]
+        self.language_settings            = LanguageSettings(config, config["LANGUAGE"])
+        self.led_pin                      = config.get("LED_PIN", 18)
+        self.led_freq_hz                  = 800000
+        self.led_dma                      = 10
+        self.led_channel                  = 0
+        self.def_brightness               = config["DEF_BRIGHTNESS"]
         self.background_brightness_factor = config["BG_BRIGHTNESS_FACTOR"]
-        self.last_brightness             = float(config["DEF_BRIGHTNESS"])
-        self.background_color            = config["BACKGROUND_COLOR"]
-        self.letter_active_color         = config["LETTER_ACTIVE_COLOR"]
-        self.dot_active_color            = config["DOT_ACTIVE_COLOR"]
-        self.dot_inactive_color          = config["DOT_INACTIVE_COLOR"]
-        self.dot_dark_color              = config["DOT_DARK_COLOR"]
-        self.default_effect              = config["DEFAULT_EFFECT"]
-        self.rand_color                  = config["RAND_COLOR"]
-        self.light_sensor_type           = config.get("SENSOR", "none")
-        self.weather_enabled             = config["WEATHER_ENABLED"]
-        self.weather_location            = config.get("WEATHER_LOCATION", "none")
-        self.weather_lat                 = float(config.get("WEATHER_LAT", 5))
-        self.weather_lon                 = float(config.get("WEATHER_LON", 5))
-        self.weather_update_interval     = config.get("WEATHER_UPDATE_INTERVAL", 900)
+        self.last_brightness              = float(config["DEF_BRIGHTNESS"])
+        self.background_color             = config["BACKGROUND_COLOR"]
+        self.letter_active_color          = config["LETTER_ACTIVE_COLOR"]
+        self.dot_active_color             = config["DOT_ACTIVE_COLOR"]
+        self.dot_inactive_color           = config["DOT_INACTIVE_COLOR"]
+        self.dot_dark_color               = config["DOT_DARK_COLOR"]
+        self.default_effect               = config["DEFAULT_EFFECT"]
+        self.rand_color                   = config["RAND_COLOR"]
+        self.light_sensor_type            = config.get("SENSOR", "none")
+        self.weather_enabled              = config["WEATHER_ENABLED"]
+        self.weather_location             = config.get("WEATHER_LOCATION", "none")
+        self.weather_lat                  = float(config.get("WEATHER_LAT", 5))
+        self.weather_lon                  = float(config.get("WEATHER_LON", 5))
+        self.weather_update_interval      = config.get("WEATHER_UPDATE_INTERVAL", 900)
 
         self.lux             = -1.0
         self.smoothing_alpha = 0.20
@@ -160,11 +144,11 @@ class WordClock:
         self.wind_direction = 270
 
         logging.info(f"Woordklok    : {self.woordklok}")
-        logging.info(f"version      : {self.version}")
+        logging.info(f"Version      : {self.version}")
         logging.info(f"Design       : Woosh")
         logging.info(f"Assist       : DeepSeek&Claude")
         logging.info(f"Made by      : GraWoosh Labs")
-        logging.info(f"Hardware     : {self.hardware}  (wiring={wiring_name} grid={self.grid})")
+        logging.info(f"Hardware     : {self.hardware}  (wiring={wiring_name})")
         logging.info(f"Panel        : {self.panel_columns}×{self.panel_rows}")
         logging.info(f"Minute dots  : {self.minute_dots}")
         logging.info(f"Random       : {self.rand_color}")
@@ -189,8 +173,7 @@ class WordClock:
             self._weather_thread.start()
             logging.info(f"Weather      : enabled")
             logging.info(f"Location     : {self.weather_location}")
-            logging.info(f"lat, lon     : {self.weather_lat},  {self.weather_lon}")
-
+            logging.info(f"lat, lon     : {self.weather_lat}, {self.weather_lon}")
         else:
             logging.info("Weather      : disabled")
 
@@ -292,47 +275,71 @@ class WordClock:
         return False
 
     def next_minuteled(self):
-        prev_dot    = self.dot_order[(self.current_dot_index - 1) % 4]
-        current_dot = self.dot_order[self.current_dot_index]
-        self.set_led_color(self.minute_dots[prev_dot], (0, 0, 0))
-        self.set_led_color(self.minute_dots[current_dot], self.dot_dark_color)
+        """
+        Advance the minute-dot animation by one step.
+        Turns off the previous dot, lights the current dot in dot_dark_color,
+        then advances the index. Called by EffectDark each tick.
+        The dot order (MD1→MD4) is set by the user in config_loc.json.
+        """
+        if not self.minute_dots:
+            return
+        prev_key    = self.dot_order[(self.current_dot_index - 1) % 4]
+        current_key = self.dot_order[self.current_dot_index]
+        # minute_dots values are 1-based from config; convert to 0-based for strip
+        prev_led    = self.minute_dots.get(prev_key, -1) - 1
+        current_led = self.minute_dots.get(current_key, -1) - 1
+        if prev_led >= 0:
+            self.set_led_color(prev_led, (0, 0, 0))
+        if current_led >= 0:
+            self.set_led_color(current_led, self.dot_dark_color)
         self.current_dot_index = (self.current_dot_index + 1) % 4
 
     def set_led_color(self, led_index, color):
+        """Set a single LED by 0-based physical index."""
         if 0 <= led_index < self.led_count:
             self.strip.setPixelColor(led_index, Color(color[0], color[1], color[2]))
 
-    def map_grid_to_led(self, grid_index):
-        """Flat config index → physical strip index via wiring.word_xy()."""
-        return self.wiring.word_xy(grid_index % self.columns,
-                                   grid_index // self.columns)
+    def map_grid_to_led(self, word_index_1based):
+        """
+        Convert a 1-based word-index (from config_gen.json WORDS) to a
+        0-based physical LED index via wiring.word_xy().
+
+        word_index_1based: 1..110, left-to-right top-to-bottom (front view).
+        Converts to 0-based (x, y) where y=0=top, then calls wiring.word_xy().
+        """
+        idx = word_index_1based - 1          # → 0-based flat index
+        x   = idx % self.columns             # 0-based column, 0=left
+        y   = idx // self.columns            # 0-based row,    0=top
+        return self.wiring.word_xy(x, y)
 
     def activate_word(self, word):
+        """Light all LEDs for a named word using 1-based config indices."""
         if word in self.language_settings.words:
             start, end = self.language_settings.words[word]
             for i in range(start, end + 1):
                 led_index = self.map_grid_to_led(i)
-                if led_index != -1:
-                    self.set_led_color(led_index, self.letter_active_color)
+                self.set_led_color(led_index, self.letter_active_color)
 
     def update_clock(self):
         now     = time.localtime()
         hours   = now.tm_hour % 12 or 12
         minutes = now.tm_min
- 
-        minute_dots = minutes % 5
-        for i, dot in enumerate(self.dot_order):
-            active = minute_dots >= i + 1
+
+        # --- Minute dots ---
+        minute_remainder = minutes % 5
+        for i, dot_key in enumerate(self.dot_order):
+            led = self.minute_dots.get(dot_key, -1) - 1   # 1-based → 0-based
+            if led < 0:
+                continue
+            active = minute_remainder >= i + 1
             if active:
-                # Dot is on — always paint it in dot_active_color.
-                self.set_led_color(self.minute_dots[dot], self.dot_active_color)
+                self.set_led_color(led, self.dot_active_color)
             elif not self.effect_full_panel:
-                # Dot is off and no full-panel effect is running —
-                # explicitly set to dot_inactive_color (typically black).
-                self.set_led_color(self.minute_dots[dot], self.dot_inactive_color)
-            # else: full-panel effect is running and already painted this pixel;
-            # leaving it alone lets the effect color show through.
- 
+                # No full-panel effect running: explicitly blank inactive dots.
+                self.set_led_color(led, self.dot_inactive_color)
+            # else: full-panel effect owns this pixel; leave it as painted.
+
+        # --- Words ---
         minute_block   = minutes // 5
         adjusted_hours = hours
 
@@ -362,9 +369,9 @@ class WordClock:
                                self.random_color(tint))
 
     def clear_all(self):
-        """Wipe every LED on the strip to background_color.
-        Used when switching effects to guarantee no residual pixels remain,
-        regardless of which effect was running or how large the panel is.
+        """
+        Wipe every LED on the strip to background_color.
+        Used when switching effects to guarantee no residual pixels remain.
         Effects use setcolor_x_y() / clear_screen() in base_effect instead.
         """
         for i in range(self.led_count):
@@ -373,13 +380,11 @@ class WordClock:
     def setcolor_x_y(self, x, y, color):
         """
         Set one LED by effect coordinate: x=left→right, y=0=TOP for all hardware.
- 
+
         effect_full_panel=True:  full panel (e.g. 16x16) via wiring.panel_xy()
-        effect_full_panel=False: word grid area (11x10)
- 
-        For 11x10 hardware panel_xy covers the word grid directly.
-        For 16x16 with effect_full_panel=False the word grid sits at an offset
-        inside the panel, so we use wiring.word_xy() with y flipped (y=0=top).
+        effect_full_panel=False: word grid area (11x10)   via wiring.word_xy()
+
+        Both wiring methods use y=0=top, so no flipping is needed here.
         """
         if self.effect_full_panel:
             cols, rows = self.wiring.panel_dims
@@ -389,21 +394,16 @@ class WordClock:
         else:
             if x < 0 or x >= self.clock_columns or y < 0 or y >= self.clock_rows:
                 return
-            if self.wiring.panel_dims == (self.clock_columns, self.clock_rows):
-                # Panel == word grid (11x10 hardware): panel_xy works directly
-                self.set_led_color(self.wiring.panel_xy(x, y), color)
-            else:
-                # Panel larger than word grid (16x16): use word_xy with y-flip
-                # so effect y=0=top maps correctly into the word grid area
-                # self.set_led_color(self.wiring.word_xy(x, self.clock_rows - 1 - y), color)
-                self.set_led_color(self.wiring.word_xy(x, y), color) 
+            self.set_led_color(self.wiring.word_xy(x, y), color)
+
+
 # ---------------------------------------------------------------------------
 # Config loading
 # ---------------------------------------------------------------------------
 
 def load_merged_config():
-    script_dir      = '/home/pi/ds'
-    user_config_dir = '/home/pi/.wordclock'
+    script_dir         = '/home/pi/ds'
+    user_config_dir    = '/home/pi/.wordclock'
     system_config_path = os.path.join(script_dir, 'config_gen.json')
     user_config_path   = os.path.join(user_config_dir, 'config_loc.json')
     try:
@@ -452,8 +452,6 @@ def run_clock():
             now = time.time()
 
             # Poll lux at light_interval cadence (default 1s), not every frame.
-            # get_lux() opens a socket each call; the sensor only updates
-            # every ~220 ms so polling at 100 fps is pure wasted overhead.
             if now - last_lux_time >= word_clock.light_interval:
                 lux = get_lux()
                 word_clock.lux = lux
