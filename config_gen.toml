@@ -94,7 +94,7 @@ NEGEN  = [84, 88]    # N E G E N (nine)
 
 # Row 9
 ACHT   = [89, 92]    # A C H T   (eight)
-TIEN2  = [95, 98]    # T I E N   (ten — hour word)
+TIEN2  = [92, 95]    # T I E N   (ten — hour word)
 ELF    = [97, 99]    # E L F     (eleven)
 
 # Row 10
