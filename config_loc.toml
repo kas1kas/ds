@@ -56,7 +56,7 @@ effect_full_panel = true    # true  = effects fill the whole panel
 # Uncomment ONE line:
 
   rand_color = "blue"
-# rand_color = "white"
+# rand_color = "orange"
 # rand_color = "red"
 # rand_color = "green"
 # rand_color = "rainbow"
