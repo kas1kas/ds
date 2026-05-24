@@ -1,0 +1,123 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Woordklok - clock configuration - v8.1
+# Edit this file to configure your clock.
+# Lines starting with # are comments and are ignored.
+#
+# SELECTION FIELDS: uncomment your choice, keep the others commented out.
+# ─────────────────────────────────────────────────────────────────────────────
+
+woordklok = "myklokname"
+
+
+# ── Hardware ──────────────────────────────────────────────────────────────────
+# Uncomment ONE line:
+
+  hardware = "11x10V"   # vertical LED strips,   11×10 grid
+# hardware = "11x10H"   # horizontal LED strips, 11×10 grid
+# hardware = "16x16V"   # LED matrix panel,      16×16 grid
+
+
+# ── Language ──────────────────────────────────────────────────────────────────
+# Uncomment ONE line:
+
+  language = "NL"       # Dutch
+# language = "EN"       # English
+
+
+# ── LED data pin ──────────────────────────────────────────────────────────────
+led_pin = 18
+
+
+# ── Light sensor ──────────────────────────────────────────────────────────────
+# Uncomment ONE line:
+
+  sensor = "TSL2591"    # TSL2591 (recommended)
+# sensor = "BH1750"     # BH1750
+# sensor = "none"       # no sensor — fixed brightness
+
+
+# ── Display ───────────────────────────────────────────────────────────────────
+purist            = true    # true  = hide "HET IS" / "IT IS"
+                            # false = always show "HET IS" / "IT IS"
+effect_full_panel = true    # true  = effects fill the whole panel
+                            # false = effects stay within the 11×10 word grid only
+
+
+# ── Effect ────────────────────────────────────────────────────────────────────
+# Uncomment ONE line:
+
+  default_effect = "matrix"
+# default_effect = "normal"
+# default_effect = "dark"
+# default_effect = "weather"
+
+
+# ── Random color tint ─────────────────────────────────────────────────────────
+# Uncomment ONE line:
+
+  rand_color = "blue"
+# rand_color = "white"
+# rand_color = "red"
+# rand_color = "green"
+# rand_color = "rainbow"
+
+
+# ── Brightness ────────────────────────────────────────────────────────────────
+def_brightness        = 10    # startup brightness (0–255)
+bg_brightness_factor  = 0.9   # background dimming (0.0–1.0)
+sensor_scale          = 1.0   # lux multiplier (adjust if sensor reads high/low)
+light_interval        = 1     # seconds between lux readings
+
+
+# ── Brightness LUT  [ lux_in, brightness_out ] ───────────────────────────────
+# Pairs: ambient lux → LED brightness (0–255).
+# Add or remove rows to taste. Must have at least 2 rows.
+
+lut = [
+    [  0,   3 ],
+    [  1,  12 ],
+    [  5,  20 ],
+    [100, 180 ],
+]
+
+
+# ── Colors  [ R, G, B ]  each channel 0–255 ──────────────────────────────────
+background_color    = [  0,   0,   0 ]
+letter_active_color = [255, 255, 255 ]
+dot_active_color    = [255, 255, 255 ]
+dot_inactive_color  = [  0,   0,   0 ]
+dot_dark_color      = [100,   0,   0 ]
+
+
+# ── Minute dots  (1-based LED indices) ───────────────────────────────────────
+# MD1 lights first (+1 min), MD4 lights last (+4 min).
+# Values are physical LED indices — only change if you rewired your dots.
+
+[minute_dots.11x10V]
+MD1 =   2
+MD2 =   1
+MD3 = 113
+MD4 = 114
+
+[minute_dots.11x10H]
+MD1 = 114
+MD2 =   1
+MD3 =  13
+MD4 = 102
+
+[minute_dots.16x16V]
+MD1 =  15
+MD2 =   2
+MD3 = 226
+MD4 = 239
+
+
+# ── Weather ───────────────────────────────────────────────────────────────────
+# The [weather] header closes the minute_dots section above.
+
+[weather]
+enabled          = true
+location         = "Location"
+lat              = 51.5
+lon              = 5.4
+update_interval  = 60
