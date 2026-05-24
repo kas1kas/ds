@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-__version__ = "8.01"
+__version__ = "8.10"
 # Woordklok — single HARDWARE key drives all wiring and grid decisions
-# setcolor_x_y improved for effects x direction
 import json
+import tomllib
 import logging
 import time
 import os
@@ -33,6 +33,7 @@ _HARDWARE_PROFILES = {
     "11x10V": {"wiring": "vertical",   "led_count": 114},
     "11x10H": {"wiring": "horizontal", "led_count": 114},
     "16x16V": {"wiring": "matrix16",   "led_count": 256},
+    "16x16":  {"wiring": "matrix16",   "led_count": 256},  # legacy alias
 }
 _HARDWARE_DEFAULT = "11x10V"
 
@@ -72,9 +73,16 @@ class WordClock:
         if hardware not in _HARDWARE_PROFILES:
             logging.warning(
                 f"Unknown HARDWARE '{hardware}', falling back to '{_HARDWARE_DEFAULT}'. "
-                f"Valid values: {list(_HARDWARE_PROFILES)}"
+                f"Valid values: {[k for k in _HARDWARE_PROFILES if k != '16x16']}"
             )
             hardware = _HARDWARE_DEFAULT
+
+        if hardware == "16x16":
+            logging.warning(
+                "HARDWARE='16x16' is a legacy key — please update config_loc.json "
+                "to HARDWARE='16x16V'. Continuing with 16x16V settings."
+            )
+            hardware = "16x16V"
 
         profile        = _HARDWARE_PROFILES[hardware]
         self.hardware  = hardware
@@ -381,20 +389,20 @@ class WordClock:
     def setcolor_x_y(self, x, y, color):
         """
         Set one LED by effect coordinate.
- 
+
         Effect convention (matches all existing effects):
             x = 0 = RIGHT side of clock face (front view)
             x increases leftward
             y = 0 = TOP row, y increases downward
- 
+
         wiring.py convention (matches spec, front-view):
             x = 0 = LEFT side
             x increases rightward
- 
+
         The x-flip here bridges the two: wiring_x = (cols - 1 - x).
         This keeps all effects working unchanged while wiring.py
         remains correct per spec.
- 
+
         effect_full_panel=True:  full panel (e.g. 16x16) via wiring.panel_xy()
         effect_full_panel=False: word grid area (11x10)   via wiring.word_xy()
         """
@@ -407,23 +415,42 @@ class WordClock:
             if x < 0 or x >= self.clock_columns or y < 0 or y >= self.clock_rows:
                 return
             self.set_led_color(self.wiring.word_xy(self.clock_columns - 1 - x, y), color)
- 
+
+
 # ---------------------------------------------------------------------------
 # Config loading
 # ---------------------------------------------------------------------------
+
+def _toml_to_config(raw: dict) -> dict:
+    """
+    Flatten a parsed config_loc.toml dict into the canonical flat uppercase
+    format that WordClock.__init__ expects.
+
+    TOML uses lowercase keys and a [weather] sub-table.
+    All top-level keys are uppercased; weather.* sub-keys are promoted
+    to flat WEATHER_* keys to match the existing interface.
+    """
+    weather = raw.pop("weather", {})
+    raw["WEATHER_ENABLED"]         = weather.get("enabled",         False)
+    raw["WEATHER_LOCATION"]        = weather.get("location",        "none")
+    raw["WEATHER_LAT"]             = weather.get("lat",             5.0)
+    raw["WEATHER_LON"]             = weather.get("lon",             5.0)
+    raw["WEATHER_UPDATE_INTERVAL"] = weather.get("update_interval", 900)
+    return {k.upper(): v for k, v in raw.items()}
+
 
 def load_merged_config():
     script_dir         = '/home/pi/ds'
     user_config_dir    = '/home/pi/.wordclock'
     system_config_path = os.path.join(script_dir, 'config_gen.json')
-    user_config_path   = os.path.join(user_config_dir, 'config_loc.json')
+    user_config_path   = os.path.join(user_config_dir, 'config_loc.toml')
     try:
         with open(system_config_path) as f:
             config_gen = json.load(f)
         logging.info(f"Loaded system config from {system_config_path}")
         if os.path.exists(user_config_path):
-            with open(user_config_path) as f:
-                config_loc = json.load(f)
+            with open(user_config_path, "rb") as f:
+                config_loc = _toml_to_config(tomllib.load(f))
             logging.info(f"Loaded user config from {user_config_path}")
         else:
             config_loc = {}
@@ -432,8 +459,8 @@ def load_merged_config():
     except FileNotFoundError as e:
         logging.error(f"Required config file not found: {e}")
         return None
-    except json.JSONDecodeError as e:
-        logging.error(f"Invalid JSON in config file: {e}")
+    except tomllib.TOMLDecodeError as e:
+        logging.error(f"Invalid TOML in config_loc.toml: {e}")
         return None
     except Exception as e:
         logging.error(f"Unexpected error loading config: {e}")
