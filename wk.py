@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__version__ = "8.10"
+__version__ = "8.11"
 # Woordklok — single HARDWARE key drives all wiring and grid decisions
 import json
 import tomllib
@@ -343,10 +343,10 @@ class WordClock:
             active = minute_remainder >= i + 1
             if active:
                 self.set_led_color(led, self.dot_active_color)
-            elif not self.effect_full_panel:
-                # No full-panel effect running: explicitly blank inactive dots.
+            else:
+                # Minute dots sit outside the word grid and are never painted
+                # by effect rendering, so always blank them explicitly.
                 self.set_led_color(led, self.dot_inactive_color)
-            # else: full-panel effect owns this pixel; leave it as painted.
 
         # --- Words ---
         minute_block   = minutes // 5
