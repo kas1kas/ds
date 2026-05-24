@@ -1,0 +1,187 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# config_gen.toml — Woordklok system configuration
+#
+# This file is part of the Woordklok software distribution.
+# It defines word positions, language data, and time display logic.
+#
+# Normal users do not need to edit this file.
+# It is safe to add comments; do not change values unless you know the layout.
+#
+# Word indices are 1-based, front-view, left→right top→bottom.
+# Row 1 top-left = index 1, row 1 top-right = index 11, ..., row 10 = 100..110.
+# ─────────────────────────────────────────────────────────────────────────────
+
+VERSION = "8.00"
+
+
+# ── "It is" words ─────────────────────────────────────────────────────────────
+# Words always lit at the start of every time display (unless purist=true).
+
+[IT_IS]
+NL = ["HET", "IS"]
+EN = ["IT",  "IS"]
+
+
+# ── Hour words ────────────────────────────────────────────────────────────────
+# One entry per hour, 1 o'clock first through 12 o'clock last.
+
+[HOUR_WORDS]
+NL = ["EEN", "TWEE", "DRIE", "VIER", "VIJF2", "ZES", "ZEVEN", "ACHT", "NEGEN", "TIEN2", "ELF",    "TWAALF"]
+EN = ["ONE", "TWO",  "THREE","FOUR", "FIVE2", "SIX", "SEVEN", "EIGHT","NINE",  "TEN2",  "ELEVEN", "TWELVE"]
+
+
+# ── Minute block threshold ────────────────────────────────────────────────────
+# From this minute-block onward the hour advances by one.
+# NL: block 4 = "tien voor half" → next hour.
+# EN: block 7 = "twenty-five to" → next hour.
+
+[MIN_BLOCK_CHECK]
+NL = 4
+EN = 7
+
+
+# ── Word grid positions ───────────────────────────────────────────────────────
+# Each word maps to [first_index, last_index] inclusive (1-based, front-view).
+#
+# Grid layout (Dutch):
+#
+#   col →   1    2    3    4    5    6    7    8    9   10   11
+#   row 1   H    E    T    _    I    S    _    V    I    J    F
+#   row 2   T    I    E    N    _    _    _    V    O    O    R
+#   row 3   O    V    E    R    _    _    K    W    A    R    T
+#   row 4   H    A    L    F    _    _    _    O    V    E    R
+#   row 5   V    O    O    R    _    _    _    E    E    N    _
+#   row 6   T    W    E    E    _    _    _    D    R    I    E
+#   row 7   V    I    E    R    V    I    J    F    Z    E    S
+#   row 8   Z    E    V    E    N    _    N    E    G    E    N
+#   row 9   A    C    H    T    I    E    N    _    E    L    F
+#   row 10  T    W    A    A    L    F    _    _    U    U    R
+
+[WORDS.NL]
+# Row 1
+HET    = [1,   3]    # H E T
+IS     = [5,   6]    # I S
+VIJF   = [8,  11]    # V I J F   (5 minutes)
+
+# Row 2
+TIEN   = [12, 15]    # T I E N   (10 minutes)
+VOOR   = [19, 22]    # V O O R   (to / before)
+
+# Row 3
+OVER   = [23, 26]    # O V E R   (past / after)
+KWART  = [29, 33]    # K W A R T (quarter)
+
+# Row 4
+HALF   = [34, 37]    # H A L F
+OVER2  = [41, 44]    # O V E R   (second instance: "half over")
+
+# Row 5
+VOOR2  = [45, 48]    # V O O R   (second instance: "half voor")
+EEN    = [52, 54]    # E E N     (one)
+
+# Row 6
+TWEE   = [56, 59]    # T W E E   (two)
+DRIE   = [63, 66]    # D R I E   (three)
+
+# Row 7
+VIER   = [67, 70]    # V I E R   (four)
+VIJF2  = [71, 74]    # V I J F   (five — hour word)
+ZES    = [75, 77]    # Z E S     (six)
+
+# Row 8
+ZEVEN  = [78, 82]    # Z E V E N (seven)
+NEGEN  = [84, 88]    # N E G E N (nine)
+
+# Row 9
+ACHT   = [89, 92]    # A C H T   (eight)
+TIEN2  = [95, 98]    # T I E N   (ten — hour word)
+ELF    = [97, 99]    # E L F     (eleven)
+
+# Row 10
+TWAALF = [100, 105]  # T W A A L F (twelve)
+UUR    = [108, 110]  # U U R       (o'clock)
+
+
+[WORDS.EN]
+# Row 1
+IT          = [1,   2]    # I T
+IS          = [4,   5]    # I S
+
+# Row 3
+TWENTY      = [23,  28]   # T W E N T Y
+TWENTYFIVE  = [23,  32]   # T W E N T Y F I V E
+FIVE        = [29,  32]   # F I V E    (5 minutes)
+QUARTER     = [14,  20]   # Q U A R T E R   — uses row 2/3 letters
+
+# Row 4
+HALF        = [34,  37]   # H A L F
+TO          = [43,  44]   # T O
+
+# Row 5
+PAST        = [45,  48]   # P A S T
+NINE        = [52,  55]   # N I N E    (hour)
+
+# Row 6
+ONE         = [56,  58]   # O N E      (hour)
+TEN         = [39,  41]   # T E N      (10 minutes)
+SIX         = [59,  61]   # S I X      (hour)
+THREE       = [62,  66]   # T H R E E  (hour)
+
+# Row 7
+FOUR        = [67,  70]   # F O U R    (hour)
+FIVE2       = [71,  74]   # F I V E    (hour)
+
+# Row 8
+ELEVEN      = [83,  88]   # E L E V E N (hour)
+EIGHT       = [78,  82]   # E I G H T   (hour)
+A           = [12,  12]   # A           (a quarter)
+
+# Row 9
+SEVEN       = [89,  93]   # S E V E N   (hour)
+TEN2        = [100, 102]  # T E N       (hour)
+
+# Row 10
+TWELVE      = [94,  99]   # T W E L V E (hour)
+TWO         = [75,  77]   # T W O       (hour)
+OCLOCK      = [105, 110]  # O C L O C K
+
+
+# ── Minute blocks ─────────────────────────────────────────────────────────────
+# Maps minute-block number (0–11, where block = minutes // 5) to the list of
+# word keys to light up. The hour word is added automatically by the code.
+#
+# Block  0 = :00        Block  6 = :30
+# Block  1 = :05        Block  7 = :35
+# Block  2 = :10        Block  8 = :40
+# Block  3 = :15        Block  9 = :45
+# Block  4 = :20        Block 10 = :50
+# Block  5 = :25        Block 11 = :55
+
+[MINUTE_BLOCKS.NL]
+# Integer keys are not valid in TOML bare keys — quoted strings required.
+"0"  = ["UUR"]
+"1"  = ["VIJF",  "OVER"]
+"2"  = ["TIEN",  "OVER"]
+"3"  = ["KWART", "OVER2"]
+"4"  = ["TIEN",  "VOOR",  "HALF"]
+"5"  = ["VIJF",  "VOOR",  "HALF"]
+"6"  = ["HALF"]
+"7"  = ["VIJF",  "OVER",  "HALF"]
+"8"  = ["TIEN",  "OVER",  "HALF"]
+"9"  = ["KWART", "VOOR2"]
+"10" = ["TIEN",  "VOOR"]
+"11" = ["VIJF",  "VOOR"]
+
+[MINUTE_BLOCKS.EN]
+"0"  = ["OCLOCK"]
+"1"  = ["FIVE",       "PAST"]
+"2"  = ["TEN",        "PAST"]
+"3"  = ["A",          "QUARTER", "PAST"]
+"4"  = ["TWENTY",     "PAST"]
+"5"  = ["TWENTYFIVE", "PAST"]
+"6"  = ["HALF",       "PAST"]
+"7"  = ["TWENTYFIVE", "TO"]
+"8"  = ["TWENTY",     "TO"]
+"9"  = ["A",          "QUARTER", "TO"]
+"10" = ["TEN",        "TO"]
+"11" = ["FIVE",       "TO"]
