@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__version__ = "8.11"
+__version__ = "8.12"
 # Woordklok — single HARDWARE key drives all wiring and grid decisions
 import json
 import tomllib
@@ -25,7 +25,7 @@ app = Flask(__name__, template_folder='templates_plugin')
 # ---------------------------------------------------------------------------
 # Hardware profiles — single source of truth
 #
-# config_loc.json sets:  "HARDWARE": "11x10V" | "11x10H" | "16x16V"
+# config_loc.toml sets:  hardware = "11x10V" | "11x10H" | "16x16V"
 #
 # Everything else (wiring name, LED count) is derived here.
 # ---------------------------------------------------------------------------
@@ -79,7 +79,7 @@ class WordClock:
 
         if hardware == "16x16":
             logging.warning(
-                "HARDWARE='16x16' is a legacy key — please update config_loc.json "
+                "HARDWARE='16x16' is a legacy key — please update config_loc.toml "
                 "to HARDWARE='16x16V'. Continuing with 16x16V settings."
             )
             hardware = "16x16V"
@@ -99,9 +99,9 @@ class WordClock:
         # Physical panel dimensions (used by effects)
         self.panel_columns, self.panel_rows = self.wiring.panel_dims
 
-        # Minute dots: 1-based physical indices from config_loc.json.
+        # Minute dots: 1-based physical indices from config_loc.toml.
         # Dot order MD1→MD4 matches functional spec (MD1 lights first).
-        # The user controls order by arranging MD1..MD4 in config_loc.json.
+        # The user controls order by arranging MD1..MD4 in config_loc.toml.
         self.dot_order         = ["MD1", "MD2", "MD3", "MD4"]
         self.current_dot_index = 0
         minute_dots_all        = config.get("MINUTE_DOTS", {})
@@ -142,7 +142,7 @@ class WordClock:
         self.sensor_scale = config["SENSOR_SCALE"]
         lut = config["LUT"]
         if len(lut) < 2:
-            logging.error("LUT must have at least 2 entries — check config_loc.json")
+            logging.error("LUT must have at least 2 entries — check config_loc.toml")
             exit(1)
         self.lut_in  = [row[0] for row in lut]
         self.lut_out = [row[1] for row in lut]
@@ -288,7 +288,7 @@ class WordClock:
         Advance the minute-dot animation by one step.
         Turns off the previous dot, lights the current dot in dot_dark_color,
         then advances the index. Called by EffectDark each tick.
-        The dot order (MD1→MD4) is set by the user in config_loc.json.
+        The dot order (MD1→MD4) is set by the user in config_loc.toml.
         """
         if not self.minute_dots:
             return
@@ -310,7 +310,7 @@ class WordClock:
 
     def map_grid_to_led(self, word_index_1based):
         """
-        Convert a 1-based word-index (from config_gen.json WORDS) to a
+        Convert a 1-based word-index (from config_gen.toml WORDS) to a
         0-based physical LED index via wiring.word_xy().
 
         word_index_1based: 1..110, left-to-right top-to-bottom (front view).
@@ -442,11 +442,11 @@ def _toml_to_config(raw: dict) -> dict:
 def load_merged_config():
     script_dir         = '/home/pi/ds'
     user_config_dir    = '/home/pi/.wordclock'
-    system_config_path = os.path.join(script_dir, 'config_gen.json')
+    system_config_path = os.path.join(script_dir, 'config_gen.toml')
     user_config_path   = os.path.join(user_config_dir, 'config_loc.toml')
     try:
-        with open(system_config_path) as f:
-            config_gen = json.load(f)
+        with open(system_config_path, "rb") as f:
+            config_gen = tomllib.load(f)
         logging.info(f"Loaded system config from {system_config_path}")
         if os.path.exists(user_config_path):
             with open(user_config_path, "rb") as f:
@@ -460,7 +460,7 @@ def load_merged_config():
         logging.error(f"Required config file not found: {e}")
         return None
     except tomllib.TOMLDecodeError as e:
-        logging.error(f"Invalid TOML in config_loc.toml: {e}")
+        logging.error(f"Invalid TOML in config file: {e}")
         return None
     except Exception as e:
         logging.error(f"Unexpected error loading config: {e}")
