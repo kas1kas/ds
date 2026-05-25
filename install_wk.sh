@@ -1,14 +1,14 @@
 #!/bin/bash
 # ==============================================================================
 # install_wk.sh - WordClock installation script for Raspberry Pi
-# __version__ = "7.62"
+# __version__ = "8.00"
 # ==============================================================================
 
 LOGFILE="/home/pi/wk_install.log"
 VENV="/home/pi/wk_env"
 PROJECT="/home/pi/ds"
 CONFIG_DIR="/home/pi/.wordclock"
-CONFIG_LOC="$CONFIG_DIR/config_loc.json"
+CONFIG_LOC="$CONFIG_DIR/config_loc.toml"
 
 # ------------------------------------------------------------------------------
 # Logging helpers
@@ -306,15 +306,10 @@ CONFIG_MSG="
 Before starting WordClock, review your settings:
 
    nano $CONFIG_LOC
-
-   Key settings to verify:
-   - GRID:    \"11\" or \"16\"
-   - SENSOR:  \"TSL2591\" or \"none\"
-
+   For full details see INSTALL.md in $PROJECT.
+   
    The lux_daemon always starts on boot and returns -1 if the sensor
    is absent or broken — the wordclock falls back to DEF_BRIGHTNESS.
-
-   For full details see INSTALL.md in $PROJECT.
 
    A reboot is required:
 
