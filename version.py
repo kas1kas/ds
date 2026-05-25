@@ -1,5 +1,5 @@
-__version__ = "7.47"
-import json
+__version__ = "8.00"
+import tomllib
 import re
 import os
 import logging
@@ -55,18 +55,18 @@ class VersionChecker:
             print(f"Error reading HTML file: {e}")
         return None
     
-    def get_json_version(self, json_file_path):
-        """Extract version from JSON config file"""
+    def get_toml_version(self, toml_file_path):
+        """Extract version from config file"""
         try:
-            with open(json_file_path, 'r', encoding='utf-8') as f:
-                config = json.load(f)
+            with open(toml_file_path, 'r', encoding='utf-8') as f:
+                config = tomllib.load(f)
             
             return config.get('VERSION', '').strip()
         except Exception as e:
-            print(f"Error reading JSON file: {e}")
+            print(f"Error reading toml file: {e}")
         return None
     
-    def check_versions(self, python_files, bash_files, html_files, json_files):
+    def check_versions(self, python_files, bash_files, html_files, toml_files):
         versions = {}
         
         # Collect versions from all files
@@ -82,9 +82,9 @@ class VersionChecker:
             if os.path.exists(html_file):
                 versions[html_file] = self.get_html_version(html_file)
         
-        for json_file in json_files:
-            if os.path.exists(json_file):
-                versions[json_file] = self.get_json_version(json_file)
+        for toml_file in toml_files:
+            if os.path.exists(toml_file):
+                versions[toml_file] = self.get_toml_version(toml_file)
         
         # Find the most common version (expected version)
         version_counts = {}
