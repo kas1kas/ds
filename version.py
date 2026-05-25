@@ -58,7 +58,7 @@ class VersionChecker:
     def get_toml_version(self, toml_file_path):
         """Extract version from config file"""
         try:
-            with open(toml_file_path, 'r', encoding='utf-8') as f:
+            with open(toml_file_path, 'rb') as f:
                 config = tomllib.load(f)
             
             return config.get('VERSION', '').strip()
