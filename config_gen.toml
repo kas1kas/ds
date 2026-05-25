@@ -9,9 +9,7 @@
 #
 # Word indices are 1-based, front-view, left→right top→bottom.
 # Row 1 top-left = index 1, row 1 top-right = index 11, ..., row 10 = 100..110.
-# ─────────────────────────────────────────────────────────────────────────────
-
-VERSION = "8.00"
+VERSION = "8.01"
 
 
 # ── "It is" words ─────────────────────────────────────────────────────────────
