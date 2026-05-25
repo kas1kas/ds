@@ -59,51 +59,17 @@ When moving the wordclock to another location, you can connect to the new wifi n
 - proceed as mentioned above
 
 ## Personalisation
-edit the file ~/.wordclock/config_loc.json. Do not add the comments between (). These are only here to explain.
-```
-{
-    "VERSION": "x.yz",
-    "PURIST": true,
-    "CALIBRATE": false, 
-    "WOORDKLOK": "yourname",
-    "LANGUAGE": "NL",
-    "GRID" : "11",
-    "SENSOR": "TSL2591",
-    "DEFAULT_EFFECT": "matrix",
-    "RAND_COLOR": "blue",
-    "WEATHER_ENABLED": true,
-    "WEATHER_LAT": 51.5382,
-    "WEATHER_LON": 5.3679,
-    "WEATHER_UPDATE_INTERVAL": 300,
-    "LIGHT_INTERVAL": 1,
-    "DEF_BRIGHTNESS" : 4,
-    "BACKGROUND_COLOR": [0, 0, 0],
-    "LETTER_ACTIVE_COLOR": [255, 255, 255],
-    "DOT_ACTIVE_COLOR": [255, 255, 255],
-    "DOT_INACTIVE_COLOR": [0,0,0],
-    "DOT_DARK_COLOR": [100,0,0],
-    "SENSOR_SCALE":   1.0,  # calulate sensor behavior: 
-    "LUT": [                # lux,  brightness: 
-        [0,     3],         # brightness at 0 Lux,  
-        [1,    12],         # dark room brightness
-        [5,    20],         # evening room brightness
-        [100, 180]          # max lux, max brightness
-}
-```
-random color
-```
-blue, orange, red, green, purple, random
-```
-adjustments
-```
-To calibrate: on a bright day, note what the sensor reads,
-then set SENSOR_SCALE = 500 / actual_reading.
-That stretches or compresses the whole curve to fit your LUT without touching any other values.
-Dark wall giving 200 lux max? Set SENSOR_SCALE = 2.5 and the LUT behaves as designed.
-```
+edit the file ~/.wordclock/config_loc.toml.
 
+```
+At least: Select the correct Hardware setting.
 
+  hardware = "11x10V"   # vertical LED strips,   11×10 grid
+# hardware = "11x10H"   # horizontal LED strips, 11×10 grid
+# hardware = "16x16V"   # LED matrix panel,      16×16 grid
 
+The default is un commented, make sure it matches your wiring system
+```
 
 
 
