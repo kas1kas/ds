@@ -1,9 +1,10 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# Woordklok - clock configuration - v8.1
+# Woordklok - clock configuration
 # Edit this file to configure your clock.
 # Lines starting with # are comments and are ignored.
 #
 # SELECTION FIELDS: uncomment your choice, keep the others commented out.
+VERSION = "8.10"
 # ─────────────────────────────────────────────────────────────────────────────
 
 woordklok = "myklokname"
