@@ -111,10 +111,10 @@ if __name__ == "__main__":
     python_files = ['version.py', 'wk.py', 'wiring.py', 'lux_client.py', 'lux_daemon.py', 'web_routes.py', 'lux_bar.py']
     bash_files = ['install.sh']
     html_files = ['templates_plugin/index.html']
-    json_files = ['config_gen.json', 'config_loc.json', '/home/pi/.workclock/config_loc.json']
+    toml_files = ['config_gen.toml', 'config_loc.toml', '/home/pi/.workclock/config_loc.toml']
     
     # Check versions
-    inconsistencies = checker.check_versions(python_files, bash_files, html_files, json_files)
+    inconsistencies = checker.check_versions(python_files, bash_files, html_files, toml_files)
     
     print("Versions in this build:")
     for file_path, version in inconsistencies:
