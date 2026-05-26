@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-__version__ = "8.12"
+__version__ = "8.13"
 # Woordklok — single HARDWARE key drives all wiring and grid decisions
+# new minute dot logic
 import json
 import tomllib
 import logging
@@ -329,24 +330,34 @@ class WordClock:
                 led_index = self.map_grid_to_led(i)
                 self.set_led_color(led_index, self.letter_active_color)
 
+    def refresh_dots(self):
+        """
+        Paint minute dot LEDs to match the current time and call strip.show().
+        Called every frame from run_clock() to guarantee dots are always correct,
+        independent of whether the active effect called update_clock() this frame.
+        This is lightweight — only 4 LEDs written + one strip.show().
+        """
+        if not self.minute_dots:
+            return
+        minutes          = time.localtime().tm_min
+        minute_remainder = minutes % 5
+        for i, dot_key in enumerate(self.dot_order):
+            led = self.minute_dots.get(dot_key, -1) - 1
+            if led < 0:
+                continue
+            color = self.dot_active_color if minute_remainder >= i + 1                     else self.dot_inactive_color
+            self.set_led_color(led, color)
+        self.strip.show()
+
     def update_clock(self):
+        """
+        Paint the word LEDs for the current time.
+        Does NOT handle minute dots — those are managed exclusively by
+        refresh_dots(), which is called every frame from run_clock().
+        """
         now     = time.localtime()
         hours   = now.tm_hour % 12 or 12
         minutes = now.tm_min
-
-        # --- Minute dots ---
-        minute_remainder = minutes % 5
-        for i, dot_key in enumerate(self.dot_order):
-            led = self.minute_dots.get(dot_key, -1) - 1   # 1-based → 0-based
-            if led < 0:
-                continue
-            active = minute_remainder >= i + 1
-            if active:
-                self.set_led_color(led, self.dot_active_color)
-            else:
-                # Minute dots sit outside the word grid and are never painted
-                # by effect rendering, so always blank them explicitly.
-                self.set_led_color(led, self.dot_inactive_color)
 
         # --- Words ---
         minute_block   = minutes // 5
@@ -366,7 +377,8 @@ class WordClock:
                 self.activate_word(word)
             self.activate_word(self.language_settings.hour_words[adjusted_hours - 1])
 
-        self.strip.show()
+        # strip.show() is NOT called here — refresh_dots() in run_clock()
+        # is the single flush point, ensuring dots are always written last.
 
     def set_random_led(self, tint):
         if self.effect_full_panel:
@@ -500,6 +512,11 @@ def run_clock():
             current_effect = word_clock.effects.get(word_clock.current_effect_id)
             if current_effect:
                 current_effect.draw()
+
+            # Ensure minute dots always reflect the current time, even on
+            # frames where the effect returned early without calling update_clock().
+            word_clock.refresh_dots()
+
             time.sleep(frame_delay)
     except KeyboardInterrupt:
         logging.info("Exiting...")
