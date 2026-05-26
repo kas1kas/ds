@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 __version__ = "8.13"
 # Woordklok — single HARDWARE key drives all wiring and grid decisions
-# fixed 16x16 minute dot black
+# reset_dots added
 import json
 import tomllib
 import logging
@@ -276,6 +276,7 @@ class WordClock:
         if effect_id in self.effects:
             self.current_effect_id = effect_id
             self.clear_all()
+            self.reset_dots()
             self.strip.show()
             current_effect = self.effects.get(effect_id)
             if current_effect:
@@ -303,6 +304,18 @@ class WordClock:
         if current_led >= 0:
             self.set_led_color(current_led, self.dot_dark_color)
         self.current_dot_index = (self.current_dot_index + 1) % 4
+
+    def reset_dots(self):
+        """
+        Blank all four minute dot LEDs and reset the cycling index to 0.
+        Called by set_effect() so that switching to dark mode always starts
+        from a clean state, regardless of which dots were lit before.
+        """
+        self.current_dot_index = 0
+        for dot_key in self.dot_order:
+            led = self.minute_dots.get(dot_key, -1) - 1
+            if led >= 0:
+                self.set_led_color(led, (0, 0, 0))
 
     def set_led_color(self, led_index, color):
         """Set a single LED by 0-based physical index."""
