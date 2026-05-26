@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 __version__ = "8.13"
 # Woordklok — single HARDWARE key drives all wiring and grid decisions
-# new minute dot logic
+# fixed 16x16 minute dot black
 import json
 import tomllib
 import logging
@@ -332,21 +332,35 @@ class WordClock:
 
     def refresh_dots(self):
         """
-        Paint minute dot LEDs to match the current time and call strip.show().
-        Called every frame from run_clock() to guarantee dots are always correct,
-        independent of whether the active effect called update_clock() this frame.
-        This is lightweight — only 4 LEDs written + one strip.show().
+        Paint active minute dot LEDs and call strip.show().
+        Called every frame from run_clock() after effect.draw().
+
+        On 11x10 hardware the dot LEDs are outside the panel area so the
+        effect never touches them. Both active and inactive dots are written
+        explicitly (inactive = dot_inactive_color).
+
+        On 16x16V the dot LEDs are inside the full panel area. The effect's
+        clear_screen() blanks them every frame, so inactive dots are already
+        black — writing dot_inactive_color would paint a black square over
+        whatever the effect drew there. Only active dots are written.
         """
         if not self.minute_dots:
             return
         minutes          = time.localtime().tm_min
         minute_remainder = minutes % 5
+        dots_inside_panel = self.effect_full_panel and                             self.wiring.panel_dims != (self.clock_columns, self.clock_rows)
         for i, dot_key in enumerate(self.dot_order):
             led = self.minute_dots.get(dot_key, -1) - 1
             if led < 0:
                 continue
-            color = self.dot_active_color if minute_remainder >= i + 1                     else self.dot_inactive_color
-            self.set_led_color(led, color)
+            active = minute_remainder >= i + 1
+            if active:
+                self.set_led_color(led, self.dot_active_color)
+            elif not dots_inside_panel:
+                # Dot is outside the panel area — effect never blanks it,
+                # so we must do it explicitly.
+                self.set_led_color(led, self.dot_inactive_color)
+            # else: dot is inside panel, effect already blanked it — leave it.
         self.strip.show()
 
     def update_clock(self):
