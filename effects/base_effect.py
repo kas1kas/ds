@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__version__ = "8.00"
+__version__ = "8.13"
 import logging
 
 
@@ -64,12 +64,14 @@ class BaseEffect:
         Draw one frame. Called every loop iteration by run_clock().
 
         strip.show() contract:
-          Effects that overlay clock words must call
-          self.word_clock.update_clock() as the LAST step — it is the
-          only place that calls strip.show(), so all pixel writes are
-          buffered and flushed together.
+          run_clock() calls refresh_dots() after every effect.draw().
+          refresh_dots() writes the 4 minute dot LEDs and calls strip.show().
+          This is the single flush point — effects must NOT call strip.show()
+          themselves, except EffectDark which skips update_clock() entirely
+          and manages its own show().
 
-          Effects that do NOT overlay the clock (e.g. EffectDark) must
-          call self.word_clock.strip.show() themselves at the end.
+          Effects that overlay clock words call update_clock() as their
+          last step. update_clock() paints the words but does NOT call
+          strip.show() — that is left to refresh_dots().
         """
         pass
