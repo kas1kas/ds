@@ -108,7 +108,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
     
     # Define file paths
-    python_files = ['version.py', 'wk.py', 'wiring.py', 'lux_client.py', 'lux_daemon.py', 'web_routes.py', 'lux_bar.py' '/effects/base_effect.py]
+    python_files = ['version.py', 'wk.py', 'wiring.py', 'lux_client.py', 'lux_daemon.py', 'web_routes.py', 'lux_bar.py', '/effects/base_effect.py]
     bash_files = ['install.sh']
     html_files = ['templates_plugin/index.html']
     toml_files = ['config_gen.toml', 'config_loc.toml', '/home/pi/.workclock/config_loc.toml']
