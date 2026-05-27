@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 __version__ = "8.13"
 # Woordklok — single HARDWARE key drives all wiring and grid decisions
-# reset_dots added
+# new Dark mode support
 import json
 import tomllib
 import logging
@@ -276,7 +276,6 @@ class WordClock:
         if effect_id in self.effects:
             self.current_effect_id = effect_id
             self.clear_all()
-            self.reset_dots()
             self.strip.show()
             current_effect = self.effects.get(effect_id)
             if current_effect:
@@ -305,18 +304,6 @@ class WordClock:
             self.set_led_color(current_led, self.dot_dark_color)
         self.current_dot_index = (self.current_dot_index + 1) % 4
 
-    def reset_dots(self):
-        """
-        Blank all four minute dot LEDs and reset the cycling index to 0.
-        Called by set_effect() so that switching to dark mode always starts
-        from a clean state, regardless of which dots were lit before.
-        """
-        self.current_dot_index = 0
-        for dot_key in self.dot_order:
-            led = self.minute_dots.get(dot_key, -1) - 1
-            if led >= 0:
-                self.set_led_color(led, (0, 0, 0))
-
     def set_led_color(self, led_index, color):
         """Set a single LED by 0-based physical index."""
         if 0 <= led_index < self.led_count:
@@ -343,24 +330,22 @@ class WordClock:
                 led_index = self.map_grid_to_led(i)
                 self.set_led_color(led_index, self.letter_active_color)
 
-    def refresh_dots(self):
+    def update_clock(self):
         """
-        Paint active minute dot LEDs and call strip.show().
-        Called every frame from run_clock() after effect.draw().
+        Paint the word LEDs and minute dots for the current time, then
+        call strip.show(). Called by effects as their final step.
 
-        On 11x10 hardware the dot LEDs are outside the panel area so the
-        effect never touches them. Both active and inactive dots are written
-        explicitly (inactive = dot_inactive_color).
-
-        On 16x16V the dot LEDs are inside the full panel area. The effect's
-        clear_screen() blanks them every frame, so inactive dots are already
-        black — writing dot_inactive_color would paint a black square over
-        whatever the effect drew there. Only active dots are written.
+        On 16x16V the dot LEDs are inside the full panel area — the effect's
+        clear_screen() blanks them each frame, so inactive dots are left
+        unpainted (the effect colour shows through). On 11x10 hardware dots
+        are outside the panel and inactive ones are explicitly blanked.
         """
-        if not self.minute_dots:
-            return
-        minutes          = time.localtime().tm_min
-        minute_remainder = minutes % 5
+        now     = time.localtime()
+        hours   = now.tm_hour % 12 or 12
+        minutes = now.tm_min
+
+        # --- Minute dots ---
+        minute_remainder  = minutes % 5
         dots_inside_panel = self.effect_full_panel and                             self.wiring.panel_dims != (self.clock_columns, self.clock_rows)
         for i, dot_key in enumerate(self.dot_order):
             led = self.minute_dots.get(dot_key, -1) - 1
@@ -370,21 +355,7 @@ class WordClock:
             if active:
                 self.set_led_color(led, self.dot_active_color)
             elif not dots_inside_panel:
-                # Dot is outside the panel area — effect never blanks it,
-                # so we must do it explicitly.
                 self.set_led_color(led, self.dot_inactive_color)
-            # else: dot is inside panel, effect already blanked it — leave it.
-        self.strip.show()
-
-    def update_clock(self):
-        """
-        Paint the word LEDs for the current time.
-        Does NOT handle minute dots — those are managed exclusively by
-        refresh_dots(), which is called every frame from run_clock().
-        """
-        now     = time.localtime()
-        hours   = now.tm_hour % 12 or 12
-        minutes = now.tm_min
 
         # --- Words ---
         minute_block   = minutes // 5
@@ -404,8 +375,7 @@ class WordClock:
                 self.activate_word(word)
             self.activate_word(self.language_settings.hour_words[adjusted_hours - 1])
 
-        # strip.show() is NOT called here — refresh_dots() in run_clock()
-        # is the single flush point, ensuring dots are always written last.
+        self.strip.show()
 
     def set_random_led(self, tint):
         if self.effect_full_panel:
@@ -539,11 +509,6 @@ def run_clock():
             current_effect = word_clock.effects.get(word_clock.current_effect_id)
             if current_effect:
                 current_effect.draw()
-
-            # Ensure minute dots always reflect the current time, even on
-            # frames where the effect returned early without calling update_clock().
-            word_clock.refresh_dots()
-
             time.sleep(frame_delay)
     except KeyboardInterrupt:
         logging.info("Exiting...")
