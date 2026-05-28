@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-__version__ = "8.13"
+__version__ = "8.14"
 # Woordklok — single HARDWARE key drives all wiring and grid decisions
-# new Dark mode support
+# Improved brighness with sensor = None
 import json
 import tomllib
 import logging
@@ -172,11 +172,14 @@ class WordClock:
 
         self.initialize_led()
 
-        initial_lux = get_lux()
-        if initial_lux >= 0:
-            logging.info(f"Lux daemon   : reachable, initial lux={initial_lux:.2f}")
+        if self.light_sensor_type.lower() == "none":
+            logging.info("Lux daemon   : sensor=none, fixed brightness = %d", self.def_brightness)
         else:
-            logging.warning("Lux daemon   : not reachable — brightness control disabled")
+            initial_lux = get_lux()
+            if initial_lux >= 0:
+                logging.info(f"Lux daemon   : reachable, initial lux={initial_lux:.2f}")
+            else:
+                logging.warning("Lux daemon   : not reachable — brightness control disabled")
 
         if self.weather_enabled:
             self._weather_thread = threading.Thread(target=self._weather_loop, daemon=True)
@@ -493,13 +496,15 @@ web_routes.init_routes(word_clock, app)
 
 def run_clock():
     frame_delay   = 0.01
-    last_lux_time = 0.0          # force an immediate read on first frame
+    last_lux_time    = 0.0          # force an immediate read on first frame
+    sensor_active    = word_clock.light_sensor_type.lower() != "none"
     try:
         while True:
             now = time.time()
 
-            # Poll lux at light_interval cadence (default 1s), not every frame.
-            if now - last_lux_time >= word_clock.light_interval:
+            # Poll lux only when a sensor is configured.
+            # When sensor="none", brightness stays fixed at def_brightness.
+            if sensor_active and now - last_lux_time >= word_clock.light_interval:
                 lux = get_lux()
                 word_clock.lux = lux
                 last_lux_time  = now
