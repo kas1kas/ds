@@ -1,7 +1,7 @@
 #!/bin/bash
 # ==============================================================================
 # install_wk.sh - WordClock installation script for Raspberry Pi
-# __version__ = "8.00"
+# __version__ = "8.10"
 # ==============================================================================
 
 LOGFILE="/home/pi/wk_install.log"
@@ -166,15 +166,15 @@ mkdir -p "$CONFIG_DIR"
 check "Failed to create $CONFIG_DIR"
 chmod 755 "$CONFIG_DIR"
 
-# Copy config_loc.json only on first install — never overwrite user settings
+# Copy config_loc.toml only on first install — never overwrite user settings
 if [ -f "$CONFIG_LOC" ]; then
     log "Config file already exists at $CONFIG_LOC — preserving user settings."
-elif [ -f "$PROJECT/config_loc.json" ]; then
-    cp "$PROJECT/config_loc.json" "$CONFIG_LOC"
-    check "Failed to copy config_loc.json"
+elif [ -f "$PROJECT/config_loc.toml" ]; then
+    cp "$PROJECT/config_loc.toml" "$CONFIG_LOC"
+    check "Failed to copy config_loc.toml"
     log "Config file copied to $CONFIG_LOC."
 else
-    log_error "config_loc.json not found in $PROJECT — skipping copy."
+    log_error "config_loc.toml not found in $PROJECT — skipping copy."
 fi
 
 log "Installing bash aliases..."
@@ -229,7 +229,7 @@ log "Crontab cleaned."
 log "STEP 4 complete."
 
 # ------------------------------------------------------------------------------
-# Step 4b - lux_daemon systemd service (driven by SENSOR in config_loc.json)
+# Step 4b - lux_daemon systemd service (driven by SENSOR in config_loc.toml)
 # ------------------------------------------------------------------------------
 log "STEP 4b: Installing lux_daemon systemd service..."
 
