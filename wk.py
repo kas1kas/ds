@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-__version__ = "8.15"
+__version__ = "8.16"
 # Woordklok — single HARDWARE key drives all wiring and grid decisions
-# immproved Buienradar connection
+# 8.15 patch did not work, a less elegant but working Buienradar connection
 import json
 import tomllib
 import logging
@@ -253,9 +253,16 @@ class WordClock:
         from hanging indefinitely on an unresponsive server.
         """
         try:
+            import requests
             from buienradar.buienradar import get_data, parse_data
-            result = get_data(latitude=self.weather_lat, longitude=self.weather_lon,
-                              timeout=10)
+            # buienradar does not expose a timeout parameter, so we patch
+            # requests.get with a default timeout before calling get_data().
+            _orig_get = requests.get
+            requests.get = lambda *a, **kw: _orig_get(*a, **{**kw, 'timeout': 10})
+            try:
+                result = get_data(latitude=self.weather_lat, longitude=self.weather_lon)
+            finally:
+                requests.get = _orig_get   # always restore, even on exception
             if result is None or 'content' not in result:
                 logging.warning("Weather fetch returned no data")
                 return False
