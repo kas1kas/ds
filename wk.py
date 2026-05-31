@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-__version__ = "7.86"
+__version__ = "7.87"
 # Woordklok — single HARDWARE key drives all wiring and grid decisions
+# improved Buienradar connections
 import json
 import logging
 import time
@@ -224,41 +225,68 @@ class WordClock:
             exit(1)
 
     def _weather_loop(self):
+        # Initial fetch with a few quick retries.
         for attempt in range(3):
             try:
-                self._fetch_weather()
-                logging.info("Initial weather data fetched")
-                break
+                if self._fetch_weather():
+                    logging.info("Initial weather data fetched")
+                    break
             except Exception as e:
                 logging.warning(f"Initial weather fetch attempt {attempt+1} failed: {e}")
                 time.sleep(5)
         else:
             logging.error("All initial weather fetch attempts failed")
+ 
+        # Main loop with exponential backoff on failure.
+        # Backoff: 60s → 120s → 240s → … capped at BACKOFF_MAX.
+        # On success the interval resets to weather_update_interval.
+        BACKOFF_MAX = 1800   # 30 minutes maximum between retries
+        delay = self.weather_update_interval
         while True:
-            time.sleep(self.weather_update_interval)
-            self._fetch_weather()
-
-    def _fetch_weather(self):
+            time.sleep(delay)
+            success = self._fetch_weather()
+            if success:
+                delay = self.weather_update_interval   # reset to normal cadence
+            else:
+                delay = min(delay * 2, BACKOFF_MAX)
+                logging.warning(f"Weather fetch failed — next retry in {delay}s")
+                
+    def _fetch_weather(self) -> bool:
+        """
+        Fetch and parse weather data. Returns True on success, False on any failure.
+        Uses a 10-second timeout on the HTTP call to prevent the weather thread
+        from hanging indefinitely on an unresponsive server.
+        """
         try:
+            import requests
             from buienradar.buienradar import get_data, parse_data
-            result = get_data(latitude=self.weather_lat, longitude=self.weather_lon)
+            # buienradar does not expose a timeout parameter, so we patch
+            # requests.get with a default timeout before calling get_data().
+            _orig_get = requests.get
+            requests.get = lambda *a, **kw: _orig_get(*a, **{**kw, 'timeout': 10})
+            try:
+                result = get_data(latitude=self.weather_lat, longitude=self.weather_lon)
+            finally:
+                requests.get = _orig_get   # always restore, even on exception
             if result is None or 'content' not in result:
                 logging.warning("Weather fetch returned no data")
-                return
+                return False
             data = parse_data(result['content'], result.get('raincontent'),
                               self.weather_lat, self.weather_lon)
             if data is None or 'data' not in data:
                 logging.warning("Weather parse returned no data")
-                return
+                return False
             current = data['data']
             self.temperature    = current.get('temperature',   self.temperature)
             self.wind_speed     = current.get('windspeed',     self.wind_speed)
             self.wind_direction = current.get('windazimuth',   self.wind_direction)
             self.precipitation  = current.get('precipitation', self.precipitation)
             logging.debug(f"Weather: T={self.temperature}°C wind={self.wind_speed}m/s {self.wind_direction}°")
+            return True
         except Exception as e:
             logging.error(f"Weather update failed: {e}")
-
+            return False
+ 
     def update_brightness(self, raw_lux: float):
         try:
             lux = raw_lux * self.sensor_scale
