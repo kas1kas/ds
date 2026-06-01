@@ -1,4 +1,5 @@
 alias alis='alias -p | sort'
+alias clrj='sudo journalctl --rotate && sudo journalctl --vacuum-time=1s'
 alias crs='systemctl status cron'
 alias eal='sudo nano ~/.bash_aliases'
 alias gchtp='git clone "https://github.com/kas1kas/ds.git'
