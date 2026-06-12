@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
-__version__ = "8.17"
+__version__ = "8.18"
 # Woordklok — single HARDWARE key drives all wiring and grid decisions
 # 8.15 patch did not work, a less elegant but working Buienradar connection
 # 8.17 more patching to fetch_weather
+# 8.18 new fetch_weather method
 import json
 import tomllib
 import logging
@@ -13,14 +14,12 @@ import random
 import bisect
 from rpi_ws281x import PixelStrip, Color
 from flask import Flask, request, render_template, jsonify, send_file
-from buienradar.buienradar import get_data, parse_data
-
 from lux_client import get_lux
 from effects import discover_effects
 from wiring import Wiring
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
-logging.getLogger("buienradar").setLevel(logging.WARNING)
+#logging.getLogger("buienradar").setLevel(logging.WARNING)
 
 app = Flask(__name__, template_folder='templates_plugin')
 
@@ -247,45 +246,73 @@ class WordClock:
                 delay = min(delay * 2, BACKOFF_MAX)
                 logging.warning(f"Weather fetch failed — next retry in {delay}s")
 
-    def _fetch_weather(self) -> bool:
-        """
-        Fetch and parse weather data. Returns True on success, False on any failure.
-        Uses a 10-second timeout on the HTTP call to prevent the weather thread
-        from hanging indefinitely on an unresponsive server.
-        """
-        try:
-            import requests
-            from buienradar.buienradar import get_data, parse_data
-            # buienradar does not expose a timeout parameter, so we patch
-            # requests.get with a default timeout before calling get_data().
-            _orig_get = requests.get
-            requests.get = lambda *a, **kw: _orig_get(*a, **{**kw, 'timeout': 10})
-            try:
-                result = get_data(latitude=self.weather_lat, longitude=self.weather_lon)
-            finally:
-                requests.get = _orig_get   # always restore, even on exception
-            if result is None or 'content' not in result:
-                logging.warning("Weather fetch returned no data")
-                return False
-            data = parse_data(result['content'], result.get('raincontent'),
-                              self.weather_lat, self.weather_lon)
-            if data is None or 'data' not in data:
-                logging.warning("Weather parse returned no data")
-                return False
-            current = data['data']
-            if current is None:
-                logging.warning("Weather parse returned empty data field (stationmeasurements missing)")
-                return False
-            self.temperature    = current.get('temperature',   self.temperature)
-            self.wind_speed     = current.get('windspeed',     self.wind_speed)
-            self.wind_direction = current.get('windazimuth',   self.wind_direction)
-            self.precipitation  = current.get('precipitation', self.precipitation)
-            logging.debug(f"Weather: T={self.temperature}°C wind={self.wind_speed}m/s {self.wind_direction}°")
-            return True
-        except Exception as e:
-            logging.error(f"Weather update failed: {e}")
+def _fetch_weather(self) -> bool:
+    """
+    Fetch weather data directly from the Buienradar JSON feed.
+    Finds the nearest station by distance to configured lat/lon.
+    Returns True on success, False on any failure.
+    """
+    import requests
+    import math
+
+    URL = "https://data.buienradar.nl/2.0/feed/json"
+    try:
+        response = requests.get(URL, timeout=10)
+        response.raise_for_status()
+        feed = response.json()
+    except Exception as e:
+        logging.error(f"Weather fetch failed: {e}")
+        return False
+
+    try:
+        # New API: capitalised keys
+        actual = feed.get("Actual") or feed.get("actual")
+        if not actual:
+            logging.warning("Weather feed missing 'Actual' section")
             return False
 
+        stations = (actual.get("WeatherStationMeasurements")
+                    or actual.get("stationmeasurements")
+                    or [])
+        if not stations:
+            logging.warning("Weather feed: no station measurements")
+            return False
+
+        # Find nearest station to configured lat/lon
+        def dist(s):
+            lat = s.get("Lat") or s.get("lat") or 0
+            lon = s.get("Lon") or s.get("lon") or 0
+            return math.hypot(lat - self.weather_lat, lon - self.weather_lon)
+
+        nearest = min(stations, key=dist)
+
+        def get_field(s, *keys):
+            for k in keys:
+                if k in s and s[k] is not None:
+                    return s[k]
+            return None
+
+        temp  = get_field(nearest, "Temperature",  "temperature")
+        wind  = get_field(nearest, "WindSpeed",     "windspeed")
+        windd = get_field(nearest, "WindDirection", "winddirection", "windazimuth")
+        prec  = get_field(nearest, "RainFallLast24Hour", "precipitation",
+                                   "rainFallLast24Hour")
+
+        if temp  is not None: self.temperature    = float(temp)
+        if wind  is not None: self.wind_speed     = float(wind)
+        if windd is not None: self.wind_direction = float(windd)
+        if prec  is not None: self.precipitation  = float(prec)
+
+        station_name = get_field(nearest, "StationName", "stationname", "name") or "?"
+        logging.debug(
+            f"Weather: station={station_name} T={self.temperature}°C "
+            f"wind={self.wind_speed}m/s {self.wind_direction}°"
+        )
+        return True
+
+    except Exception as e:
+        logging.error(f"Weather parse failed: {e}")
+        return False
     def update_brightness(self, raw_lux: float):
         try:
             lux = raw_lux * self.sensor_scale
