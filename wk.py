@@ -304,7 +304,7 @@ class WordClock:
             if prec  is not None: self.precipitation  = float(prec)
     
             station_name = get_field(nearest, "StationName", "stationname", "name") or "?"
-            logging.debug(
+            logging.info(
                 f"Weather: station={station_name} T={self.temperature}°C "
                 f"wind={self.wind_speed}m/s {self.wind_direction}°"
             )
