@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-__version__ = "8.20"
+__version__ = "8.21"
 # Woordklok — single HARDWARE key drives all wiring and grid decisions
-# 8.20 Use open-meteo
+# 8.21 Use open-meteo, debug logging only
 import json
 import tomllib
 import logging
@@ -261,7 +261,7 @@ class WordClock:
             self.precipitation  = float(current.get("precipitation",       self.precipitation))
             self.wind_speed     = float(current.get("wind_speed_10m",      self.wind_speed))
             self.wind_direction = float(current.get("wind_direction_10m",  self.wind_direction))
-            logging.info(
+            logging.debug(
                 f"Weather: T={self.temperature}°C wind={self.wind_speed}m/s "
                 f"{self.wind_direction}° prec={self.precipitation}mm/h"
             )
