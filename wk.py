@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
-__version__ = "8.16"
+__version__ = "8.17"
 # Woordklok — single HARDWARE key drives all wiring and grid decisions
 # 8.15 patch did not work, a less elegant but working Buienradar connection
+# 8.17 more patching to fetch_weather
 import json
 import tomllib
 import logging
@@ -272,6 +273,9 @@ class WordClock:
                 logging.warning("Weather parse returned no data")
                 return False
             current = data['data']
+            if current is None:
+                logging.warning("Weather parse returned empty data field (stationmeasurements missing)")
+                return False
             self.temperature    = current.get('temperature',   self.temperature)
             self.wind_speed     = current.get('windspeed',     self.wind_speed)
             self.wind_direction = current.get('windazimuth',   self.wind_direction)
