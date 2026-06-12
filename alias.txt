@@ -1,5 +1,6 @@
 alias alis='alias -p | sort'
 alias crs='systemctl status cron'
+alias clrj='sudo journalctl --rotate && sudo journalctl --vacuum-time=1s'
 alias eal='sudo nano ~/.bash_aliases'
 alias egrep='egrep --color=auto'
 alias fgrep='fgrep --color=auto'
