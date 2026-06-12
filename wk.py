@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-__version__ = "7.87"
+__version__ = "7.89"
 # Woordklok — single HARDWARE key drives all wiring and grid decisions
-# improved Buienradar connections
+# removed Buienradar > open-meteo
 import json
 import logging
 import time
@@ -11,14 +11,12 @@ import random
 import bisect
 from rpi_ws281x import PixelStrip, Color
 from flask import Flask, request, render_template, jsonify, send_file
-from buienradar.buienradar import get_data, parse_data
 
 from lux_client import get_lux
 from effects import discover_effects
 from wiring import Wiring
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
-logging.getLogger("buienradar").setLevel(logging.WARNING)
 
 app = Flask(__name__, template_folder='templates_plugin')
 
@@ -252,41 +250,32 @@ class WordClock:
                 logging.warning(f"Weather fetch failed — next retry in {delay}s")
                 
     def _fetch_weather(self) -> bool:
-        """
-        Fetch and parse weather data. Returns True on success, False on any failure.
-        Uses a 10-second timeout on the HTTP call to prevent the weather thread
-        from hanging indefinitely on an unresponsive server.
-        """
-        try:
-            import requests
-            from buienradar.buienradar import get_data, parse_data
-            # buienradar does not expose a timeout parameter, so we patch
-            # requests.get with a default timeout before calling get_data().
-            _orig_get = requests.get
-            requests.get = lambda *a, **kw: _orig_get(*a, **{**kw, 'timeout': 10})
-            try:
-                result = get_data(latitude=self.weather_lat, longitude=self.weather_lon)
-            finally:
-                requests.get = _orig_get   # always restore, even on exception
-            if result is None or 'content' not in result:
-                logging.warning("Weather fetch returned no data")
-                return False
-            data = parse_data(result['content'], result.get('raincontent'),
-                              self.weather_lat, self.weather_lon)
-            if data is None or 'data' not in data:
-                logging.warning("Weather parse returned no data")
-                return False
-            current = data['data']
-            self.temperature    = current.get('temperature',   self.temperature)
-            self.wind_speed     = current.get('windspeed',     self.wind_speed)
-            self.wind_direction = current.get('windazimuth',   self.wind_direction)
-            self.precipitation  = current.get('precipitation', self.precipitation)
-            logging.debug(f"Weather: T={self.temperature}°C wind={self.wind_speed}m/s {self.wind_direction}°")
-            return True
-        except Exception as e:
-            logging.error(f"Weather update failed: {e}")
-            return False
- 
+    import requests
+    URL = "https://api.open-meteo.com/v1/forecast"
+    params = {
+        "latitude":           self.weather_lat,
+        "longitude":          self.weather_lon,
+        "current":            "temperature_2m,precipitation,wind_speed_10m,wind_direction_10m",
+        "wind_speed_unit":    "ms",   # metres/second, same as before
+        "timezone":           "auto",
+    }
+    try:
+        r = requests.get(URL, params=params, timeout=10)
+        r.raise_for_status()
+        current = r.json().get("current", {})
+        self.temperature    = float(current.get("temperature_2m",      self.temperature))
+        self.precipitation  = float(current.get("precipitation",       self.precipitation))
+        self.wind_speed     = float(current.get("wind_speed_10m",      self.wind_speed))
+        self.wind_direction = float(current.get("wind_direction_10m",  self.wind_direction))
+        logging.debug(
+            f"Weather: T={self.temperature}°C wind={self.wind_speed}m/s "
+            f"{self.wind_direction}° prec={self.precipitation}mm/h"
+        )
+        return True
+    except Exception as e:
+        logging.error(f"Weather update failed: {e}")
+        return False
+    
     def update_brightness(self, raw_lux: float):
         try:
             lux = raw_lux * self.sensor_scale
