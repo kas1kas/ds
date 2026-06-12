@@ -1,7 +1,7 @@
 #!/bin/bash
 # ==============================================================================
 # install_wk.sh - WordClock installation script for Raspberry Pi
-# __version__ = "8.10"
+# __version__ = "8.20"
 # ==============================================================================
 
 LOGFILE="/home/pi/wk_install.log"
@@ -284,7 +284,7 @@ pip install --upgrade pip >> "$LOGFILE" 2>&1
 check "pip upgrade failed"
 
 log "Installing Python packages (this may take a while)..."
-pip install flask-restx rpi-ws281x python-tsl2591 smbus2 buienradar \
+pip install flask-restx rpi-ws281x python-tsl2591 smbus2 \
     --index-url https://pypi.org/simple/ >> "$LOGFILE" 2>&1
 check "pip install failed — check $LOGFILE for details"
 
