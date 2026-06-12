@@ -19,7 +19,7 @@ from effects import discover_effects
 from wiring import Wiring
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
-#logging.getLogger("buienradar").setLevel(logging.WARNING)
+logging.getLogger("buienradar").setLevel(logging.WARNING)
 
 app = Flask(__name__, template_folder='templates_plugin')
 
