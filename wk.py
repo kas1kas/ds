@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
-__version__ = "8.18"
+__version__ = "8.20"
 # Woordklok — single HARDWARE key drives all wiring and grid decisions
-# 8.15 patch did not work, a less elegant but working Buienradar connection
-# 8.17 more patching to fetch_weather
-# 8.18 new fetch_weather method
+# 8.20 Use open-meteo
 import json
 import tomllib
 import logging
@@ -19,7 +17,6 @@ from effects import discover_effects
 from wiring import Wiring
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
-logging.getLogger("buienradar").setLevel(logging.WARNING)
 
 app = Flask(__name__, template_folder='templates_plugin')
 
@@ -134,7 +131,7 @@ class WordClock:
         self.weather_location             = config.get("WEATHER_LOCATION", "none")
         self.weather_lat                  = float(config.get("WEATHER_LAT", 5))
         self.weather_lon                  = float(config.get("WEATHER_LON", 5))
-        self.weather_update_interval      = config.get("WEATHER_UPDATE_INTERVAL", 900)
+        self.weather_update_interval      = config.get("WEATHER_UPDATE_INTERVAL", 120)
 
         self.lux             = -1.0
         self.smoothing_alpha = 0.20
@@ -247,73 +244,32 @@ class WordClock:
                 logging.warning(f"Weather fetch failed — next retry in {delay}s")
 
     def _fetch_weather(self) -> bool:
-        """
-        Fetch weather data directly from the Buienradar JSON feed.
-        Finds the nearest station by distance to configured lat/lon.
-        Returns True on success, False on any failure.
-        """
         import requests
-        import math
-    
-        URL = "https://data.buienradar.nl/2.0/feed/json"
+        URL = "https://api.open-meteo.com/v1/forecast"
+        params = {
+            "latitude":           self.weather_lat,
+            "longitude":          self.weather_lon,
+            "current":            "temperature_2m,precipitation,wind_speed_10m,wind_direction_10m",
+            "wind_speed_unit":    "ms",   # metres/second, same as before
+            "timezone":           "auto",
+        }
         try:
-            response = requests.get(URL, timeout=10)
-            response.raise_for_status()
-            feed = response.json()
-        except Exception as e:
-            logging.error(f"Weather fetch failed: {e}")
-            return False
-    
-        try:
-            # New API: capitalised keys
-            actual = feed.get("Actual") or feed.get("actual")
-            if not actual:
-                logging.warning("Weather feed missing 'Actual' section")
-                return False
-    
-            stations = (actual.get("WeatherStationMeasurements")
-                        or actual.get("stationmeasurements")
-                        or [])
-            if not stations:
-                logging.warning("Weather feed: no station measurements")
-                return False
-    
-            # Find nearest station to configured lat/lon
-            def dist(s):
-                lat = s.get("Lat") or s.get("lat") or 0
-                lon = s.get("Lon") or s.get("lon") or 0
-                return math.hypot(lat - self.weather_lat, lon - self.weather_lon)
-    
-            nearest = min(stations, key=dist)
-    
-            def get_field(s, *keys):
-                for k in keys:
-                    if k in s and s[k] is not None:
-                        return s[k]
-                return None
-    
-            temp  = get_field(nearest, "Temperature",  "temperature")
-            wind  = get_field(nearest, "WindSpeed",     "windspeed")
-            windd = get_field(nearest, "WindDirection", "winddirection", "windazimuth")
-            prec  = get_field(nearest, "RainFallLast24Hour", "precipitation",
-                                       "rainFallLast24Hour")
-    
-            if temp  is not None: self.temperature    = float(temp)
-            if wind  is not None: self.wind_speed     = float(wind)
-            if windd is not None: self.wind_direction = float(windd)
-            if prec  is not None: self.precipitation  = float(prec)
-    
-            station_name = get_field(nearest, "StationName", "stationname", "name") or "?"
+            r = requests.get(URL, params=params, timeout=10)
+            r.raise_for_status()
+            current = r.json().get("current", {})
+            self.temperature    = float(current.get("temperature_2m",      self.temperature))
+            self.precipitation  = float(current.get("precipitation",       self.precipitation))
+            self.wind_speed     = float(current.get("wind_speed_10m",      self.wind_speed))
+            self.wind_direction = float(current.get("wind_direction_10m",  self.wind_direction))
             logging.info(
-                f"Weather: station={station_name} T={self.temperature}°C "
-                f"wind={self.wind_speed}m/s {self.wind_direction}°"
+                f"Weather: T={self.temperature}°C wind={self.wind_speed}m/s "
+                f"{self.wind_direction}° prec={self.precipitation}mm/h"
             )
             return True
-    
         except Exception as e:
-            logging.error(f"Weather parse failed: {e}")
+            logging.error(f"Weather update failed: {e}")
             return False
-            
+        
     def update_brightness(self, raw_lux: float):
         try:
             lux = raw_lux * self.sensor_scale
