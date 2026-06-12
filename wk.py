@@ -246,73 +246,74 @@ class WordClock:
                 delay = min(delay * 2, BACKOFF_MAX)
                 logging.warning(f"Weather fetch failed — next retry in {delay}s")
 
-def _fetch_weather(self) -> bool:
-    """
-    Fetch weather data directly from the Buienradar JSON feed.
-    Finds the nearest station by distance to configured lat/lon.
-    Returns True on success, False on any failure.
-    """
-    import requests
-    import math
-
-    URL = "https://data.buienradar.nl/2.0/feed/json"
-    try:
-        response = requests.get(URL, timeout=10)
-        response.raise_for_status()
-        feed = response.json()
-    except Exception as e:
-        logging.error(f"Weather fetch failed: {e}")
-        return False
-
-    try:
-        # New API: capitalised keys
-        actual = feed.get("Actual") or feed.get("actual")
-        if not actual:
-            logging.warning("Weather feed missing 'Actual' section")
+    def _fetch_weather(self) -> bool:
+        """
+        Fetch weather data directly from the Buienradar JSON feed.
+        Finds the nearest station by distance to configured lat/lon.
+        Returns True on success, False on any failure.
+        """
+        import requests
+        import math
+    
+        URL = "https://data.buienradar.nl/2.0/feed/json"
+        try:
+            response = requests.get(URL, timeout=10)
+            response.raise_for_status()
+            feed = response.json()
+        except Exception as e:
+            logging.error(f"Weather fetch failed: {e}")
             return False
-
-        stations = (actual.get("WeatherStationMeasurements")
-                    or actual.get("stationmeasurements")
-                    or [])
-        if not stations:
-            logging.warning("Weather feed: no station measurements")
+    
+        try:
+            # New API: capitalised keys
+            actual = feed.get("Actual") or feed.get("actual")
+            if not actual:
+                logging.warning("Weather feed missing 'Actual' section")
+                return False
+    
+            stations = (actual.get("WeatherStationMeasurements")
+                        or actual.get("stationmeasurements")
+                        or [])
+            if not stations:
+                logging.warning("Weather feed: no station measurements")
+                return False
+    
+            # Find nearest station to configured lat/lon
+            def dist(s):
+                lat = s.get("Lat") or s.get("lat") or 0
+                lon = s.get("Lon") or s.get("lon") or 0
+                return math.hypot(lat - self.weather_lat, lon - self.weather_lon)
+    
+            nearest = min(stations, key=dist)
+    
+            def get_field(s, *keys):
+                for k in keys:
+                    if k in s and s[k] is not None:
+                        return s[k]
+                return None
+    
+            temp  = get_field(nearest, "Temperature",  "temperature")
+            wind  = get_field(nearest, "WindSpeed",     "windspeed")
+            windd = get_field(nearest, "WindDirection", "winddirection", "windazimuth")
+            prec  = get_field(nearest, "RainFallLast24Hour", "precipitation",
+                                       "rainFallLast24Hour")
+    
+            if temp  is not None: self.temperature    = float(temp)
+            if wind  is not None: self.wind_speed     = float(wind)
+            if windd is not None: self.wind_direction = float(windd)
+            if prec  is not None: self.precipitation  = float(prec)
+    
+            station_name = get_field(nearest, "StationName", "stationname", "name") or "?"
+            logging.debug(
+                f"Weather: station={station_name} T={self.temperature}°C "
+                f"wind={self.wind_speed}m/s {self.wind_direction}°"
+            )
+            return True
+    
+        except Exception as e:
+            logging.error(f"Weather parse failed: {e}")
             return False
-
-        # Find nearest station to configured lat/lon
-        def dist(s):
-            lat = s.get("Lat") or s.get("lat") or 0
-            lon = s.get("Lon") or s.get("lon") or 0
-            return math.hypot(lat - self.weather_lat, lon - self.weather_lon)
-
-        nearest = min(stations, key=dist)
-
-        def get_field(s, *keys):
-            for k in keys:
-                if k in s and s[k] is not None:
-                    return s[k]
-            return None
-
-        temp  = get_field(nearest, "Temperature",  "temperature")
-        wind  = get_field(nearest, "WindSpeed",     "windspeed")
-        windd = get_field(nearest, "WindDirection", "winddirection", "windazimuth")
-        prec  = get_field(nearest, "RainFallLast24Hour", "precipitation",
-                                   "rainFallLast24Hour")
-
-        if temp  is not None: self.temperature    = float(temp)
-        if wind  is not None: self.wind_speed     = float(wind)
-        if windd is not None: self.wind_direction = float(windd)
-        if prec  is not None: self.precipitation  = float(prec)
-
-        station_name = get_field(nearest, "StationName", "stationname", "name") or "?"
-        logging.debug(
-            f"Weather: station={station_name} T={self.temperature}°C "
-            f"wind={self.wind_speed}m/s {self.wind_direction}°"
-        )
-        return True
-
-    except Exception as e:
-        logging.error(f"Weather parse failed: {e}")
-        return False
+            
     def update_brightness(self, raw_lux: float):
         try:
             lux = raw_lux * self.sensor_scale
