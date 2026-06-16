@@ -1,6 +1,6 @@
 ## 1 install Raspberry Pi OS
 (with raspberry pi imager)
-- the clock runs perfectly on a **Zero 2 W** a **3B+**
+- the clock runs perfectly on a **Zero W, Zero 2W** or **3B+**
 - install Debian Trixie **Rasberry Pi OS Lite 32 (bit)**
 - set user pi and yourpassword
 - set hostname
@@ -16,7 +16,7 @@ sudo raspi-config
 ## 3 install software
 ```
 cd ~
-curl -L https://raw.githubusercontent.com/kas1kas/ds/main/install_wk.sh | bash
+curl -L https://raw.githubusercontent.com/kas1kas/ds/unify/install_wk.sh | bash
 ```
 ## 4 config and reboot
 - See chapter below: **personalisation**
