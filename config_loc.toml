@@ -30,11 +30,11 @@ led_pin = 18
 
 
 # ── Light sensor ──────────────────────────────────────────────────────────────
-# Uncomment ONE line:
+# Uncomment ONE line: TSL2591 recommended
 
-  sensor = "TSL2591"    # TSL2591 (recommended)
-# sensor = "BH1750"     # BH1750
-# sensor = "none"       # no sensor — fixed brightness
+  sensor = "TSL2591"
+# sensor = "BH1750"
+# sensor = "none"
 
 
 # ── Display ───────────────────────────────────────────────────────────────────
