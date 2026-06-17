@@ -5,9 +5,9 @@
 #
 # SELECTION FIELDS: uncomment your choice, keep the others commented out.
 VERSION = "8.10"
-# ─────────────────────────────────────────────────────────────────────────────
+# ── Name of clock in webapp ───────────────────────────────────────────────────
 
-woordklok = "myklokname"
+woordklok = "myklok"
 
 
 # ── Hardware ──────────────────────────────────────────────────────────────────
@@ -114,7 +114,7 @@ MD4 = 239
 
 
 # ── Weather ───────────────────────────────────────────────────────────────────
-# The [weather] header closes the minute_dots section above.
+# Update to your coordinates. Location will be visible in the webapp.
 
 [weather]
 enabled          = true
