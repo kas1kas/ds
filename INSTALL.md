@@ -29,6 +29,8 @@ nano ~/.wordclock/config_loc.toml
 - sudo password only once: add Defaults line
 ```
 sudo visudo
+```
+```
 Defaults        env_reset, timestamp_timeout=-1
 ```
 - reboot the system!
