@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__version__ = "7.63"
+__version__ = "7.64"
 import logging
 import bisect
 import time
@@ -11,12 +11,19 @@ from flask import request, jsonify, render_template
 # These will be set by init_routes
 word_clock = None
 app = None
+_pi_model = "Unknown"
 
 def init_routes(clock, flask_app):
     """Initialize routes with the word clock instance"""
-    global word_clock, app
+    global word_clock, app, _pi_model
     word_clock = clock
     app = flask_app
+    try:
+        with open("/sys/firmware/devicetree/base/model", "r") as f:
+            _pi_model = f.read().rstrip('\x00').strip()
+    except Exception as e:
+        logging.warning(f"Could not read Pi model: {e}")
+        _pi_model = "Unknown"
     register_routes()
     logging.info("Web routes initialized")
 
@@ -61,6 +68,7 @@ def register_routes():
             woordklok_lat     = word_clock.weather_lat,
             woordklok_lon     = word_clock.weather_lon,
             woordklok_version=woordklok_version,
+            pi_model=_pi_model,
             available_effects=available_effects,
             has_light_sensor=has_light_sensor
         )
