@@ -252,7 +252,7 @@ log "STEP 4b: Installing lux_daemon systemd service..."
 if [ -f "$CONFIG_LOC" ]; then
     SENSOR=$(grep -E '^\s*sensor\s*=' "$CONFIG_LOC" \
              | head -1 \
-             | sed 's/.*=\s*//;s/[" ]//g')
+             | sed 's/.*=\s*"//;s/".*//')
     log "Sensor type from config: '$SENSOR'"
 else
     SENSOR="none"
