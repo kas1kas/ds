@@ -18,7 +18,7 @@ curl -L https://raw.githubusercontent.com/kas1kas/ds/unify/install_wk.sh | bash
 - The default hardware and wiring is un-commented, make sure it matches your wiring system
 - Select only the correct line
 ```
-nano ~/.wordclock/config_loc.json
+nano ~/.wordclock/config_loc.toml
 ```
 
 ```
