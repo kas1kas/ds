@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
-__version__ = "8.21"
+__version__ = "8.23"
 # Woordklok — single HARDWARE key drives all wiring and grid decisions
 # 8.21 Use open-meteo, debug logging only
+# 8.22 Display Raspberry Pi hardware model in web interface
+# 8.23 Auto-dark: switch to dark effect below configurable lux threshold
 import json
 import tomllib
 import logging
@@ -88,7 +90,7 @@ class WordClock:
         self.led_count = profile["led_count"]
         self.wiring    = Wiring(wiring_name)
 
-        # Word grid is always 11×10
+        # Word grid is always 11x10
         self.clock_columns = 11
         self.clock_rows    = 10
         self.columns       = self.clock_columns
@@ -98,7 +100,7 @@ class WordClock:
         self.panel_columns, self.panel_rows = self.wiring.panel_dims
 
         # Minute dots: 1-based physical indices from config_loc.toml.
-        # Dot order MD1→MD4 matches functional spec (MD1 lights first).
+        # Dot order MD1->MD4 matches functional spec (MD1 lights first).
         # The user controls order by arranging MD1..MD4 in config_loc.toml.
         self.dot_order         = ["MD1", "MD2", "MD3", "MD4"]
         self.current_dot_index = 0
@@ -150,22 +152,32 @@ class WordClock:
         self.wind_speed     = 5
         self.wind_direction = 270
 
+        # ----------------------------------------------------------------
+        # Auto-dark: switch to 'dark' effect when lux drops below threshold.
+        # ----------------------------------------------------------------
+        self.auto_dark_enabled   = config.get("AUTO_DARK_ENABLED", False)
+        self.auto_dark_threshold = float(config.get("AUTO_DARK_THRESHOLD", 2.0))
+        self._auto_dark_active   = False   # True while we have auto-switched to dark
+        self._pre_dark_effect    = None    # effect to restore when lux recovers
+
         logging.info(f"Woordklok    : {self.woordklok}")
         logging.info(f"Version      : {self.version}")
         logging.info(f"Design       : Woosh")
         logging.info(f"Assist       : DeepSeek&Claude")
         logging.info(f"Made by      : GraWoosh Labs")
         logging.info(f"Hardware     : {self.hardware}  (wiring={wiring_name})")
-        logging.info(f"Panel        : {self.panel_columns}×{self.panel_rows}")
+        logging.info(f"Panel        : {self.panel_columns}x{self.panel_rows}")
         logging.info(f"Minute dots  : {self.minute_dots}")
         logging.info(f"Random       : {self.rand_color}")
         logging.info(f"Language     : {self.language_settings.language}")
         logging.info(f"LED_PIN      : {self.led_pin}")
         logging.info(f"Fullpanel    : {self.effect_full_panel}")
         logging.info(f"Light sensor : {self.light_sensor_type}")
-        logging.info(f"Smoothing α  : {self.smoothing_alpha}")
+        logging.info(f"Smoothing a  : {self.smoothing_alpha}")
         logging.info(f"Lut In       : {self.lut_in}")
         logging.info(f"Lut Out      : {self.lut_out}")
+        logging.info(f"Auto-dark    : {'enabled' if self.auto_dark_enabled else 'disabled'}"
+                     f"  threshold={self.auto_dark_threshold} lux")
 
         self.initialize_led()
 
@@ -230,7 +242,7 @@ class WordClock:
             logging.error("All initial weather fetch attempts failed")
 
         # Main loop with exponential backoff on failure.
-        # Backoff: 60s → 120s → 240s → … capped at BACKOFF_MAX.
+        # Backoff: 60s -> 120s -> 240s -> capped at BACKOFF_MAX.
         # On success the interval resets to weather_update_interval.
         BACKOFF_MAX = 1800   # 30 minutes maximum between retries
         delay = self.weather_update_interval
@@ -262,14 +274,14 @@ class WordClock:
             self.wind_speed     = float(current.get("wind_speed_10m",      self.wind_speed))
             self.wind_direction = float(current.get("wind_direction_10m",  self.wind_direction))
             logging.debug(
-                f"Weather: T={self.temperature}°C wind={self.wind_speed}m/s "
-                f"{self.wind_direction}° prec={self.precipitation}mm/h"
+                f"Weather: T={self.temperature}C wind={self.wind_speed}m/s "
+                f"{self.wind_direction} prec={self.precipitation}mm/h"
             )
             return True
         except Exception as e:
             logging.error(f"Weather update failed: {e}")
             return False
-        
+
     def update_brightness(self, raw_lux: float):
         try:
             lux = raw_lux * self.sensor_scale
@@ -283,6 +295,36 @@ class WordClock:
             self.strip.setBrightness(int(self.last_brightness))
         except Exception as e:
             logging.error(f"Failed to update brightness: {e}")
+
+    def check_auto_dark(self):
+        """
+        Switch to the 'dark' effect when lux drops below auto_dark_threshold,
+        and restore the previous effect when lux recovers.
+        No-op when auto_dark_enabled is False or the 'dark' effect is not loaded.
+        """
+        if not self.auto_dark_enabled or "dark" not in self.effects:
+            return
+
+        below = self.lux >= 0 and self.lux < self.auto_dark_threshold
+
+        if below and not self._auto_dark_active:
+            # Going dark: remember the current effect, then switch.
+            self._pre_dark_effect  = self.current_effect_id
+            self._auto_dark_active = True
+            self.set_effect("dark")
+            logging.info(
+                f"Auto-dark ON  (lux={self.lux:.2f} < {self.auto_dark_threshold}), "
+                f"saved effect='{self._pre_dark_effect}'"
+            )
+        elif not below and self._auto_dark_active:
+            # Recovering: restore the saved effect.
+            self._auto_dark_active = False
+            restore = self._pre_dark_effect or self.default_effect
+            self.set_effect(restore)
+            logging.info(
+                f"Auto-dark OFF (lux={self.lux:.2f} >= {self.auto_dark_threshold}), "
+                f"restored effect='{restore}'"
+            )
 
     def set_background_brightness(self, value):
         self.background_brightness_factor = max(0.0, min(1.0, float(value)))
@@ -307,7 +349,7 @@ class WordClock:
         Advance the minute-dot animation by one step.
         Turns off the previous dot, lights the current dot in dot_dark_color,
         then advances the index. Called by EffectDark each tick.
-        The dot order (MD1→MD4) is set by the user in config_loc.toml.
+        The dot order (MD1->MD4) is set by the user in config_loc.toml.
         """
         if not self.minute_dots:
             return
@@ -335,7 +377,7 @@ class WordClock:
         word_index_1based: 1..110, left-to-right top-to-bottom (front view).
         Converts to 0-based (x, y) where y=0=top, then calls wiring.word_xy().
         """
-        idx = word_index_1based - 1          # → 0-based flat index
+        idx = word_index_1based - 1          # 0-based flat index
         x   = idx % self.columns             # 0-based column, 0=left
         y   = idx // self.columns            # 0-based row,    0=top
         return self.wiring.word_xy(x, y)
@@ -364,7 +406,8 @@ class WordClock:
 
         # --- Minute dots ---
         minute_remainder  = minutes % 5
-        dots_inside_panel = self.effect_full_panel and                             self.wiring.panel_dims != (self.clock_columns, self.clock_rows)
+        dots_inside_panel = self.effect_full_panel and \
+                            self.wiring.panel_dims != (self.clock_columns, self.clock_rows)
         for i, dot_key in enumerate(self.dot_order):
             led = self.minute_dots.get(dot_key, -1) - 1
             if led < 0:
@@ -511,8 +554,8 @@ web_routes.init_routes(word_clock, app)
 
 def run_clock():
     frame_delay   = 0.01
-    last_lux_time    = 0.0          # force an immediate read on first frame
-    sensor_active    = word_clock.light_sensor_type.lower() != "none"
+    last_lux_time = 0.0          # force an immediate read on first frame
+    sensor_active = word_clock.light_sensor_type.lower() != "none"
     try:
         while True:
             now = time.time()
@@ -525,6 +568,7 @@ def run_clock():
                 last_lux_time  = now
                 if lux >= 0:
                     word_clock.update_brightness(lux)
+                    word_clock.check_auto_dark()
 
             current_effect = word_clock.effects.get(word_clock.current_effect_id)
             if current_effect:
