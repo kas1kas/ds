@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__version__ = "7.64"
+__version__ = "7.65"
 import logging
 import bisect
 import time
@@ -10,21 +10,25 @@ from flask import request, jsonify, render_template
 
 # These will be set by init_routes
 word_clock = None
-app = None
-_pi_model = "Unknown"
+app        = None
+_pi_model  = "Unknown"
 
 def init_routes(clock, flask_app):
     """Initialize routes with the word clock instance"""
     global word_clock, app, _pi_model
     word_clock = clock
-    app = flask_app
+    app        = flask_app
+
+    # Read Raspberry Pi model once at startup — the file is null-terminated.
     try:
         with open("/sys/firmware/devicetree/base/model", "r") as f:
             _pi_model = f.read().rstrip('\x00').strip()
     except Exception as e:
         logging.warning(f"Could not read Pi model: {e}")
         _pi_model = "Unknown"
+
     register_routes()
+    logging.info(f"Pi model     : {_pi_model}")
     logging.info("Web routes initialized")
 
 def register_routes():
@@ -35,16 +39,13 @@ def register_routes():
     @app.route("/")
     def index():
         """Render the web interface with dynamic effect list."""
-        initial_color    =  word_clock.letter_active_color
-        initial_language =  word_clock.language_settings.language
-        initial_effect   =  word_clock.current_effect_id
-        initial_purist   =  word_clock.purist
-        woordklok_name   =  word_clock.woordklok
+        initial_color     = word_clock.letter_active_color
+        initial_language  = word_clock.language_settings.language
+        initial_effect    = word_clock.current_effect_id
+        initial_purist    = word_clock.purist
+        woordklok_name    = word_clock.woordklok
         woordklok_version = word_clock.version
-        woordklok_location= word_clock.weather_location
-        woordklok_lat     = word_clock.weather_lat
-        woordklok_lon     = word_clock.weather_lon
-        
+
         # Sensor is active when the daemon is reachable and returning a valid lux.
         # word_clock.lux is updated every frame by run_clock(); -1.0 means no sensor.
         has_light_sensor = word_clock.lux >= 0
@@ -64,13 +65,15 @@ def register_routes():
             initial_clock_type=initial_effect,
             initial_purist=initial_purist,
             woordklok_name=woordklok_name,
-            woordklok_location= word_clock.weather_location,
-            woordklok_lat     = word_clock.weather_lat,
-            woordklok_lon     = word_clock.weather_lon,
+            woordklok_location=word_clock.weather_location,
+            woordklok_lat=word_clock.weather_lat,
+            woordklok_lon=word_clock.weather_lon,
             woordklok_version=woordklok_version,
             pi_model=_pi_model,
             available_effects=available_effects,
-            has_light_sensor=has_light_sensor
+            has_light_sensor=has_light_sensor,
+            auto_dark_enabled=word_clock.auto_dark_enabled,
+            auto_dark_threshold=word_clock.auto_dark_threshold,
         )
 
     # ================== EFFECT ROUTES ==================
@@ -129,8 +132,8 @@ def register_routes():
             lux = word_clock.lux           # raw lux set each frame by run_clock()
             if lux < 0:
                 return jsonify({"brightness": "No sensor"}), 200
-            brightness = int(round(word_clock.last_brightness))    
-            return jsonify({"brightness": f"{round(lux, 1)}  →  {brightness}"}), 200
+            brightness = int(round(word_clock.last_brightness))
+            return jsonify({"brightness": f"{round(lux, 1)}  ->  {brightness}"}), 200
         except Exception as e:
             logging.error(f"Failed to fetch brightness: {e}")
             return jsonify({"brightness": "Error reading sensor"}), 500
@@ -152,3 +155,41 @@ def register_routes():
             value = word_clock.background_brightness_factor
             return jsonify({'value': value})
         return jsonify({'value': 1.0})
+
+    # ================== AUTO-DARK ROUTES ==================
+
+    @app.route('/set_auto_dark', methods=['POST'])
+    def set_auto_dark():
+        """Enable/disable auto-dark and adjust its lux threshold."""
+        try:
+            data = request.get_json()
+            if 'enabled' in data:
+                word_clock.auto_dark_enabled = bool(data['enabled'])
+                # If disabling while active, restore the saved effect immediately.
+                if not word_clock.auto_dark_enabled and word_clock._auto_dark_active:
+                    word_clock._auto_dark_active = False
+                    restore = word_clock._pre_dark_effect or word_clock.default_effect
+                    word_clock.set_effect(restore)
+                    logging.info(f"Auto-dark disabled — restored effect '{restore}'")
+            if 'threshold' in data:
+                word_clock.auto_dark_threshold = float(data['threshold'])
+            logging.info(
+                f"Auto-dark updated: enabled={word_clock.auto_dark_enabled}, "
+                f"threshold={word_clock.auto_dark_threshold}"
+            )
+            return jsonify({
+                'success':   True,
+                'enabled':   word_clock.auto_dark_enabled,
+                'threshold': word_clock.auto_dark_threshold,
+            }), 200
+        except Exception as e:
+            logging.error(f"Failed to update auto-dark: {e}")
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+    @app.route('/get_auto_dark', methods=['GET'])
+    def get_auto_dark():
+        """Return current auto-dark settings."""
+        return jsonify({
+            'enabled':   word_clock.auto_dark_enabled,
+            'threshold': word_clock.auto_dark_threshold,
+        }), 200
