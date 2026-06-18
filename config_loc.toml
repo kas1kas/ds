@@ -36,8 +36,11 @@ led_pin = 18
 # sensor = "BH1750"
 # sensor = "none"
 
-auto_dark_enabled   = true
-auto_dark_threshold = 2.0   # lux, below this → switch to dark
+
+# ── Auto dark ──────────────────────────────────────────────────────────────
+auto_dark_enabled   = false
+auto_dark_threshold = 2.0   # lux below this → switch to dark
+
 
 # ── Display ───────────────────────────────────────────────────────────────────
 purist            = true    # true  = hide "HET IS" / "IT IS"
