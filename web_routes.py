@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__version__ = "7.65"
+__version__ = "7.70"
 import logging
 import bisect
 import time
@@ -192,4 +192,17 @@ def register_routes():
         return jsonify({
             'enabled':   word_clock.auto_dark_enabled,
             'threshold': word_clock.auto_dark_threshold,
+        }), 200
+
+    # ================== Weather ROUTES ==================
+
+    @app.route('/get_weather', methods=['GET'])
+    def get_weather():
+        """Return current weather data."""
+        return jsonify({
+            'enabled':    word_clock.weather_enabled,
+            'temp':       word_clock.temperature,
+            'rain':       word_clock.precipitation,
+            'wind_speed': word_clock.wind_speed,
+            'wind_dir':   word_clock.wind_direction,
         }), 200
