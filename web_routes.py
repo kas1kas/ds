@@ -74,6 +74,7 @@ def register_routes():
             has_light_sensor=has_light_sensor,
             auto_dark_enabled=word_clock.auto_dark_enabled,
             auto_dark_threshold=word_clock.auto_dark_threshold,
+            weather_enabled=word_clock.weather_enabled,
         )
 
     # ================== EFFECT ROUTES ==================
