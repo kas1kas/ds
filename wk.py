@@ -3,7 +3,8 @@ __version__ = "8.23"
 # Woordklok — single HARDWARE key drives all wiring and grid decisions
 # 8.21 Use open-meteo, debug logging only
 # 8.22 Display Raspberry Pi hardware model in web interface
-# 8.23 Auto-dark: switch to dark effect below configurable lux threshold
+# 8.23 Auto-dark: switch to dark effect below configurable lux threshold, no changes in this file
+# 8.24 Weather on webpage, no changes in this file
 import json
 import tomllib
 import logging
