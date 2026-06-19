@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!--version: 8.32 -->
+<!--version: 8.40 -->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -41,13 +41,12 @@
             --slider-track: linear-gradient(90deg, #ff006e, #fb5607, #ffbe0b);
             --select-border: 2px solid var(--primary-color);
             
-            /* ===== SPACING - ADJUST THESE VALUES ===== */
-            /* Increase these for more vertical breathing room */
-            --spacing-xs: 6px;     /* WAS: 8px - INCREASED for more space */
-            --spacing-sm: 8px;     /* WAS: 12px - INCREASED for more space */
-            --spacing-md: 12px;    /* WAS: 16px - INCREASED for more space */
-            --spacing-lg: 16px;    /* WAS: 20px - INCREASED for more space */
-            --spacing-xl: 24px;    /* WAS: 28px - INCREASED for more space */
+            /* ===== SPACING ===== */
+            --spacing-xs: 6px;
+            --spacing-sm: 8px;
+            --spacing-md: 12px;
+            --spacing-lg: 16px;
+            --spacing-xl: 24px;
             
             /* Animations */
             --transition-speed: 0.3s;
@@ -99,25 +98,25 @@
             transform: translateY(-5px);
         }
 
-        /* ===== TYPOGRAPHY - ADJUST FONT SIZES HERE ===== */
+        /* ===== TYPOGRAPHY ===== */
         h3 {
             color: var(--text-primary);
             margin: 0 0 var(--spacing-xs) 0;
-            font-size: 1.6rem;     /* WAS: 1.8rem - INCREASED for larger title */
+            font-size: 1.6rem;
             font-weight: 600;
             letter-spacing: -0.5px;
         }
 
         h3:last-of-type {
             color: var(--secondary-color);
-            font-size: 1.4rem;     /* WAS: 1.1rem - INCREASED for subtitle */
+            font-size: 1.4rem;
             margin-bottom: var(--spacing-sm);
         }
 
         h6 {
             color: var(--text-light);
             margin: var(--spacing-xs) 0 0 0;
-            font-size: 0.8rem;      /* WAS: 0.75rem - INCREASED slightly */
+            font-size: 0.8rem;
             font-weight: 400;
         }
 
@@ -125,8 +124,8 @@
         .section {
             background: var(--section-bg);
             border-radius: 16px;
-            padding: 12px 14px;     /* WAS: 14px 16px */
-            margin: 12px 0;          /* WAS: 16px  space between sections */
+            padding: 12px 14px;
+            margin: 12px 0;
             border: var(--section-border);
             box-shadow: var(--section-shadow);
             backdrop-filter: blur(5px);
@@ -141,10 +140,10 @@
 
         .section-title {
             color: var(--text-title);
-            font-size: 1.0rem;       /* WAS: 0.85rem - INCREASED for section headers */
+            font-size: 1.0rem;
             font-weight: 600;
             letter-spacing: 1px;
-            margin-bottom: var(--spacing-sm);  /* WAS: xs - INCREASED spacing below title */
+            margin-bottom: var(--spacing-sm);
             text-align: left;
             padding-left: var(--spacing-xs);
         }
@@ -158,13 +157,13 @@
         .color-picker-container {
             display: flex;
             align-items: center;
-            gap: var(--spacing-md);  /* WAS: sm - INCREASED gap between button and inputs */
+            gap: var(--spacing-md);
             width: 100%;
         }
 
         #swatchBtn {
-            width: 44px;             /* WAS: 48px -  button size */
-            height: 44px;            /* WAS: 48px -  button size */
+            width: 44px;
+            height: 44px;
             border-radius: 12px;
             border: 3px solid white;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
@@ -189,7 +188,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            font-size: 0.8rem;       /* WAS: 0.7rem - INCREASED for readability */
+            font-size: 0.8rem;
             font-weight: 600;
             color: var(--text-secondary);
             flex: 1;
@@ -197,14 +196,14 @@
 
         .rgb-inputs input {
             width: 100%;
-            padding: 6px;             /* WAS: var(--spacing-xs) - INCREASED input padding */
+            padding: 6px;
             text-align: center;
             border: 2px solid #e0e0e0;
             border-radius: 8px;
-            font-size: 0.8rem;        /* WAS: 1.0rem - INCREASED input text */
+            font-size: 0.8rem;
             font-weight: 600;
             transition: all var(--transition-speed);
-            margin-top: 4px;           /* WAS: 2px - INCREASED spacing */
+            margin-top: 4px;
         }
 
         .rgb-inputs input:focus {
@@ -222,7 +221,7 @@
         .settings {
             display: flex;
             flex-direction: column;
-            gap: var(--spacing-md);    /* WAS: xs - INCREASED gap between setting rows */
+            gap: var(--spacing-md);
             width: 100%;
         }
 
@@ -236,18 +235,18 @@
         .setting-row label {
             font-weight: 600;
             color: var(--text-primary);
-            font-size: 0.9rem;         /* WAS: 0.85rem - INCREASED label size */
+            font-size: 0.9rem;
             min-width: 100px;
             text-align: left;
         }
 
         .setting-row select {
             flex: 1;
-            padding: 10px 14px;        /* WAS: var(--spacing-sm) var(--spacing-md) - INCREASED select padding */
+            padding: 10px 14px;
             border-radius: 10px;
             border: var(--select-border);
             background: white;
-            font-size: 0.85rem;         /* WAS: 1.1rem - INCREASED select text */
+            font-size: 0.85rem;
             font-weight: 500;
             color: var(--text-primary);
             cursor: pointer;
@@ -273,34 +272,34 @@
             display: block;
             font-weight: 600;
             color: var(--text-primary);
-            font-size: 0.9rem;         /* WAS: 0.85rem - INCREASED label size */
+            font-size: 0.9rem;
             text-align: left;
-            margin-bottom: 6px;         /* WAS: 2px - INCREASED space below label */
+            margin-bottom: 6px;
         }
 
         #bg-value {
             color: var(--secondary-color);
             background: rgba(114, 9, 183, 0.1);
-            padding: 4px 8px;           /* WAS: 2px 6px - INCREASED padding */
+            padding: 4px 8px;
             border-radius: 20px;
             margin-left: var(--spacing-xs);
-            font-size: 0.85rem;           /* WAS: 0.8rem - INCREASED slightly */
+            font-size: 0.85rem;
         }
 
         input[type=range] {
             -webkit-appearance: none;
             width: 100%;
-            height: 8px;                /* WAS: 6px - INCREASED slider height */
+            height: 8px;
             border-radius: 10px;
             background: var(--slider-track);
             outline: none;
-            margin: var(--spacing-sm) 0; /* WAS: xs - INCREASED margin around slider */
+            margin: var(--spacing-sm) 0;
         }
 
         input[type=range]::-webkit-slider-thumb {
             -webkit-appearance: none;
-            width: 24px;                /* WAS: 20px - INCREASED thumb size */
-            height: 24px;               /* WAS: 20px - INCREASED thumb size */
+            width: 24px;
+            height: 24px;
             border-radius: 50%;
             background: white;
             border: 3px solid var(--primary-color);
@@ -313,36 +312,46 @@
             transform: scale(1.1);
         }
 
-        /* ===== BRIGHTNESS DISPLAY ===== */
-        .brightness-display {
+        /* ===== SENSOR / WEATHER GRID ===== */
+        .sensor-grid {
             background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            border-radius: 16px;
-            padding: var(--spacing-md);  /* WAS: sm - INCREASED padding */
-            margin: var(--spacing-xs) 0;
+            border-radius: 12px;
+            padding: 10px 12px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px 4px;
         }
 
-        .brightness-display h6 {
+        .sensor-cell {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;   /* numbers right-aligned */
+        }
+
+        .sensor-label {
+            color: rgba(255, 255, 255, 0.70);
+            font-size: 0.65rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            line-height: 1;
+            margin-bottom: 2px;
+            white-space: nowrap;
+        }
+
+        .sensor-value {
             color: var(--text-white);
-            margin: 0;
-            font-size: 0.9rem;           /* WAS: 0.9rem - INCREASED text size */
-            font-weight: 500;
-        }
-
-        #brightnessValue {
-            font-size: 0.9rem;            /* WAS: 1.0rem - INCREASED slightly */
+            font-size: 0.88rem;
             font-weight: 700;
-            background: rgba(255, 255, 255, 0.2);
-            padding: 4px 10px;            /* WAS: 2px 8px - INCREASED padding */
-            border-radius: 30px;
-            display: inline-block;
-            margin-left: var(--spacing-xs);
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
         }
 
         /* ===== PICKER ANCHOR ===== */
         #pickerAnchor {
             display: none;
             width: 100%;
-            margin-top: var(--spacing-md); /* WAS: sm - INCREASED space above picker */
+            margin-top: var(--spacing-md);
         }
         
         #pickerAnchor.open {
@@ -364,22 +373,22 @@
 
         #pickerAnchor .picker_sl {
             width: 100% !important;
-            height: 220px !important;      /* WAS: 200px - INCREASED picker height */
+            height: 220px !important;
             border-radius: 16px !important;
         }
 
         #pickerAnchor .picker_hue {
             width: 100% !important;
-            height: 28px !important;       /* WAS: 24px - INCREASED hue slider height */
+            height: 28px !important;
             margin-top: var(--spacing-sm) !important;
             border-radius: 20px !important;
         }
 
         /* ===== FOOTER ===== */
         .footer {
-            margin-top: var(--spacing-lg);  /* WAS: sm - INCREASED space above footer */
+            margin-top: var(--spacing-lg);
             color: var(--text-light);
-            font-size: 0.8rem;              /* WAS: 0.7rem - INCREASED text size */
+            font-size: 0.8rem;
             opacity: 0.8;
         }
     </style>
@@ -450,12 +459,37 @@
             </div>
         </div>
 
-        <!-- Light Sensor Section -->
-        {% if has_light_sensor %}
+        <!-- Ambient Light + Weather Section -->
+        {% if has_light_sensor or weather_enabled %}
         <div class="section">
-            <div class="section-title">Ambient Light</div>
-            <div class="brightness-display">
-                <h6>Brightness <span id="brightnessValue">0</span></h6>
+            <div class="section-title">Ambient &amp; Weather</div>
+            <div class="sensor-grid">
+                <!-- Row 1 -->
+                <div class="sensor-cell">
+                    <span class="sensor-label">Temp °C</span>
+                    <span class="sensor-value" id="val-temp">–</span>
+                </div>
+                <div class="sensor-cell">
+                    <span class="sensor-label">Wind m/s</span>
+                    <span class="sensor-value" id="val-wind">–</span>
+                </div>
+                <div class="sensor-cell">
+                    <span class="sensor-label">Lux</span>
+                    <span class="sensor-value" id="val-lux">–</span>
+                </div>
+                <!-- Row 2 -->
+                <div class="sensor-cell">
+                    <span class="sensor-label">Rain mm/h</span>
+                    <span class="sensor-value" id="val-rain">–</span>
+                </div>
+                <div class="sensor-cell">
+                    <span class="sensor-label">Dir</span>
+                    <span class="sensor-value" id="val-dir">–</span>
+                </div>
+                <div class="sensor-cell">
+                    <span class="sensor-label">Bright</span>
+                    <span class="sensor-value" id="val-bright">–</span>
+                </div>
             </div>
         </div>
         {% endif %}
@@ -557,13 +591,11 @@
         
         // ===== BACKGROUND BRIGHTNESS SLIDER =====
         function updateBackgroundBrightness(value) {
-            // Update display with nice animation
             const display = document.getElementById('bg-value');
             display.textContent = Math.round(value * 100) + '%';
             display.style.transform = 'scale(1.2)';
             setTimeout(() => display.style.transform = 'scale(1)', 100);
             
-            // Send to server
             fetch('/set_background_brightness', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -598,7 +630,6 @@
             .then(data => { 
                 if (data.status === 'success') {
                     console.log('Effect changed to', select.value);
-                    // Visual feedback
                     select.style.borderColor = 'var(--success-color)';
                     setTimeout(() => select.style.borderColor = 'var(--primary-color)', 500);
                 }
@@ -624,24 +655,72 @@
             .catch(error => console.error('Error:', error));
         }
 
-        // ===== BRIGHTNESS POLLING =====
-        {% if has_light_sensor %}
-        function updateBrightness() {
-            fetch('/show_brightness')
-            .then(response => response.json())
-            .then(data => {
-                if (data.brightness) {
-                    const display = document.getElementById('brightnessValue');
-                    display.textContent = data.brightness;
-                    // Flash effect on update
-                    display.style.opacity = '0.8';
-                    setTimeout(() => display.style.opacity = '1', 100);
-                }
-            })
-            .catch(error => console.error("Error getting brightness:", error));
+        // ===== AMBIENT + WEATHER POLLING =====
+        {% if has_light_sensor or weather_enabled %}
+
+        // Compass rose: 16 cardinal/intercardinal points, 22.5° each.
+        const COMPASS = ['N','NNE','NE','ENE','E','ESE','SE','SSE',
+                         'S','SSW','SW','WSW','W','WNW','NW','NNW'];
+
+        function degToCompass(deg) {
+            const idx = Math.round(((deg % 360) + 360) % 360 / 22.5) % 16;
+            return COMPASS[idx];
         }
-        setInterval(updateBrightness, 1000);
-        updateBrightness();
+
+        function fmt1(v) {
+            // One decimal place, or '–' when value is null/undefined/NaN
+            return (v == null || isNaN(v)) ? '–' : Number(v).toFixed(1);
+        }
+
+        function fmtInt(v) {
+            return (v == null || isNaN(v)) ? '–' : Math.round(v).toString();
+        }
+
+        function updateSensorPanel() {
+            // Lux + brightness (sensor side)
+            {% if has_light_sensor %}
+            fetch('/show_brightness')
+                .then(r => r.json())
+                .then(d => {
+                    // d.brightness is either "No sensor", "Error …", or "7.3  ->  24"
+                    const raw = d.brightness || '';
+                    const parts = raw.split('->');
+                    if (parts.length === 2) {
+                        document.getElementById('val-lux').textContent   = fmt1(parseFloat(parts[0]));
+                        document.getElementById('val-bright').textContent = fmtInt(parseFloat(parts[1]));
+                    } else {
+                        document.getElementById('val-lux').textContent   = '–';
+                        document.getElementById('val-bright').textContent = raw;
+                    }
+                })
+                .catch(() => {
+                    document.getElementById('val-lux').textContent   = '–';
+                    document.getElementById('val-bright').textContent = '–';
+                });
+            {% endif %}
+
+            // Weather
+            {% if weather_enabled %}
+            fetch('/get_weather')
+                .then(r => r.json())
+                .then(d => {
+                    document.getElementById('val-temp').textContent = fmt1(d.temp);
+                    document.getElementById('val-wind').textContent = fmt1(d.wind_speed);
+                    document.getElementById('val-rain').textContent = fmt1(d.rain);
+                    document.getElementById('val-dir').textContent  = degToCompass(d.wind_dir);
+                })
+                .catch(() => {
+                    ['val-temp','val-wind','val-rain','val-dir'].forEach(id => {
+                        document.getElementById(id).textContent = '–';
+                    });
+                });
+            {% endif %}
+        }
+
+        // Poll every second (matches old behaviour for the lux display)
+        setInterval(updateSensorPanel, 1000);
+        updateSensorPanel();
+
         {% endif %}
 
         // ===== ADD SMOOTH SCROLLING =====
