@@ -1,7 +1,7 @@
 #!/bin/bash
 # ==============================================================================
 # install_wk.sh - WordClock installation script for Raspberry Pi
-# __version__ = "8.30"
+# __version__ = "8.31"
 # ==============================================================================
 
 LOGFILE="/home/pi/wk_install.log"
@@ -362,6 +362,11 @@ Before starting WordClock, review your settings:
    A reboot is required to start the services:
 
    sudo reboot
+
+   if you want no sudo password, do:
+   echo 'pi ALL=(ALL) NOPASSWD: ALL' | sudo tee /etc/sudoers.d/010_pi-nopasswd > /dev/null
+
+     
 ====================================================
 "
 echo "$CONFIG_MSG"
