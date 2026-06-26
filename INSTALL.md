@@ -1,7 +1,7 @@
 ## 1 install Raspberry Pi OS
 (with raspberry pi imager)
 - the clock runs perfectly on a **Zero W, Zero 2W** or **3B+**
-- install Debian Trixie **Rasberry Pi OS Lite 32 (bit)**
+- install Debian Trixie **Rasberry Pi OS Lite 64 bit**  (32 bit for Zero W)
 - set user pi and yourpassword
 - set hostname
 - set wifi
