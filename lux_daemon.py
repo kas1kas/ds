@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-__version__ = "1.1"
+__version__ = "1.2"
 # lux_daemon.py  –  Reads the TSL2591 light sensor and serves the raw lux
 #                   value over a Unix domain socket at SOCKET_PATH.
 #
 # Any client that connects receives the current lux as a UTF-8 string, e.g.:
-#     "42.70\n"
+#     "0.18\n"
 # or "-1.00\n" when the sensor is unavailable.
 #
 # Smoothing and EMA are intentionally NOT done here.
@@ -14,12 +14,23 @@ __version__ = "1.1"
 # Run manually or via systemd:
 #     python3 lux_daemon.py --sensor TSL2591
 #
-# FIX (v7.65): replaced python-tsl2591 library with direct smbus2 calls.
-# The python-tsl2591 library opens a new smbus.SMBus fd in __init__ and
-# never closes it, causing fd exhaustion (~1000 open /dev/i2c-1 handles)
-# over time as the sensor object is recreated on each error recovery cycle.
-# smbus2.SMBus is opened ONCE at startup and kept open for the lifetime of
-# the process — no fd leak possible.
+# FIX (v7.65 / __version__ 1.1): replaced python-tsl2591 library with direct
+# smbus2 calls. The python-tsl2591 library opens a new smbus.SMBus fd in
+# __init__ and never closes it, causing fd exhaustion (~1000 open
+# /dev/i2c-1 handles) over time as the sensor object is recreated on each
+# error recovery cycle. smbus2.SMBus is opened ONCE at startup and kept
+# open for the lifetime of the process — no fd leak possible.
+#
+# FEATURE (__version__ 1.2): auto-ranging gain. We care about precision in
+# the 0-1 lux range and don't care about detail above ~100 lux (the LUT
+# clamps to max brightness there anyway). So we run at GAIN_HIGH (428x) by
+# default for fine low-light resolution, and only step down to GAIN_MED /
+# GAIN_LOW when the raw channel reading approaches saturation. We step back
+# up to HIGH once light drops again so we regain precision near zero.
+# Integration time (200ms) is unaffected by gain and stays constant, so
+# polling cadence does not change. The persistent smbus2 handle from the
+# fd-leak fix is untouched by gain switches — only the CONTROL register is
+# rewritten.
 
 import argparse
 import logging
@@ -70,26 +81,37 @@ _TSL2591_ENABLE_POWERON  = 0x01
 _TSL2591_ENABLE_AEN      = 0x02   # ALS enable
 _TSL2591_ENABLE_POWEROFF = 0x00
 
-# Integration time: 0x01 = 200 ms
+# Integration time: 0x01 = 200 ms (unaffected by gain — stays fixed)
 _INTEGRATION_TIME        = 0x01
 _INTEGRATION_SECONDS     = 0.22   # 200 ms + 20 ms safety buffer
 
-# Gain: 0x10 = medium (25x)
-_GAIN                    = 0x10
+# Gain register values
+_GAIN_LOW                = 0x00   # 1x     (bright light)
+_GAIN_MED                = 0x10   # 25x    (general purpose)
+_GAIN_HIGH               = 0x20   # 428x   (low light)
+_GAIN_MAX                = 0x30   # 9876x  (extreme low light, unused here)
+
+# Gain ladder, low-light-first: (register value, multiplier)
+_GAIN_LADDER = [
+    (_GAIN_HIGH, 428),
+    (_GAIN_MED,  25),
+    (_GAIN_LOW,  1),
+]
+
+# Raw channel0 is a 16-bit value (max 0xFFFF = 65535). The datasheet
+# recommends staying well clear of full-scale to avoid non-linearity, so we
+# treat anything >= SAT_THRESHOLD as saturated for our purposes.
+_SAT_THRESHOLD   = 36000
+# When stepping back up to a more sensitive gain, only do so if the raw
+# count *at that higher gain* would still land safely below threshold (with
+# margin), to avoid flapping back and forth at the boundary.
+_HEADROOM_FACTOR = 0.7
 
 # Lux formula coefficients (from AMS datasheet / python-tsl2591 source)
 _LUX_DF                  = 408.0
 _LUX_COEFB               = 1.64
 _LUX_COEFC               = 0.59
 _LUX_COEFD               = 0.86
-
-# Gain multipliers for lux calculation
-_GAIN_MULTIPLIERS = {
-    0x00: 1,    # low   (1x)
-    0x10: 25,   # medium (25x)
-    0x20: 428,  # high  (428x)
-    0x30: 9876, # max   (9876x)
-}
 
 # Integration time multipliers (atime) for lux calculation
 _ATIME_MULTIPLIERS = {
@@ -118,7 +140,12 @@ def _disable(bus):
     _write(bus, _TSL2591_REGISTER_ENABLE, _TSL2591_ENABLE_POWEROFF)
 
 
-def _calculate_lux(full, ir, gain, atime_ms):
+def _set_gain(bus, gain_reg):
+    """Write integration time + gain together, as the CONTROL register packs both."""
+    _write(bus, _TSL2591_REGISTER_CONTROL, _INTEGRATION_TIME | gain_reg)
+
+
+def _calculate_lux(full, ir, gain_mult, atime_ms):
     """
     Calculate lux from raw channel values using the AMS datasheet formula.
     Returns -1.0 on overflow or invalid input.
@@ -126,10 +153,7 @@ def _calculate_lux(full, ir, gain, atime_ms):
     if full == 0xFFFF or ir == 0xFFFF:
         return -1.0   # sensor saturated
 
-    gain_mult  = _GAIN_MULTIPLIERS.get(gain, 25)
-    atime_mult = atime_ms
-
-    cpl = (atime_mult * gain_mult) / _LUX_DF
+    cpl = (atime_ms * gain_mult) / _LUX_DF
     if cpl == 0:
         return -1.0
 
@@ -151,16 +175,23 @@ def _run_tsl2591():
     of the process.  On I2C errors the sensor registers are re-initialised
     but the bus handle is never closed and reopened, eliminating the fd leak
     that occurred with the python-tsl2591 library.
+
+    Auto-ranging gain: stay at GAIN_HIGH for low-light precision, drop to
+    GAIN_MED/GAIN_LOW on saturation, climb back to GAIN_HIGH once the raw
+    count comfortably allows it.
     """
     HYSTERESIS = 0.05   # minimum lux change to update shared state
     atime_ms   = _ATIME_MULTIPLIERS[_INTEGRATION_TIME]
 
-    bus      = None
-    last_lux = -1.0
+    bus         = None
+    last_lux    = -1.0
     initialized = False
+    gain_index  = 0    # start at GAIN_HIGH
 
     while True:
         try:
+            gain_reg, gain_mult = _GAIN_LADDER[gain_index]
+
             # Open bus once — keep it open forever
             if bus is None:
                 bus = smbus2.SMBus(1)
@@ -168,9 +199,9 @@ def _run_tsl2591():
                 initialized = False
 
             if not initialized:
-                _write(bus, _TSL2591_REGISTER_CONTROL, _INTEGRATION_TIME | _GAIN)
+                _set_gain(bus, gain_reg)
                 _disable(bus)
-                logging.info("TSL2591 initialised (smbus2 direct)")
+                logging.info(f"TSL2591 initialised (smbus2 direct), gain index {gain_index}")
                 initialized = True
                 last_lux = -1.0
 
@@ -181,10 +212,35 @@ def _run_tsl2591():
             ir   = _read_word(bus, _TSL2591_REGISTER_CHAN1)
             _disable(bus)
 
-            raw_lux = _calculate_lux(full, ir, _GAIN, atime_ms)
+            # --- Saturation check (step DOWN to a less sensitive gain) ---
+            if (full >= _SAT_THRESHOLD or full == 0xFFFF) and gain_index < len(_GAIN_LADDER) - 1:
+                gain_index += 1
+                next_gain_reg = _GAIN_LADDER[gain_index][0]
+                _set_gain(bus, next_gain_reg)
+                logging.info(
+                    f"Channel saturated (full={full}) — stepping down to "
+                    f"gain index {gain_index}"
+                )
+                continue    # re-read immediately at the new gain, no lux update
+
+            raw_lux = _calculate_lux(full, ir, gain_mult, atime_ms)
             if raw_lux < 0:
                 logging.warning("TSL2591 saturation — skipping frame")
                 continue
+
+            # --- Headroom check (step UP to a more sensitive gain) -------
+            if gain_index > 0:
+                higher_mult = _GAIN_LADDER[gain_index - 1][1]
+                projected_full = full * (higher_mult / gain_mult)
+                if projected_full < _SAT_THRESHOLD * _HEADROOM_FACTOR:
+                    gain_index -= 1
+                    next_gain_reg = _GAIN_LADDER[gain_index][0]
+                    _set_gain(bus, next_gain_reg)
+                    logging.info(
+                        f"Light low enough (full={full}) — stepping up to "
+                        f"gain index {gain_index}"
+                    )
+                    continue    # re-read immediately at the new gain
 
             if last_lux < 0 or abs(raw_lux - last_lux) > HYSTERESIS:
                 last_lux = raw_lux
@@ -195,6 +251,7 @@ def _run_tsl2591():
             _set_lux(-1.0)
             last_lux    = -1.0
             initialized = False
+            gain_index  = 0       # restart auto-ranging from GAIN_HIGH
             # Do NOT close/reopen the bus — just re-init the sensor registers
             # on the next cycle.  Only reopen if the bus itself is gone.
             if bus is not None:
