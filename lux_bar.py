@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-__version__ = "7.61"
+__version__ = "7.63"
 import time
 from lux_client import get_lux
 
@@ -21,7 +21,7 @@ while True:
         bar = "?" * BARLONG
         color = RED
     else:
-        lux_str = f"{lux:6.1f}"
+        lux_str = f"{lux:6.3f}"
         signal = int((min(lux, MAX_LUX) / MAX_LUX) * BARLONG)
         bar = "█" * signal + "░" * (BARLONG - signal)
         
