@@ -1,24 +1,23 @@
 # Woordklok ds
 ## Workclock software
-v8
-Software to drive a matrix wordclock
+
+matrix wordclock v8
 
 ## Hardware
 - Raspberry Pi **3B+** or Raspberri Pi **Zero2W**
-- 1: large size 467x467 mm
+- size 1: 467x467 mm
   - LED string WS281B (30 LEDs per meter)
-- 2: small size 204x204 mm
-  - WS218B 16x16 LED panel
-- 3: medium size 240x240 mm
+- size 2: 240x240 mm
   - LED string WS281B (60 LEDS per meter)
+- size 3: 204x204 mm
+  - WS218B 16x16 LED panel
 - lightsensor: optional but strongly reccomended: TSL 2591
-- wordclock frame or 3D printed shell
-- wordclock letterplates, one per language
+- wordclock frame + letterplate or 3D printed shell
 
 ## Software
 - Python3 + html
-- Remote control via the integrated webapp.
-- Configuration file for personal settings, theme, weather, location and light sensor calibration.
+- Remote control via the integrated webapp
+- Configuration file for personal settings; theme, weather, location and light sensor calibration, etc
 - See the INSTALL.md for the software install and configuration.
 
 ## Build 
@@ -26,15 +25,17 @@ Software to drive a matrix wordclock
 - see pictures
 
 ## The frame and letterplate
-### 1 large
+### size 1
 - MDF frame
 - Letterplate: wood, aluminium, (colored) acryl or any other 2 - 3 mm flat material
-- Letterplate swappable: other colors, different language. Mounted with magnets.
-### 2 small
-- Cut out from one piece of massive hardwood by CNC.
-- 3D printed light containment grid.
-### 3 medium
-- 3D printed light containment grid.
+- the plate can be changed: other colors, different language. Mounted with magnets.
 
+### size 2
+- 3D printed with light containment grid.
+
+### size 3
+- CNC cut from one piece of massive hardwood
+- 3D printed light containment grid
+- 
 ## Diagrams
 in /support
