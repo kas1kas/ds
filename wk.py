@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
-__version__ = "8.23"
+__version__ = "8.25"
 # Woordklok — single HARDWARE key drives all wiring and grid decisions
 # 8.21 Use open-meteo, debug logging only
 # 8.22 Display Raspberry Pi hardware model in web interface
 # 8.23 Auto-dark: switch to dark effect below configurable lux threshold, no changes in this file
 # 8.24 Weather on webpage, no changes in this file
+# 8.25 Auto-dark hysteresis: two-band threshold prevents rapid on/off flipping
 import json
 import tomllib
 import logging
@@ -154,12 +155,24 @@ class WordClock:
         self.wind_direction = 270
 
         # ----------------------------------------------------------------
-        # Auto-dark: switch to 'dark' effect when lux drops below threshold.
+        # Auto-dark: switch to 'dark' effect when lux drops below threshold,
+        # restore when it recovers above threshold.
+        #
+        # Hysteresis prevents rapid on/off flipping near the boundary:
+        #   dark turns ON  when lux < (threshold - hysteresis)
+        #   dark turns OFF when lux >= (threshold + hysteresis)
+        #   in the dead-band between those two levels, state is held.
+        #
+        # config_loc.toml keys (all optional):
+        #   auto_dark_enabled   = true
+        #   auto_dark_threshold = 0.45   # lux midpoint
+        #   auto_dark_hysteresis = 0.10  # half-band either side
         # ----------------------------------------------------------------
-        self.auto_dark_enabled   = config.get("AUTO_DARK_ENABLED", False)
-        self.auto_dark_threshold = float(config.get("AUTO_DARK_THRESHOLD", 2.0))
-        self._auto_dark_active   = False   # True while we have auto-switched to dark
-        self._pre_dark_effect    = None    # effect to restore when lux recovers
+        self.auto_dark_enabled    = config.get("AUTO_DARK_ENABLED", False)
+        self.auto_dark_threshold  = float(config.get("AUTO_DARK_THRESHOLD", 2.0))
+        self.auto_dark_hysteresis = float(config.get("AUTO_DARK_HYSTERESIS", 0.10))
+        self._auto_dark_active    = False   # True while we have auto-switched to dark
+        self._pre_dark_effect     = None    # effect to restore when lux recovers
 
         logging.info(f"Woordklok    : {self.woordklok}")
         logging.info(f"Version      : {self.version}")
@@ -177,8 +190,11 @@ class WordClock:
         logging.info(f"Smoothing a  : {self.smoothing_alpha}")
         logging.info(f"Lut In       : {self.lut_in}")
         logging.info(f"Lut Out      : {self.lut_out}")
-        logging.info(f"Auto-dark    : {'enabled' if self.auto_dark_enabled else 'disabled'}"
-                     f"  threshold={self.auto_dark_threshold} lux")
+        logging.info(
+            f"Auto-dark    : {'enabled' if self.auto_dark_enabled else 'disabled'}"
+            f"  ON<{self.auto_dark_threshold - self.auto_dark_hysteresis:.2f}"
+            f"  OFF>={self.auto_dark_threshold + self.auto_dark_hysteresis:.2f} lux"
+        )
 
         self.initialize_led()
 
@@ -299,33 +315,43 @@ class WordClock:
 
     def check_auto_dark(self):
         """
-        Switch to the 'dark' effect when lux drops below auto_dark_threshold,
-        and restore the previous effect when lux recovers.
+        Switch to the 'dark' effect when lux drops clearly below threshold,
+        and restore the previous effect when lux recovers clearly above it.
+        A hysteresis dead-band prevents rapid on/off flipping near the boundary:
+
+            dark ON  when lux < (threshold - hysteresis)
+            dark OFF when lux >= (threshold + hysteresis)
+            dead-band in between: hold current state unchanged
+
         No-op when auto_dark_enabled is False or the 'dark' effect is not loaded.
         """
         if not self.auto_dark_enabled or "dark" not in self.effects:
             return
+        if self.lux < 0:
+            return   # sensor unavailable — hold current state
 
-        below = self.lux >= 0 and self.lux < self.auto_dark_threshold
+        on_threshold  = self.auto_dark_threshold - self.auto_dark_hysteresis
+        off_threshold = self.auto_dark_threshold + self.auto_dark_hysteresis
 
-        if below and not self._auto_dark_active:
-            # Going dark: remember the current effect, then switch.
+        if not self._auto_dark_active and self.lux < on_threshold:
+            # Lux dropped clearly below the lower band — go dark.
             self._pre_dark_effect  = self.current_effect_id
             self._auto_dark_active = True
             self.set_effect("dark")
             logging.info(
-                f"Auto-dark ON  (lux={self.lux:.2f} < {self.auto_dark_threshold}), "
+                f"Auto-dark ON  (lux={self.lux:.2f} < {on_threshold:.2f}), "
                 f"saved effect='{self._pre_dark_effect}'"
             )
-        elif not below and self._auto_dark_active:
-            # Recovering: restore the saved effect.
+        elif self._auto_dark_active and self.lux >= off_threshold:
+            # Lux rose clearly above the upper band — restore.
             self._auto_dark_active = False
             restore = self._pre_dark_effect or self.default_effect
             self.set_effect(restore)
             logging.info(
-                f"Auto-dark OFF (lux={self.lux:.2f} >= {self.auto_dark_threshold}), "
+                f"Auto-dark OFF (lux={self.lux:.2f} >= {off_threshold:.2f}), "
                 f"restored effect='{restore}'"
             )
+        # else: lux is in the dead-band — do nothing
 
     def set_background_brightness(self, value):
         self.background_brightness_factor = max(0.0, min(1.0, float(value)))
