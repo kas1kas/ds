@@ -4,7 +4,7 @@
 # Lines starting with # are comments and are ignored.
 #
 # SELECTION FIELDS: uncomment your choice, keep the others commented out.
-VERSION = "8.21"
+VERSION = "8.22"
 # ── Name of clock in webapp ───────────────────────────────────────────────────
 
 woordklok = "myklok"
@@ -39,8 +39,8 @@ led_pin = 18
 
 # ── Auto dark ──────────────────────────────────────────────────────────────
 auto_dark_enabled   = false
-auto_dark_threshold = 0.05   # lux below this → switch to dark
-
+auto_dark_threshold  = 0.05   # lux below this → switch to dark
+auto_dark_hysteresis = 0.10   # percentage of threshold 0.10 = 10% 
 
 # ── Display ───────────────────────────────────────────────────────────────────
 purist            = true    # true  = hide "HET IS" / "IT IS"
