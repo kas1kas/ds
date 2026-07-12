@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
-__version__ = "8.25"
+__version__ = "8.26"
 # Woordklok — single HARDWARE key drives all wiring and grid decisions
 # 8.21 Use open-meteo, debug logging only
 # 8.22 Display Raspberry Pi hardware model in web interface
 # 8.23 Auto-dark: switch to dark effect below configurable lux threshold, no changes in this file
 # 8.24 Weather on webpage, no changes in this file
 # 8.25 Auto-dark hysteresis: two-band threshold prevents rapid on/off flipping
+# 8.26 Sensor logging: optional CSV lux log to /home/pi, once per minute
 import json
 import tomllib
 import logging
@@ -164,15 +165,26 @@ class WordClock:
         #   in the dead-band between those two levels, state is held.
         #
         # config_loc.toml keys (all optional):
-        #   auto_dark_enabled   = true
-        #   auto_dark_threshold = 0.45   # lux midpoint
-        #   auto_dark_hysteresis = 0.10  # half-band either side
+        #   auto_dark_enabled    = true
+        #   auto_dark_threshold  = 0.45   # lux midpoint
+        #   auto_dark_hysteresis = 0.10   # half-band either side
         # ----------------------------------------------------------------
         self.auto_dark_enabled    = config.get("AUTO_DARK_ENABLED", False)
         self.auto_dark_threshold  = float(config.get("AUTO_DARK_THRESHOLD", 2.0))
         self.auto_dark_hysteresis = float(config.get("AUTO_DARK_HYSTERESIS", 0.10))
         self._auto_dark_active    = False   # True while we have auto-switched to dark
         self._pre_dark_effect     = None    # effect to restore when lux recovers
+
+        # ----------------------------------------------------------------
+        # Sensor logging: append a CSV line (timestamp, lux, brightness,
+        # auto_dark_state) to a file once per minute, for low-light analysis.
+        #
+        # config_loc.toml keys (all optional):
+        #   sensor_log_enabled = true
+        #   sensor_log_path    = "/home/pi/lux_log.csv"   # default
+        # ----------------------------------------------------------------
+        self.sensor_log_enabled = config.get("SENSOR_LOG_ENABLED", False)
+        self.sensor_log_path    = config.get("SENSOR_LOG_PATH", "/home/pi/lux_log.csv")
 
         logging.info(f"Woordklok    : {self.woordklok}")
         logging.info(f"Version      : {self.version}")
@@ -194,6 +206,10 @@ class WordClock:
             f"Auto-dark    : {'enabled' if self.auto_dark_enabled else 'disabled'}"
             f"  ON<{self.auto_dark_threshold - self.auto_dark_hysteresis:.2f}"
             f"  OFF>={self.auto_dark_threshold + self.auto_dark_hysteresis:.2f} lux"
+        )
+        logging.info(
+            f"Sensor log   : {'enabled' if self.sensor_log_enabled else 'disabled'}"
+            + (f"  -> {self.sensor_log_path}" if self.sensor_log_enabled else "")
         )
 
         self.initialize_led()
@@ -565,6 +581,29 @@ def load_merged_config():
 
 
 # ---------------------------------------------------------------------------
+# Sensor log helpers
+# ---------------------------------------------------------------------------
+
+_SENSOR_LOG_HEADER = "timestamp,lux,brightness,auto_dark\n"
+
+
+def _write_sensor_log(path: str, lux: float, brightness: float, auto_dark: bool):
+    """
+    Append one CSV line to the sensor log.  Creates the file with a header
+    row on first use.  Errors are logged but never propagate to the caller.
+    """
+    try:
+        new_file = not os.path.exists(path)
+        with open(path, "a") as f:
+            if new_file:
+                f.write(_SENSOR_LOG_HEADER)
+            ts = time.strftime("%Y-%m-%d %H:%M:%S")
+            f.write(f"{ts},{lux:.4f},{brightness:.1f},{int(auto_dark)}\n")
+    except Exception as e:
+        logging.error(f"Sensor log write failed: {e}")
+
+
+# ---------------------------------------------------------------------------
 # Bootstrap
 # ---------------------------------------------------------------------------
 
@@ -580,9 +619,11 @@ web_routes.init_routes(word_clock, app)
 # ---------------------------------------------------------------------------
 
 def run_clock():
-    frame_delay   = 0.01
-    last_lux_time = 0.0          # force an immediate read on first frame
-    sensor_active = word_clock.light_sensor_type.lower() != "none"
+    frame_delay      = 0.01
+    last_lux_time    = 0.0   # force an immediate read on first frame
+    last_log_time    = 0.0   # force an immediate log entry on first valid lux
+    LOG_INTERVAL     = 60.0  # seconds between sensor log entries
+    sensor_active    = word_clock.light_sensor_type.lower() != "none"
     try:
         while True:
             now = time.time()
@@ -596,6 +637,16 @@ def run_clock():
                 if lux >= 0:
                     word_clock.update_brightness(lux)
                     word_clock.check_auto_dark()
+
+                    # Write one CSV line per minute when sensor logging is on.
+                    if word_clock.sensor_log_enabled and now - last_log_time >= LOG_INTERVAL:
+                        _write_sensor_log(
+                            word_clock.sensor_log_path,
+                            lux,
+                            word_clock.last_brightness,
+                            word_clock._auto_dark_active,
+                        )
+                        last_log_time = now
 
             current_effect = word_clock.effects.get(word_clock.current_effect_id)
             if current_effect:
