@@ -35,14 +35,13 @@ led_pin = 18
   sensor = "TSL2591"
 # sensor = "BH1750"
 # sensor = "none"
-
+sensor_log_enabled = false
+sensor_log_path    = "/home/pi/lux_log.csv"
 
 # ── Auto dark ──────────────────────────────────────────────────────────────
 auto_dark_enabled   = false
-auto_dark_threshold  = 0.07   # lux below this → switch to dark
-auto_dark_hysteresis = 0.02 
-sensor_log_enabled = true
-sensor_log_path    = "/home/pi/lux_log.csv"
+auto_dark_threshold  = 0.1   # lux below this → switch to dark
+auto_dark_hysteresis = 0.05 
 
 # ── Display ───────────────────────────────────────────────────────────────────
 purist            = true    # true  = hide "HET IS" / "IT IS"
