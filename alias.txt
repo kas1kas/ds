@@ -10,6 +10,7 @@ alias iwk='curl -L https://raw.githubusercontent.com/kas1kas/ds/main/install_wk.
 alias kerlogf="sudo journalctl -k -f"
 alias kerlog='sudo journalctl -k'
 alias luxbar='python3 lux_bar.py'
+alias luxlog='tail -f ~/lux_log.csv'
 alias luxdis='sudo systemctl disable lux_daemon'
 alias luxen='sudo systemctl enable lux_daemon'
 alias luxstat='systemctl status lux_daemon'
