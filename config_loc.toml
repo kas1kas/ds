@@ -1,10 +1,10 @@
+VERSION = "8.24"
 # ─────────────────────────────────────────────────────────────────────────────
-# Woordklok - clock configuration
 # Edit this file to configure your clock.
 # Lines starting with # are comments and are ignored.
-#
 # SELECTION FIELDS: uncomment your choice, keep the others commented out.
-VERSION = "8.23"
+
+
 # ── Name of clock in webapp ───────────────────────────────────────────────────
 
 woordklok = "myklok"
@@ -29,19 +29,34 @@ woordklok = "myklok"
 led_pin = 18
 
 
-# ── Light sensor ──────────────────────────────────────────────────────────────
+# ── Light sensor type ──────────────────────────────────────────────────────────
 # Uncomment ONE line: TSL2591 recommended
 
   sensor = "TSL2591"
 # sensor = "BH1750"
 # sensor = "none"
+
+# ── Light sensor logging ────────────────────────────────────────────────────────
 sensor_log_enabled = false
 sensor_log_path    = "/home/pi/lux_log.csv"
 
+
 # ── Auto dark ──────────────────────────────────────────────────────────────
-auto_dark_enabled   = false
+auto_dark_enabled    = false
 auto_dark_threshold  = 0.1   # lux below this → switch to dark
 auto_dark_hysteresis = 0.05 
+
+
+# ── Weather ───────────────────────────────────────────────────────────────────
+# Update to your coordinates. Location will be visible in the webapp.
+
+[weather]
+enabled          = true
+location         = "Location"
+lat              = 51.5
+lon              = 5.4
+update_interval  = 60
+
 
 # ── Display ───────────────────────────────────────────────────────────────────
 purist            = true    # true  = hide "HET IS" / "IT IS"
@@ -73,7 +88,7 @@ effect_full_panel = true    # true  = effects fill the whole panel
 def_brightness        = 10    # startup brightness (0–255)
 bg_brightness_factor  = 0.9   # background dimming (0.0–1.0)
 sensor_scale          = 1.0   # lux multiplier (adjust if sensor reads high/low)
-light_interval        = 1     # seconds between lux readings
+light_interval        = 1     # seconds between lux changes
 
 
 # ── Brightness LUT  [ lux_in, brightness_out ] ───────────────────────────────
@@ -99,6 +114,7 @@ dot_dark_color      = [100,   0,   0 ]
 # ── Minute dots  (1-based LED indices) ───────────────────────────────────────
 # MD1 lights first (+1 min), MD4 lights last (+4 min).
 # Values are physical LED indices — only change if you rewired your dots.
+# See support folder for matrix layout
 
 [minute_dots.11x10V]
 MD1 =   2
@@ -118,13 +134,3 @@ MD2 =   2
 MD3 = 226
 MD4 = 239
 
-
-# ── Weather ───────────────────────────────────────────────────────────────────
-# Update to your coordinates. Location will be visible in the webapp.
-
-[weather]
-enabled          = true
-location         = "Location"
-lat              = 51.5
-lon              = 5.4
-update_interval  = 60
