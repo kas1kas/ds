@@ -47,17 +47,6 @@ auto_dark_threshold  = 0.1   # lux below this → switch to dark
 auto_dark_hysteresis = 0.05 
 
 
-# ── Weather ───────────────────────────────────────────────────────────────────
-# Update to your coordinates. Location will be visible in the webapp.
-
-[weather]
-enabled          = true
-location         = "Location"
-lat              = 51.5
-lon              = 5.4
-update_interval  = 60
-
-
 # ── Display ───────────────────────────────────────────────────────────────────
 purist            = true    # true  = hide "HET IS" / "IT IS"
                             # false = always show "HET IS" / "IT IS"
@@ -134,3 +123,12 @@ MD2 =   2
 MD3 = 226
 MD4 = 239
 
+# ── Weather ───────────────────────────────────────────────────────────────────
+# Update to your coordinates. Location will be visible in the webapp.
+
+[weather]
+enabled          = true
+location         = "Location"
+lat              = 51.5
+lon              = 5.4
+update_interval  = 60
