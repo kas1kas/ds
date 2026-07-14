@@ -1,7 +1,8 @@
 #!/bin/bash
 # ==============================================================================
 # install_wk.sh - WordClock installation script for Raspberry Pi
-# __version__ = "8.31"
+# __version__ = "8.32"
+# v8.32 disable bluetooth in step 2C
 # ==============================================================================
 
 LOGFILE="/home/pi/wk_install.log"
@@ -134,6 +135,30 @@ else
 fi
 
 log "STEP 2b complete."
+
+# ------------------------------------------------------------------------------
+# Step 2c - Disable Bluetooth
+# ------------------------------------------------------------------------------
+log "STEP 2c: Disabling Bluetooth..."
+
+BOOT_CONFIG="/boot/firmware/config.txt"
+[ ! -f "$BOOT_CONFIG" ] && BOOT_CONFIG="/boot/config.txt"
+
+if ! grep -q "^dtoverlay=disable-bt" "$BOOT_CONFIG"; then
+    echo "dtoverlay=disable-bt" | sudo tee -a "$BOOT_CONFIG" >> "$LOGFILE" 2>&1
+    check "Failed to disable Bluetooth in $BOOT_CONFIG"
+    log "Bluetooth disabled via $BOOT_CONFIG (dtoverlay=disable-bt)."
+else
+    log "Bluetooth already disabled in $BOOT_CONFIG."
+fi
+
+# Also disable hciuart so the UART isn't held up waiting for Bluetooth
+if systemctl list-unit-files 2>/dev/null | grep -q "^hciuart.service"; then
+    sudo systemctl disable hciuart >> "$LOGFILE" 2>&1
+    log "hciuart.service disabled."
+fi
+
+log "STEP 2c complete."
 
 # ------------------------------------------------------------------------------
 # Step 3 - WordClock software
