@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-__version__ = "1.3"
+__version__ = "1.4"
+# 1.4: send 4 digits in: conn.sendall(f"{lux:.4f}\n".encode())
 # 1.3: HYSTERESIS = 0.005  # ~1 ADC count at HIGH gain; smoothing handled by caller
 # lux_daemon.py  –  Reads the TSL2591 light sensor and serves the raw lux
 #                   value over a Unix domain socket at SOCKET_PATH.
@@ -280,7 +281,7 @@ SENSOR_LOOPS = {
 def _handle_client(conn: socket.socket):
     try:
         lux = _get_lux()
-        conn.sendall(f"{lux:.2f}\n".encode())
+        conn.sendall(f"{lux:.4f}\n".encode())
     except Exception as e:
         logging.warning(f"Client send failed: {e}")
     finally:
