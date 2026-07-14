@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-__version__ = "1.2"
+__version__ = "1.3"
+# 1.3: HYSTERESIS = 0.005  # ~1 ADC count at HIGH gain; smoothing handled by caller
 # lux_daemon.py  –  Reads the TSL2591 light sensor and serves the raw lux
 #                   value over a Unix domain socket at SOCKET_PATH.
 #
@@ -180,7 +181,7 @@ def _run_tsl2591():
     GAIN_MED/GAIN_LOW on saturation, climb back to GAIN_HIGH once the raw
     count comfortably allows it.
     """
-    HYSTERESIS = 0.05   # minimum lux change to update shared state
+    HYSTERESIS = 0.005    # ~1 ADC count at HIGH gain; smoothing handled by caller
     atime_ms   = _ATIME_MULTIPLIERS[_INTEGRATION_TIME]
 
     bus         = None
