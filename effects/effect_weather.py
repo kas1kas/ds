@@ -26,6 +26,7 @@ class EffectWeather(BaseEffect):
         ( 25, (255, 100,   0)),
         ( 30, (255,  50,   0)),
         ( 35, (255,   0,   0)),
+        ( 39, (255,   0,   64)),
     ]
 
     DIRECTION_VECTORS = {
