@@ -4,14 +4,14 @@
 matrix wordclock v8
 
 ## Hardware
-- Raspberry Pi **3B+** or Raspberri Pi **Zero2W**
+- Raspberry Pi **3B+** or Raspberri Pi **Zero2W** or Raspberri Pi **Zero W**
 - size 1: 467x467 mm
   - LED string WS281B (30 LEDs per meter)
 - size 2: 240x240 mm
   - LED string WS281B (60 LEDS per meter)
 - size 3: 204x204 mm
   - WS218B 16x16 LED panel
-- lightsensor: optional but strongly reccomended: TSL 2591
+- lightsensor: TSL 2591 (the clock will work without but just use one)
 - wordclock frame + letterplate or 3D printed shell
 
 ## Software
