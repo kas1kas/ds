@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__version__ = "8.26"
+__version__ = "8.27"
 # Woordklok — single HARDWARE key drives all wiring and grid decisions
 # 8.21 Use open-meteo, debug logging only
 # 8.22 Display Raspberry Pi hardware model in web interface
@@ -7,6 +7,7 @@ __version__ = "8.26"
 # 8.24 Weather on webpage, no changes in this file
 # 8.25 Auto-dark hysteresis: two-band threshold prevents rapid on/off flipping
 # 8.26 Sensor logging: optional CSV lux log to /home/pi, once per minute
+# 8.27 open-meteo "models":             "knmi_harmonie_arome_netherlands",
 import json
 import tomllib
 import logging
@@ -297,6 +298,7 @@ class WordClock:
             "current":            "temperature_2m,precipitation,wind_speed_10m,wind_direction_10m",
             "wind_speed_unit":    "ms",   # metres/second, same as before
             "timezone":           "auto",
+            "models":             "knmi_harmonie_arome_netherlands",
         }
         try:
             r = requests.get(URL, params=params, timeout=10)
