@@ -290,7 +290,6 @@ class WordClock:
             else:
                 delay = min(delay * 2, BACKOFF_MAX)
                 logging.warning(f"Weather fetch failed — next retry in {delay}s")
-                
     def _fetch_weather(self) -> bool:
         import requests
     
@@ -339,13 +338,13 @@ class WordClock:
                     f"prec={self.precipitation}mm/h"
                 )
                 return True
-
-        except Exception as e:
-            logging.warning(f"Weather model {model or 'default'} failed: {e}")
-            continue  # try next model in the list
-
-    logging.error("Weather update failed: all fallback models exhausted")
-    return False
+    
+            except Exception as e:
+                logging.warning(f"Weather model {model or 'default'} failed: {e}")
+                continue  # try next model in the list
+    
+        logging.error("Weather update failed: all fallback models exhausted")
+        return False                
 
     def update_brightness(self, raw_lux: float):
         try:
