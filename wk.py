@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__version__ = "8.27"
+__version__ = "8.29"
 # Woordklok — single HARDWARE key drives all wiring and grid decisions
 # 8.21 Use open-meteo, debug logging only
 # 8.22 Display Raspberry Pi hardware model in web interface
@@ -9,6 +9,7 @@ __version__ = "8.27"
 # 8.26 Sensor logging: optional CSV lux log to /home/pi, once per minute
 # 8.27 open-meteo "models":             "knmi_harmonie_arome_netherlands",
 # 8.28 icon_d2 :German 2km
+# 8.28 Weather fallback system
 import json
 import tomllib
 import logging
@@ -289,34 +290,61 @@ class WordClock:
             else:
                 delay = min(delay * 2, BACKOFF_MAX)
                 logging.warning(f"Weather fetch failed — next retry in {delay}s")
-
     def _fetch_weather(self) -> bool:
-        import requests
-        URL = "https://api.open-meteo.com/v1/forecast"
-        params = {
-            "latitude":           self.weather_lat,
-            "longitude":          self.weather_lon,
-            "current":            "temperature_2m,precipitation,wind_speed_10m,wind_direction_10m",
-            "wind_speed_unit":    "ms",   # metres/second, same as before
-            "timezone":           "auto",
-            "models":             "icon_d2",
-        }
+    import requests
+
+    URL = "https://api.open-meteo.com/v1/forecast"
+
+    # Ordered from most local/precise to most reliable/wide-coverage.
+    # None = no "models" param -> Open-Meteo picks its best available model.
+    MODEL_FALLBACKS = [
+        "icon_d2",
+        "knmi_harmonie_arome_netherlands",
+        "icon_eu",
+        None,
+    ]
+
+    base_params = {
+        "latitude":        self.weather_lat,
+        "longitude":       self.weather_lon,
+        "current":         "temperature_2m,precipitation,wind_speed_10m,wind_direction_10m",
+        "wind_speed_unit": "ms",
+        "timezone":        "auto",
+    }
+
+    for model in MODEL_FALLBACKS:
+        params = dict(base_params)
+        if model:
+            params["models"] = model
         try:
             r = requests.get(URL, params=params, timeout=10)
             r.raise_for_status()
             current = r.json().get("current", {})
-            self.temperature    = float(current.get("temperature_2m",      self.temperature))
-            self.precipitation  = float(current.get("precipitation",       self.precipitation))
-            self.wind_speed     = float(current.get("wind_speed_10m",      self.wind_speed))
-            self.wind_direction = float(current.get("wind_direction_10m",  self.wind_direction))
+
+            # Some models only omit certain fields rather than the whole
+            # request failing - treat a response with no usable fields as
+            # a miss too, so we still fall through.
+            if not current:
+                raise ValueError("empty 'current' block in response")
+
+            self.temperature    = float(current.get("temperature_2m",     self.temperature))
+            self.precipitation  = float(current.get("precipitation",      self.precipitation))
+            self.wind_speed     = float(current.get("wind_speed_10m",     self.wind_speed))
+            self.wind_direction = float(current.get("wind_direction_10m", self.wind_direction))
+
             logging.debug(
-                f"Weather: T={self.temperature}C wind={self.wind_speed}m/s "
-                f"{self.wind_direction} prec={self.precipitation}mm/h"
+                f"Weather ({model or 'default'}): T={self.temperature}C "
+                f"wind={self.wind_speed}m/s {self.wind_direction} "
+                f"prec={self.precipitation}mm/h"
             )
             return True
+
         except Exception as e:
-            logging.error(f"Weather update failed: {e}")
-            return False
+            logging.warning(f"Weather model {model or 'default'} failed: {e}")
+            continue  # try next model in the list
+
+    logging.error("Weather update failed: all fallback models exhausted")
+    return False
 
     def update_brightness(self, raw_lux: float):
         try:
