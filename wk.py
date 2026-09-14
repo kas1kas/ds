@@ -9,7 +9,7 @@ __version__ = "8.29"
 # 8.26 Sensor logging: optional CSV lux log to /home/pi, once per minute
 # 8.27 open-meteo "models":             "knmi_harmonie_arome_netherlands",
 # 8.28 icon_d2 :German 2km
-# 8.28 Weather fallback system
+# 8.29 Weather fallback system
 import json
 import tomllib
 import logging
@@ -298,8 +298,8 @@ class WordClock:
         # Ordered from most local/precise to most reliable/wide-coverage.
         # None = no "models" param -> Open-Meteo picks its best available model.
         MODEL_FALLBACKS = [
-            "icon_d2",
             "knmi_harmonie_arome_netherlands",
+            "icon_d2",
             "icon_eu",
             None,
         ]
