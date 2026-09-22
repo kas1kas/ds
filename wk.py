@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__version__ = "8.29"
+__version__ = "8.30"
 # Woordklok — single HARDWARE key drives all wiring and grid decisions
 # 8.21 Use open-meteo, debug logging only
 # 8.22 Display Raspberry Pi hardware model in web interface
@@ -10,6 +10,7 @@ __version__ = "8.29"
 # 8.27 open-meteo "models":             "knmi_harmonie_arome_netherlands",
 # 8.28 icon_d2 :German 2km
 # 8.29 Weather fallback system
+# 8.30 Precipitation from Buienradar radar nowcast (falls back to Open-Meteo models)
 import json
 import tomllib
 import logging
@@ -158,6 +159,14 @@ class WordClock:
         self.wind_speed     = 5
         self.wind_direction = 270
 
+        # Which source actually produced the last temp/wind reading and the
+        # last precipitation reading, plus when weather was last refreshed
+        # successfully. Surfaced on the web UI so it's visible when the
+        # clock has fallen back to a less-local model or stale data.
+        self.weather_model_used  = None
+        self.precipitation_source = None
+        self.weather_updated_at  = None
+
         # ----------------------------------------------------------------
         # Auto-dark: switch to 'dark' effect when lux drops below threshold,
         # restore when it recovers above threshold.
@@ -290,11 +299,49 @@ class WordClock:
             else:
                 delay = min(delay * 2, BACKOFF_MAX)
                 logging.warning(f"Weather fetch failed — next retry in {delay}s")
+
+    def _fetch_precipitation_buienradar(self):
+        """
+        Real-time, radar-based precipitation intensity (mm/h) for NL/BE,
+        decoded from Buienradar's 5-minute nowcast feed — the same
+        underlying radar data Buienalarm and the Buienradar app use for
+        "now". Much closer to reality than model-based precipitation,
+        since it's derived from actual radar reflectivity rather than a
+        forecast model. Returns None on failure so the caller can fall
+        back to a model-based value instead.
+        """
+        import requests
+
+        url = "https://gpsgadget.buienradar.nl/data/raintext"
+        params = {"lat": self.weather_lat, "lon": self.weather_lon}
+        try:
+            r = requests.get(url, params=params, timeout=10)
+            r.raise_for_status()
+            lines = r.text.strip().splitlines()
+            if not lines:
+                raise ValueError("empty raintext response")
+
+            # Each line is "VVV|HH:MM" - one entry per 5 min, out to 2h ahead.
+            # The first line (offset 00:00) is "now".
+            value_str, _ = lines[0].split("|")
+            value = int(value_str)
+
+            if value <= 0:
+                return 0.0
+
+            # Buienradar encodes intensity on a logarithmic scale:
+            # mm/h = 10 ** ((value - 109) / 32)
+            return round(10 ** ((value - 109) / 32), 2)
+
+        except Exception as e:
+            logging.warning(f"Buienradar precipitation fetch failed: {e}")
+            return None
+
     def _fetch_weather(self) -> bool:
         import requests
-    
+
         URL = "https://api.open-meteo.com/v1/forecast"
-    
+
         # Ordered from most local/precise to most reliable/wide-coverage.
         # None = no "models" param -> Open-Meteo picks its best available model.
         MODEL_FALLBACKS = [
@@ -303,7 +350,7 @@ class WordClock:
             "icon_eu",
             None,
         ]
-    
+
         base_params = {
             "latitude":        self.weather_lat,
             "longitude":       self.weather_lon,
@@ -311,40 +358,68 @@ class WordClock:
             "wind_speed_unit": "ms",
             "timezone":        "auto",
         }
-    
+
+        weather_ok = False
+
         for model in MODEL_FALLBACKS:
             params = dict(base_params)
             if model:
                 params["models"] = model
+            label = model or "default"
             try:
                 r = requests.get(URL, params=params, timeout=10)
                 r.raise_for_status()
                 current = r.json().get("current", {})
-    
+
                 # Some models only omit certain fields rather than the whole
                 # request failing - treat a response with no usable fields as
                 # a miss too, so we still fall through.
                 if not current:
                     raise ValueError("empty 'current' block in response")
-    
+
                 self.temperature    = float(current.get("temperature_2m",     self.temperature))
                 self.precipitation  = float(current.get("precipitation",      self.precipitation))
                 self.wind_speed     = float(current.get("wind_speed_10m",     self.wind_speed))
                 self.wind_direction = float(current.get("wind_direction_10m", self.wind_direction))
-    
+
+                self.weather_model_used = label
+                self.weather_updated_at = time.time()
+                weather_ok = True
+
                 logging.debug(
-                    f"Weather ({model or 'default'}): T={self.temperature}C "
+                    f"Weather ({label}): T={self.temperature}C "
                     f"wind={self.wind_speed}m/s {self.wind_direction} "
                     f"prec={self.precipitation}mm/h"
                 )
-                return True
-    
+                break
+
             except Exception as e:
-                logging.warning(f"Weather model {model or 'default'} failed: {e}")
+                logging.warning(f"Weather model {label} failed: {e}")
                 continue  # try next model in the list
-    
-        logging.error("Weather update failed: all fallback models exhausted")
-        return False                
+
+        if not weather_ok:
+            logging.error("Weather update failed: all fallback models exhausted")
+
+        # Precipitation specifically: prefer the Buienradar radar nowcast,
+        # since it tracks actual rainfall far better than any forecast
+        # model. Only fall back to the Open-Meteo value fetched above if
+        # Buienradar is unreachable.
+        radar_precip = self._fetch_precipitation_buienradar()
+        if radar_precip is not None:
+            self.precipitation = radar_precip
+            self.precipitation_source = "buienradar_radar"
+        elif weather_ok:
+            self.precipitation_source = self.weather_model_used
+        else:
+            self.precipitation_source = None
+
+        logging.debug(
+            f"Weather: T={self.temperature}C wind={self.wind_speed}m/s "
+            f"{self.wind_direction} prec={self.precipitation}mm/h "
+            f"(temp/wind: {self.weather_model_used}, precip: {self.precipitation_source})"
+        )
+
+        return weather_ok or radar_precip is not None
 
     def update_brightness(self, raw_lux: float):
         try:
