@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__version__ = "8.31"
+__version__ = "8.32"
 # Woordklok — single HARDWARE key drives all wiring and grid decisions
 # 8.21 Use open-meteo, debug logging only
 # 8.22 Display Raspberry Pi hardware model in web interface
@@ -12,6 +12,7 @@ __version__ = "8.31"
 # 8.29 Weather fallback system
 # 8.30 Precipitation from Buienradar radar nowcast (falls back to Open-Meteo models)
 # 8.31 Buienradar is now the single primary weather source (station temp/wind + radar precip); Open-Meteo only as fallback
+# 8.32 Weather 1.2: Drops now gray when background is blue (temperatures below 0)
 import json
 import tomllib
 import logging
