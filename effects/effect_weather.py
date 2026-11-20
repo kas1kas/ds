@@ -1,3 +1,5 @@
+__version__ = "1.2"
+
 import time
 import math
 import random
@@ -9,6 +11,7 @@ class EffectWeather(BaseEffect):
     - Background color based on temperature (windy.com style).
     - Moving dark band based on wind speed/direction.
     - Raindrops falling top→bottom (panel space, y=0=top).
+      Drops switch to a contrasting color when the background is bluish.
     - Time displayed in white on top.
     """
     name = "Weather"
@@ -55,7 +58,9 @@ class EffectWeather(BaseEffect):
 
         self.precip_scale     = 0.15
         self.drop_speed_range = (1.5, 3.5)
-        self.drop_color       = (64, 0, 255)
+        self.drop_color          = (64, 0, 255)     # normal drops
+        self.drop_color_on_blue  = (200, 200, 200)  # drops when background is bluish (light gray)
+        self.drop_blue_threshold = 100              # background blue channel (0-255) at which we switch
         self.max_drops        = 150
         self.drops            = []
 
@@ -107,6 +112,11 @@ class EffectWeather(BaseEffect):
         max_cols, max_rows = self.get_dimensions()
         base_color = self._temperature_to_rgb(temp)
 
+        # Drops get a contrasting color when the background has a strong blue component.
+        drop_color = (self.drop_color_on_blue
+                      if base_color[2] >= self.drop_blue_threshold
+                      else self.drop_color)
+
         # --- 1. Temperature background + wind band ---
         # All coordinates are panel space: y=0=top, matches setcolor_x_y convention.
         self.offset += speed * self.speed_scale * dt
@@ -144,7 +154,7 @@ class EffectWeather(BaseEffect):
                 if drop['row'] < max_rows:
                     new_drops.append(drop)
                     self.word_clock.setcolor_x_y(drop['col'], int(drop['row']),
-                                                 self.drop_color)
+                                                 drop_color)
             # Keep oldest drops first — they are closest to the bottom
             # and will disappear naturally. Trimming from the end (newest)
             # avoids visible pop-out of nearly-finished drops.
