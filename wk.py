@@ -336,11 +336,17 @@ class WordClock:
             f"(effect='{self.current_effect_id}')"
         )
 
-    def _wait_until_weather_active(self):
-        """Block (no CPU, no network) until a weather effect is active."""
+    def _wait_until_weather_active(self) -> bool:
+        """
+        Block (no CPU, no network) until a weather effect is active.
+        Returns True if it had to wait (i.e. polling was paused).
+        """
+        waited = False
         with self._weather_cond:
             while not self._weather_active:
+                waited = True
                 self._weather_cond.wait()
+        return waited
 
     def _sleep_while_weather_active(self, delay: float) -> bool:
         """
@@ -362,8 +368,10 @@ class WordClock:
         Poll the weather provider, but only while a weather effect is active.
 
         - Paused: blocks on a Condition, no provider requests at all.
-        - On resume: fetches at once if the last attempt is older than the
-          update interval, otherwise waits out the remainder of the interval.
+        - On resume: always refreshes right away (so the weather effect
+          starts with fresh data), except that two attempts are never closer
+          than RESUME_MIN_GAP seconds, to protect the providers against rapid
+          effect switching.
         - First data ever: up to 3 quick retries (5 s apart).
         - Afterwards: exponential backoff on failure, 60s -> 120s -> 240s ...
           capped at BACKOFF_MAX. On success the interval resets to
@@ -372,6 +380,7 @@ class WordClock:
         BACKOFF_MAX   = 1800   # 30 minutes maximum between retries
         QUICK_RETRIES = 3
         QUICK_DELAY   = 5
+        RESUME_MIN_GAP = 5     # min seconds between two fetch attempts on resume
 
         interval      = self.weather_update_interval
         target        = interval        # wait between attempts at this moment
@@ -381,15 +390,16 @@ class WordClock:
         delay         = None            # None => recompute from last_attempt
 
         while True:
-            self._wait_until_weather_active()
+            # If we were paused (also when the pause hit during a fetch), the
+            # old schedule is void: refresh as soon as we are active again.
+            if self._wait_until_weather_active():
+                delay = None
 
-            # (Re)entering the active state, or first pass: work out how long
-            # until the next fetch is due.
             if delay is None:
                 if last_attempt is None:
                     delay = 0
                 else:
-                    delay = max(0.0, target - (time.monotonic() - last_attempt))
+                    delay = max(0.0, RESUME_MIN_GAP - (time.monotonic() - last_attempt))
 
             if delay > 0 and not self._sleep_while_weather_active(delay):
                 delay = None     # paused while waiting; recompute on resume
