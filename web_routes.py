@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__version__ = "7.70"
+__version__ = "7.80"
 import logging
 import bisect
 import time
@@ -206,4 +206,8 @@ def register_routes():
             'rain':       word_clock.precipitation,
             'wind_speed': word_clock.wind_speed,
             'wind_dir':   word_clock.wind_direction,
+            # 8.40: polling only runs while a weather effect is active
+            'paused':     getattr(word_clock, 'weather_paused', False),
+            'age_s':      (None if getattr(word_clock, 'weather_updated_at', None) is None
+                           else int(time.time() - word_clock.weather_updated_at)),
         }), 200
