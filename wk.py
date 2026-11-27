@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__version__ = "8.32"
+__version__ = "8.40"
 # Woordklok — single HARDWARE key drives all wiring and grid decisions
 # 8.21 Use open-meteo, debug logging only
 # 8.22 Display Raspberry Pi hardware model in web interface
@@ -13,6 +13,8 @@ __version__ = "8.32"
 # 8.30 Precipitation from Buienradar radar nowcast (falls back to Open-Meteo models)
 # 8.31 Buienradar is now the single primary weather source (station temp/wind + radar precip); Open-Meteo only as fallback
 # 8.32 Weather 1.2: Drops now gray when background is blue (temperatures below 0)
+# 8.40 Weather thread sleeps (no provider polling) unless a weather effect is the active display.
+#      Resumes automatically on switching back; fetches immediately if data is older than the update interval.
 import json
 import tomllib
 import logging
@@ -170,6 +172,27 @@ class WordClock:
         self.weather_updated_at  = None
 
         # ----------------------------------------------------------------
+        # Weather polling gate (8.40).
+        #
+        # The weather thread only polls the providers while a weather effect
+        # is the active display. Otherwise it blocks on a Condition (zero
+        # CPU, zero network).
+        #
+        # Which effects count as "weather effects":
+        #   * optional config_loc.toml key  weather_effect_ids = ["weather", ...]
+        #     (exact effect ids; overrides the detection below), or
+        #   * an effect class/instance with attribute  uses_weather = True, or
+        #   * any effect id containing the text "weather" (default).
+        #
+        # weather_paused is True while polling is suspended (for the web UI:
+        # the displayed weather values are then not live).
+        # ----------------------------------------------------------------
+        self.weather_effect_ids = config.get("WEATHER_EFFECT_IDS", None)
+        self._weather_cond      = threading.Condition()
+        self._weather_active    = False
+        self.weather_paused     = True
+
+        # ----------------------------------------------------------------
         # Auto-dark: switch to 'dark' effect when lux drops below threshold,
         # restore when it recovers above threshold.
         #
@@ -238,9 +261,11 @@ class WordClock:
                 logging.warning("Lux daemon   : not reachable — brightness control disabled")
 
         if self.weather_enabled:
+            # The thread starts blocked; it is released by
+            # _update_weather_activity() once a weather effect is active.
             self._weather_thread = threading.Thread(target=self._weather_loop, daemon=True)
             self._weather_thread.start()
-            logging.info(f"Weather      : enabled")
+            logging.info(f"Weather      : enabled (polls only while a weather effect is active)")
             logging.info(f"Location     : {self.weather_location}")
             logging.info(f"lat, lon     : {self.weather_lat}, {self.weather_lon}")
         else:
@@ -262,6 +287,9 @@ class WordClock:
             self.current_effect_id = next(iter(self.effects.keys()), "normal")
         logging.info(f"Effect       : {self.current_effect_id}")
 
+        # Release (or keep blocked) the weather thread for the starting effect.
+        self._update_weather_activity()
+
     def initialize_led(self):
         try:
             self.strip = PixelStrip(
@@ -275,32 +303,119 @@ class WordClock:
             logging.error(f"LED strip init failed: {e}")
             exit(1)
 
-    def _weather_loop(self):
-        # Initial fetch with a few quick retries.
-        for attempt in range(3):
-            try:
-                if self._fetch_weather():
-                    logging.info("Initial weather data fetched")
-                    break
-            except Exception as e:
-                logging.warning(f"Initial weather fetch attempt {attempt+1} failed: {e}")
-                time.sleep(5)
-        else:
-            logging.error("All initial weather fetch attempts failed")
+    # ------------------------------------------------------------------
+    # Weather polling gate
+    # ------------------------------------------------------------------
 
-        # Main loop with exponential backoff on failure.
-        # Backoff: 60s -> 120s -> 240s -> capped at BACKOFF_MAX.
-        # On success the interval resets to weather_update_interval.
-        BACKOFF_MAX = 1800   # 30 minutes maximum between retries
-        delay = self.weather_update_interval
+    def _is_weather_effect(self, effect_id) -> bool:
+        """True if the given effect needs live weather data."""
+        if self.weather_effect_ids is not None:
+            return effect_id in self.weather_effect_ids
+        effect = self.effects.get(effect_id)
+        if effect is not None and getattr(effect, "uses_weather", False):
+            return True
+        return "weather" in str(effect_id).lower()
+
+    def _update_weather_activity(self):
+        """
+        Pause or resume weather polling to match the current effect.
+        Cheap and idempotent: safe to call whenever the effect may have
+        changed (set_effect, startup, main loop).
+        """
+        if not self.weather_enabled:
+            return
+        want = self._is_weather_effect(self.current_effect_id)
+        with self._weather_cond:
+            if want == self._weather_active:
+                return
+            self._weather_active = want
+            self.weather_paused  = not want
+            self._weather_cond.notify_all()
+        logging.info(
+            f"Weather polling: {'resumed' if want else 'paused'} "
+            f"(effect='{self.current_effect_id}')"
+        )
+
+    def _wait_until_weather_active(self):
+        """Block (no CPU, no network) until a weather effect is active."""
+        with self._weather_cond:
+            while not self._weather_active:
+                self._weather_cond.wait()
+
+    def _sleep_while_weather_active(self, delay: float) -> bool:
+        """
+        Sleep up to `delay` seconds, but wake immediately if polling is
+        paused. Returns True if the full delay elapsed while still active,
+        False if polling was paused in the meantime.
+        """
+        end = time.monotonic() + delay
+        with self._weather_cond:
+            while self._weather_active:
+                remaining = end - time.monotonic()
+                if remaining <= 0:
+                    return True
+                self._weather_cond.wait(remaining)
+            return False
+
+    def _weather_loop(self):
+        """
+        Poll the weather provider, but only while a weather effect is active.
+
+        - Paused: blocks on a Condition, no provider requests at all.
+        - On resume: fetches at once if the last attempt is older than the
+          update interval, otherwise waits out the remainder of the interval.
+        - First data ever: up to 3 quick retries (5 s apart).
+        - Afterwards: exponential backoff on failure, 60s -> 120s -> 240s ...
+          capped at BACKOFF_MAX. On success the interval resets to
+          weather_update_interval.
+        """
+        BACKOFF_MAX   = 1800   # 30 minutes maximum between retries
+        QUICK_RETRIES = 3
+        QUICK_DELAY   = 5
+
+        interval      = self.weather_update_interval
+        target        = interval        # wait between attempts at this moment
+        backoff       = interval
+        quick_left    = QUICK_RETRIES
+        last_attempt  = None            # time.monotonic() of the last fetch attempt
+        delay         = None            # None => recompute from last_attempt
+
         while True:
-            time.sleep(delay)
+            self._wait_until_weather_active()
+
+            # (Re)entering the active state, or first pass: work out how long
+            # until the next fetch is due.
+            if delay is None:
+                if last_attempt is None:
+                    delay = 0
+                else:
+                    delay = max(0.0, target - (time.monotonic() - last_attempt))
+
+            if delay > 0 and not self._sleep_while_weather_active(delay):
+                delay = None     # paused while waiting; recompute on resume
+                continue
+
+            if not self._weather_active:
+                delay = None
+                continue
+
             success = self._fetch_weather()
+            last_attempt = time.monotonic()
+
             if success:
-                delay = self.weather_update_interval   # reset to normal cadence
+                backoff    = interval
+                target     = interval
+                quick_left = 0
+            elif self.weather_updated_at is None and quick_left > 0:
+                quick_left -= 1
+                target      = QUICK_DELAY
+                logging.warning(f"Initial weather fetch failed — quick retry in {QUICK_DELAY}s")
             else:
-                delay = min(delay * 2, BACKOFF_MAX)
-                logging.warning(f"Weather fetch failed — next retry in {delay}s")
+                backoff = min(backoff * 2, BACKOFF_MAX)
+                target  = backoff
+                logging.warning(f"Weather fetch failed — next retry in {target}s")
+
+            delay = target
 
     def _fetch_precipitation_buienradar(self):
         """
@@ -424,6 +539,11 @@ class WordClock:
         }
 
         for model in MODEL_FALLBACKS:
+            # Stop hammering fallback models if the user switched away
+            # from the weather display while we were walking the chain.
+            if not self._weather_active:
+                return False
+
             params = dict(base_params)
             if model:
                 params["models"] = model
@@ -542,6 +662,9 @@ class WordClock:
     def set_effect(self, effect_id):
         if effect_id in self.effects:
             self.current_effect_id = effect_id
+            # Pause/resume weather polling before the first draw, so a
+            # weather effect gets its data fetch started right away.
+            self._update_weather_activity()
             self.clear_all()
             self.strip.show()
             current_effect = self.effects.get(effect_id)
@@ -788,6 +911,7 @@ def run_clock():
     last_log_time    = 0.0   # force an immediate log entry on first valid lux
     LOG_INTERVAL     = 60.0  # seconds between sensor log entries
     sensor_active    = word_clock.light_sensor_type.lower() != "none"
+    last_effect_seen = word_clock.current_effect_id
     try:
         while True:
             now = time.time()
@@ -811,6 +935,13 @@ def run_clock():
                             word_clock._auto_dark_active,
                         )
                         last_log_time = now
+
+            # Safety net: if something (e.g. a web route) changed
+            # current_effect_id directly instead of via set_effect(),
+            # keep the weather polling gate in sync.
+            if word_clock.current_effect_id != last_effect_seen:
+                last_effect_seen = word_clock.current_effect_id
+                word_clock._update_weather_activity()
 
             current_effect = word_clock.effects.get(word_clock.current_effect_id)
             if current_effect:
